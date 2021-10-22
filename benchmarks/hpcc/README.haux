@@ -1,0 +1,24 @@
+\@@addtocsec{htoc}{sec1}{0}{\@print{1}\quad{}Introduction{}}
+\@@addtocsec{htoc}{sec2}{0}{\@print{2}\quad{}Compiling{}}
+\@@addtocsec{htoc}{sec3}{0}{\@print{3}\quad{}Runtime Configuration{}}
+\@@addtocsec{htoc}{sec4}{0}{\@print{4}\quad{}Running{}}
+\@@addtocsec{htoc}{sec5}{0}{\@print{5}\quad{}Source Code Changes across Versions (ChangeLog){}}
+\@@addtocsec{htoc}{sec6}{1}{\@print{5.1}\quad{}Version 1.5.0 (2016-03-18){}}
+\@@addtocsec{htoc}{sec7}{1}{\@print{5.2}\quad{}Version 1.5.0beta (2015-07-23){}}
+\@@addtocsec{htoc}{sec8}{1}{\@print{5.3}\quad{}Version 1.5.0alpha (2015-05-22){}}
+\@@addtocsec{htoc}{sec9}{1}{\@print{5.4}\quad{}Version 1.4.3 (2013-08-26){}}
+\@@addtocsec{htoc}{sec10}{1}{\@print{5.5}\quad{}Version 1.4.2 (2012-10-12){}}
+\@@addtocsec{htoc}{sec11}{1}{\@print{5.6}\quad{}Version 1.4.1 (2010-06-01){}}
+\@@addtocsec{htoc}{sec12}{1}{\@print{5.7}\quad{}Version 1.4.0 (2010-03-26){}}
+\@@addtocsec{htoc}{sec13}{1}{\@print{5.8}\quad{}Version 1.3.2 (2009-03-24){}}
+\@@addtocsec{htoc}{sec14}{1}{\@print{5.9}\quad{}Version 1.3.1 (2008-12-09){}}
+\@@addtocsec{htoc}{sec15}{1}{\@print{5.10}\quad{}Version 1.3.0 (2008-11-13){}}
+\@@addtocsec{htoc}{sec16}{1}{\@print{5.11}\quad{}Version 1.2.0 (2007-06-25){}}
+\@@addtocsec{htoc}{sec17}{1}{\@print{5.12}\quad{}Version 1.0.0 (2005-06-11){}}
+\@@addtocsec{htoc}{sec18}{1}{\@print{5.13}\quad{}Version 0.8beta (2004-10-19){}}
+\@@addtocsec{htoc}{sec19}{1}{\@print{5.14}\quad{}Version 0.8alpha (2004-10-15){}}
+\@@addtocsec{htoc}{sec20}{1}{\@print{5.15}\quad{}Version 0.6beta (2004-08-21){}}
+\@@addtocsec{htoc}{sec21}{1}{\@print{5.16}\quad{}Version 0.6alpha (2004-05-31){}}
+\@@addtocsec{htoc}{sec22}{1}{\@print{5.17}\quad{}Version 0.5beta (2003-12-01){}}
+\@@addtocsec{htoc}{sec23}{1}{\@print{5.18}\quad{}Version 0.4alpha (2003-11-13){}}
+\@@addtocsec{htoc}{sec24}{1}{\@print{5.19}\quad{}Version 0.3alpha (2004-11-05){}}

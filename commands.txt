@@ -1,0 +1,16 @@
+
+building gem5:
+  python3 `which scons` build/X86/gem5.opt -j9
+
+gem5/build/X86/gem5.opt baseline/two_level.py
+build/X86/gem5.opt src/baseline/run_my.py
+build/X86/gem5.opt --debug-help
+
+build/X86/gem5.opt --debug-flags=MyExample src/baseline/run_my.py
+build/X86/gem5.opt --debug-flags=SimpleMemobj configs/learning_gem5/part2/simple_memobj.py
+build/X86/gem5.opt --stats-file=simple_cache --debug-flags=SimpleCache configs/learning_gem5/part2/simple_cache.py
+
+/home/marta/runahead/benchmarks/hpcc-main/RandomAccess/core_single_cpu.o
+cd hpl/ ; make clean_arch_all; rm -r lib/Unix; cd ..
+
+build/X86/gem5.opt configs/learning_gem5/part1/simple.py
