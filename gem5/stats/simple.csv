@@ -1,0 +1,3 @@
+configuration,simTicks,system.cpu.mmu.dtb.rdAccesses,system.cpu.mmu.itb.rdAccesses,system.mem_ctrl.dram.rank0.readEnergy,system.mem_ctrl.dram.rank1.readEnergy
+runahead_2level_randacc,55568000,2894,0,3498600,1949220
+baseline_2level_randacc,56252000,2884,0,3491460,1934940

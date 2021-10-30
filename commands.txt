@@ -14,3 +14,5 @@ build/X86/gem5.opt --stats-file=simple_cache --debug-flags=SimpleCache configs/l
 cd hpl/ ; make clean_arch_all; rm -r lib/Unix; cd ..
 
 build/X86/gem5.opt configs/learning_gem5/part1/simple.py
+
+python ./stats/summarizeStat.py ./m5out ./stats/simple.csv

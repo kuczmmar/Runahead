@@ -1,5 +1,0 @@
-Import('*')
-
-SimObject('MyObject.py')
-Source('my_object.cc')
-DebugFlag('MyExample')

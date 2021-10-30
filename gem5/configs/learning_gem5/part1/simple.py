@@ -89,6 +89,7 @@ isa = str(m5.defines.buildEnv['TARGET_ISA']).lower()
 thispath = os.path.dirname(os.path.realpath(__file__))
 binary = os.path.join(thispath, '../../../',
                       'tests/test-progs/hello/bin/', isa, 'linux/hello')
+command = [binary]
 
 # testing HPCC
 # binary = os.path.join('/home/marta/runahead/benchmarks/main/RandomAccess/core_single_cpu.o')
@@ -99,6 +100,7 @@ binary = os.path.join(thispath, '../../../',
 
 # RandAcc
 binary = os.path.join('/home/marta/runahead/benchmarks/cgo2017/program/randacc/bin/x86/randacc-no')
+command = [binary, '10000']
 # 37582545000
 # 287868064000
 
@@ -108,7 +110,7 @@ system.workload = SEWorkload.init_compatible(binary)
 process = Process()
 # Set the command
 # cmd is a list which begins with the executable (like argv)
-process.cmd = [binary, '1000000']
+process.cmd = command
 # Set the cpu to use the process as its workload and create thread contexts
 system.cpu.workload = process
 system.cpu.createThreads()

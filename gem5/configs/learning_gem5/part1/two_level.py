@@ -63,6 +63,7 @@ default_binary = os.path.join(thispath, '../../../',
 
 # Binary to execute
 SimpleOpts.add_option("binary", nargs='?', default=default_binary)
+SimpleOpts.add_option("binary_args", nargs='?')
 
 # Finalize the arguments and grab the args so we can pass it on to our objects
 args = SimpleOpts.parse_args()
@@ -132,7 +133,10 @@ system.workload = SEWorkload.init_compatible(args.binary)
 process = Process()
 # Set the command
 # cmd is a list which begins with the executable (like argv)
-process.cmd = [args.binary]
+if args.binary_args:
+    process.cmd = [args.binary, args.binary_args]
+else:
+    process.cmd = [args.binary]
 # Set the cpu to use the process as its workload and create thread contexts
 system.cpu.workload = process
 system.cpu.createThreads()

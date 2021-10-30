@@ -1,0 +1,5 @@
+simTicks
+system.mem_ctrl.dram.rank0.readEnergy
+system.mem_ctrl.dram.rank1.readEnergy
+system.cpu.mmu.dtb.rdAccesses
+system.cpu.mmu.itb.rdAccesses
