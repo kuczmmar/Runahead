@@ -53,7 +53,7 @@
 #include "cpu/runaheado3/rename_map.hh"
 #include "cpu/runaheado3/rob.hh"
 #include "cpu/timebuf.hh"
-#include "enums/CommitPolicy.hh"
+#include "enums/RunaheadCommitPolicy.hh"
 #include "sim/probe/probe.hh"
 
 namespace gem5
@@ -119,7 +119,7 @@ class Commit
     /** Per-thread status. */
     ThreadStatus commitStatus[MaxThreads];
     /** Commit policy used in SMT mode. */
-    CommitPolicy commitPolicy;
+    RunaheadCommitPolicy commitPolicy;
 
     /** Probe Points. */
     ProbePointArg<DynInstPtr> *ppCommit;

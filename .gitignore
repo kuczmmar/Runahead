@@ -1,3 +1,6 @@
 .vscode/
 gem5/build
 __pycache__/
+/gem5/out.txt
+/gem5/m5out
+/gem5/stats/simple.csv

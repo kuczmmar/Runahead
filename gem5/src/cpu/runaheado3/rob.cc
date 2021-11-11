@@ -65,13 +65,13 @@ ROB::ROB(CPU *_cpu, const RunaheadO3CPUParams &params)
       stats(_cpu)
 {
     //Figure out rob policy
-    if (robPolicy == SMTQueuePolicy::Dynamic) {
+    if (robPolicy == RunaheadSMTQueuePolicy::Dynamic) {
         //Set Max Entries to Total ROB Capacity
         for (ThreadID tid = 0; tid < numThreads; tid++) {
             maxEntries[tid] = numEntries;
         }
 
-    } else if (robPolicy == SMTQueuePolicy::Partitioned) {
+    } else if (robPolicy == RunaheadSMTQueuePolicy::Partitioned) {
         DPRINTF(Fetch, "ROB sharing policy set to Partitioned\n");
 
         //@todo:make work if part_amt doesnt divide evenly.
@@ -82,7 +82,7 @@ ROB::ROB(CPU *_cpu, const RunaheadO3CPUParams &params)
             maxEntries[tid] = part_amt;
         }
 
-    } else if (robPolicy == SMTQueuePolicy::Threshold) {
+    } else if (robPolicy == RunaheadSMTQueuePolicy::Threshold) {
         DPRINTF(Fetch, "ROB sharing policy set to Threshold\n");
 
         int threshold =  params.smtROBThreshold;;
@@ -147,7 +147,7 @@ ROB::takeOverFrom()
 void
 ROB::resetEntries()
 {
-    if (robPolicy != SMTQueuePolicy::Dynamic || numThreads > 1) {
+    if (robPolicy != RunaheadSMTQueuePolicy::Dynamic || numThreads > 1) {
         auto active_threads = activeThreads->size();
 
         std::list<ThreadID>::iterator threads = activeThreads->begin();
@@ -156,9 +156,9 @@ ROB::resetEntries()
         while (threads != end) {
             ThreadID tid = *threads++;
 
-            if (robPolicy == SMTQueuePolicy::Partitioned) {
+            if (robPolicy == RunaheadSMTQueuePolicy::Partitioned) {
                 maxEntries[tid] = numEntries / active_threads;
-            } else if (robPolicy == SMTQueuePolicy::Threshold &&
+            } else if (robPolicy == RunaheadSMTQueuePolicy::Threshold &&
                        active_threads == 1) {
                 maxEntries[tid] = numEntries;
             }
@@ -169,7 +169,7 @@ ROB::resetEntries()
 int
 ROB::entryAmount(ThreadID num_threads)
 {
-    if (robPolicy == SMTQueuePolicy::Partitioned) {
+    if (robPolicy == RunaheadSMTQueuePolicy::Partitioned) {
         return numEntries / num_threads;
     } else {
         return 0;

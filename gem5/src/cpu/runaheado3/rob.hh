@@ -52,7 +52,7 @@
 #include "cpu/runaheado3/dyn_inst_ptr.hh"
 #include "cpu/runaheado3/limits.hh"
 #include "cpu/reg_class.hh"
-#include "enums/SMTQueuePolicy.hh"
+#include "enums/RunaheadSMTQueuePolicy.hh"
 
 namespace gem5
 {
@@ -88,7 +88,7 @@ class ROB
     Status robStatus[MaxThreads];
 
     /** ROB resource sharing policy for SMT mode. */
-    SMTQueuePolicy robPolicy;
+    RunaheadSMTQueuePolicy robPolicy;
 
   public:
     /** ROB constructor.

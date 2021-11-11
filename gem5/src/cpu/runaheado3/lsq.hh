@@ -56,7 +56,7 @@
 #include "cpu/inst_seq.hh"
 #include "cpu/runaheado3/dyn_inst_ptr.hh"
 #include "cpu/utils.hh"
-#include "enums/SMTQueuePolicy.hh"
+#include "enums/RunaheadSMTQueuePolicy.hh"
 #include "mem/port.hh"
 #include "sim/sim_object.hh"
 
@@ -1023,7 +1023,7 @@ class LSQ
 
 
     /** The LSQ policy for SMT mode. */
-    SMTQueuePolicy lsqPolicy;
+    RunaheadSMTQueuePolicy lsqPolicy;
 
     /** Auxiliary function to calculate per-thread max LSQ allocation limit.
      * Depending on a policy, number of entries and possibly number of threads
@@ -1031,15 +1031,15 @@ class LSQ
      * can occupy at most.
      */
     static uint32_t
-    maxLSQAllocation(SMTQueuePolicy pol, uint32_t entries,
+    maxLSQAllocation(RunaheadSMTQueuePolicy pol, uint32_t entries,
             uint32_t numThreads, uint32_t SMTThreshold)
     {
-        if (pol == SMTQueuePolicy::Dynamic) {
+        if (pol == RunaheadSMTQueuePolicy::Dynamic) {
             return entries;
-        } else if (pol == SMTQueuePolicy::Partitioned) {
+        } else if (pol == RunaheadSMTQueuePolicy::Partitioned) {
             //@todo:make work if part_amt doesnt divide evenly.
             return entries / numThreads;
-        } else if (pol == SMTQueuePolicy::Threshold) {
+        } else if (pol == RunaheadSMTQueuePolicy::Threshold) {
             //Divide up by threshold amount
             //@todo: Should threads check the max and the total
             //amount of the LSQ

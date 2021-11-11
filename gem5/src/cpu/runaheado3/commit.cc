@@ -83,7 +83,7 @@ Commit::processTrapEvent(ThreadID tid)
 }
 
 Commit::Commit(CPU *_cpu, const RunaheadO3CPUParams &params)
-    : commitPolicy(params.smtCommitPolicy),
+    : commitPolicy(params.smtRunaheadCommitPolicy),
       cpu(_cpu),
       iewToCommitDelay(params.iewToCommitDelay),
       commitToIEWDelay(params.commitToIEWDelay),
@@ -107,7 +107,7 @@ Commit::Commit(CPU *_cpu, const RunaheadO3CPUParams &params)
     _status = Active;
     _nextStatus = Inactive;
 
-    if (commitPolicy == CommitPolicy::RoundRobin) {
+    if (commitPolicy == RunaheadCommitPolicy::RoundRobin) {
         //Set-Up Priority List
         for (ThreadID tid = 0; tid < numThreads; tid++) {
             priority_list.push_back(tid);
@@ -1447,10 +1447,10 @@ Commit::getCommittingThread()
 {
     if (numThreads > 1) {
         switch (commitPolicy) {
-          case CommitPolicy::RoundRobin:
+          case RunaheadCommitPolicy::RoundRobin:
             return roundRobin();
 
-          case CommitPolicy::OldestReady:
+          case RunaheadCommitPolicy::OldestReady:
             return oldestReady();
 
           default:

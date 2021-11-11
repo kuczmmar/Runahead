@@ -1390,13 +1390,13 @@ Fetch::getFetchingThread()
 {
     if (numThreads > 1) {
         switch (fetchPolicy) {
-          case SMTFetchPolicy::RoundRobin:
+          case RunaheadSMTFetchPolicy::RoundRobin:
             return roundRobin();
-          case SMTFetchPolicy::IQCount:
+          case RunaheadSMTFetchPolicy::IQCount:
             return iqCount();
-          case SMTFetchPolicy::LSQCount:
+          case RunaheadSMTFetchPolicy::LSQCount:
             return lsqCount();
-          case SMTFetchPolicy::Branch:
+          case RunaheadSMTFetchPolicy::Branch:
             return branchCount();
           default:
             return InvalidThreadID;

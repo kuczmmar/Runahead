@@ -230,7 +230,7 @@ const double Woutdrivern	=60*0.09;//(48.0 * LSCALE)
 const double Woutdriverp	=100 * 0.09;//(80.0 * LSCALE)
 
 /*
-smtCommitPolicy=RoundRobin
+smtRunaheadCommitPolicy=RoundRobin
 smtFetchPolicy=SingleThread
 smtIQPolicy=Partitioned
 smtIQThreshold=100

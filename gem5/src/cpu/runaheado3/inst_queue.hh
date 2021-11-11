@@ -58,7 +58,7 @@
 #include "cpu/runaheado3/store_set.hh"
 #include "cpu/op_class.hh"
 #include "cpu/timebuf.hh"
-#include "enums/SMTQueuePolicy.hh"
+#include "enums/RunaheadSMTQueuePolicy.hh"
 #include "sim/eventq.hh"
 
 namespace gem5
@@ -408,7 +408,7 @@ class InstructionQueue
     //////////////////////////////////////
 
     /** IQ sharing policy for SMT. */
-    SMTQueuePolicy iqPolicy;
+    RunaheadSMTQueuePolicy iqPolicy;
 
     /** Number of Total Threads*/
     ThreadID numThreads;

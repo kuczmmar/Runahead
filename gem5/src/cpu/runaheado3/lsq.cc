@@ -100,13 +100,13 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const RunaheadO3CPUParams &params)
     //**********************************************
 
     /* Run SMT olicy checks. */
-        if (lsqPolicy == SMTQueuePolicy::Dynamic) {
+        if (lsqPolicy == RunaheadSMTQueuePolicy::Dynamic) {
         DPRINTF(RunaheadLSQ, "LSQ sharing policy set to Dynamic\n");
-    } else if (lsqPolicy == SMTQueuePolicy::Partitioned) {
+    } else if (lsqPolicy == RunaheadSMTQueuePolicy::Partitioned) {
         DPRINTF(Fetch, "LSQ sharing policy set to Partitioned: "
                 "%i entries per LQ | %i entries per SQ\n",
                 maxLQEntries,maxSQEntries);
-    } else if (lsqPolicy == SMTQueuePolicy::Threshold) {
+    } else if (lsqPolicy == RunaheadSMTQueuePolicy::Threshold) {
 
         assert(params.smtLSQThreshold > params.LQEntries);
         assert(params.smtLSQThreshold > params.SQEntries);
@@ -578,7 +578,7 @@ LSQ::isFull(ThreadID tid)
 {
     //@todo: Change to Calculate All Entries for
     //Dynamic Policy
-    if (lsqPolicy == SMTQueuePolicy::Dynamic)
+    if (lsqPolicy == RunaheadSMTQueuePolicy::Dynamic)
         return isFull();
     else
         return thread[tid].lqFull() || thread[tid].sqFull();
@@ -643,7 +643,7 @@ LSQ::lqFull(ThreadID tid)
 {
     //@todo: Change to Calculate All Entries for
     //Dynamic Policy
-    if (lsqPolicy == SMTQueuePolicy::Dynamic)
+    if (lsqPolicy == RunaheadSMTQueuePolicy::Dynamic)
         return lqFull();
     else
         return thread[tid].lqFull();
@@ -670,7 +670,7 @@ LSQ::sqFull(ThreadID tid)
 {
      //@todo: Change to Calculate All Entries for
     //Dynamic Policy
-    if (lsqPolicy == SMTQueuePolicy::Dynamic)
+    if (lsqPolicy == RunaheadSMTQueuePolicy::Dynamic)
         return sqFull();
     else
         return thread[tid].sqFull();
@@ -695,7 +695,7 @@ LSQ::isStalled()
 bool
 LSQ::isStalled(ThreadID tid)
 {
-    if (lsqPolicy == SMTQueuePolicy::Dynamic)
+    if (lsqPolicy == RunaheadSMTQueuePolicy::Dynamic)
         return isStalled();
     else
         return thread[tid].isStalled();
