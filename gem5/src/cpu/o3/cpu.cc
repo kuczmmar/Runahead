@@ -55,6 +55,7 @@
 #include "debug/Drain.hh"
 #include "debug/O3CPU.hh"
 #include "debug/Quiesce.hh"
+#include "debug/RunaheadCompare.hh"
 #include "enums/MemoryMode.hh"
 #include "sim/cur_tick.hh"
 #include "sim/full_system.hh"
@@ -421,7 +422,9 @@ CPU::CPUStats::CPUStats(CPU *cpu)
       ADD_STAT(miscRegfileReads, statistics::units::Count::get(),
                "number of misc regfile reads"),
       ADD_STAT(miscRegfileWrites, statistics::units::Count::get(),
-               "number of misc regfile writes")
+               "number of misc regfile writes"),
+      ADD_STAT(robFull, statistics::units::Count::get(),
+               "Number of times that the ROB becomes full")
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -496,6 +499,8 @@ CPU::CPUStats::CPUStats(CPU *cpu)
 
     miscRegfileWrites
         .prereq(miscRegfileWrites);
+
+    robFull.prereq(robFull);
 }
 
 void
@@ -548,6 +553,10 @@ CPU::tick()
             schedule(tickEvent, clockEdge(Cycles(1)));
             DPRINTF(O3CPU, "Scheduling next tick!\n");
         }
+    }
+    if (rob.isFull()) {
+        cpuStats.robFull++;
+        DPRINTF(RunaheadCompare, "ROB full!\n");
     }
 
     if (!FullSystem)

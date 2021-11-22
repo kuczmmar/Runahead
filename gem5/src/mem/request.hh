@@ -67,6 +67,10 @@
 namespace gem5
 {
 
+namespace runaheado3{
+    class DynInst;
+}
+
 /**
  * Special TaskIds that are used for per-context-switch stats dumps
  * and Cache Occupancy. Having too many tasks seems to be a problem
@@ -489,7 +493,8 @@ class Request
           _pc(other._pc), _reqInstSeqNum(other._reqInstSeqNum),
           _localAccessor(other._localAccessor),
           translateDelta(other.translateDelta),
-          accessDelta(other.accessDelta), depth(other.depth)
+          accessDelta(other.accessDelta), depth(other.depth),
+          _reqInst(other._reqInst)
     {
         atomicOpFunctor.reset(other.atomicOpFunctor ?
                                 other.atomicOpFunctor->clone() : nullptr);
@@ -1014,7 +1019,20 @@ class Request
     bool isCacheInvalidate() const { return _flags.isSet(INVALIDATE); }
     bool isCacheMaintenance() const { return _flags.isSet(CLEAN|INVALIDATE); }
     /** @} */
-};
+
+/** Runahead support */
+private:
+    /** Pointer to the instruction associated with this request, 
+     *  used in CPUs with Runahead execution, only valid when hasInstSeqNum */
+    runaheado3::DynInst* _reqInst = nullptr;
+    bool _generatedInRunahead = false;
+
+public:
+    void setInst(runaheado3::DynInst* inst) { _reqInst = inst; }
+    bool isGeneratedInRunahead() { return _generatedInRunahead; }
+    runaheado3::DynInst* getInst() { return _reqInst; }
+
+}; // Runahead
 
 } // namespace gem5
 

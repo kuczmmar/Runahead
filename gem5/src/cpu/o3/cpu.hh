@@ -703,6 +703,7 @@ class CPU : public BaseCPU
         //number of misc
         statistics::Scalar miscRegfileReads;
         statistics::Scalar miscRegfileWrites;
+        statistics::Scalar robFull;
     } cpuStats;
 
   public:

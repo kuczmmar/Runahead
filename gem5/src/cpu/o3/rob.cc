@@ -47,6 +47,7 @@
 #include "cpu/o3/limits.hh"
 #include "debug/Fetch.hh"
 #include "debug/ROB.hh"
+#include "debug/RunaheadCompare.hh"
 #include "params/O3CPU.hh"
 
 namespace gem5
@@ -539,6 +540,32 @@ ROB::findInst(ThreadID tid, InstSeqNum squash_inst)
         }
     }
     return NULL;
+}
+
+void 
+ROB::debugPrintROB() {
+    bool all_empty = true;
+    for (auto thread_list :  instList) {
+
+        if (!thread_list.empty()) {
+            all_empty = false;
+            for (auto inst : thread_list) {
+                std::string flags = "";
+                flags += (inst->isSquashed() ? "s" : "");
+                flags += (inst->readyToCommit() ? "c" : "");
+                DPRINTF_NO_LOG(RunaheadCompare, "%3ld[%3s] ", inst->seqNum, flags.c_str());
+
+            }
+            DPRINTF_NO_LOG(RunaheadCompare, "\n%43s", "");
+            for (auto inst : thread_list) {
+                DPRINTF_NO_LOG(RunaheadCompare, " %#lx",  inst->instAddr());
+            }
+            DPRINTF_NO_LOG(RunaheadCompare, "\n");
+        }
+    }
+    if (all_empty) { 
+        DPRINTF_NO_LOG(RunaheadCompare, "ROB is empty\n");
+    }
 }
 
 } // namespace o3

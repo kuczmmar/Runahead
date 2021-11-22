@@ -416,6 +416,10 @@ LSQ::recvTimingResp(PacketPtr pkt)
 
     auto senderState = dynamic_cast<LSQSenderState*>(pkt->senderState);
     panic_if(!senderState, "Got packet back with unknown sender state\n");
+    
+    if (pkt->req->getInst()->hasTriggeredRunahead()){
+        cpu->exitRunaheadMode();
+    }
 
     thread[cpu->contextToThread(senderState->contextId())].recvTimingResp(pkt);
 
@@ -947,6 +951,8 @@ LSQ::SingleDataRequest::initiateTranslation()
     if (_requests.size() > 0) {
         _requests.back()->setReqInstSeqNum(_inst->seqNum);
         _requests.back()->taskId(_taskId);
+        _requests.back()->setInst(_inst.get());
+
         _inst->translationStarted(true);
         setState(State::Translation);
         flags.set(Flag::TranslationStarted);
@@ -1021,6 +1027,8 @@ LSQ::SplitDataRequest::initiateTranslation()
         for (auto& r: _requests) {
             r->setReqInstSeqNum(_inst->seqNum);
             r->taskId(_taskId);
+            r->setInst(_inst.get());
+
         }
 
         _inst->translationStarted(true);
@@ -1383,6 +1391,8 @@ LSQ::HtmCmdRequest::HtmCmdRequest(LSQUnit* port, const DynInstPtr& inst,
         _requests.back()->taskId(_taskId);
         _requests.back()->setPaddr(_addr);
         _requests.back()->setInstCount(_inst->getCpuPtr()->totalInsts());
+        _requests.back()->setInst(_inst.get());
+        
 
         _inst->strictlyOrdered(_requests.back()->isStrictlyOrdered());
         _inst->fault = NoFault;

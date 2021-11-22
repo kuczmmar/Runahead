@@ -340,6 +340,12 @@ class ROB
         // The number of rob_writes
         statistics::Scalar writes;
     } stats;
+
+// Runahead support
+public:
+  void markAllInstRunahead();
+  void debugPrintROB();
+  
 };
 
 } // namespace runaheado3

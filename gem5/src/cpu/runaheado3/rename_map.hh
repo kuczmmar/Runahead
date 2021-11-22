@@ -95,6 +95,28 @@ class SimpleRenameMap
 
     SimpleRenameMap();
 
+    /** Destructor */
+    ~SimpleRenameMap()
+    {
+      delete freeList;
+    }
+
+    /** 
+     * Copy constructor to make deep copy when checkpointing before runahead:
+     * map is a vector so it is deep copied by default;
+     * RegId has member variables of primitive types, enums and static members
+     * all of these can be copied using the default constructor;
+     * SimpleFreeList has a queue member - which is deep copied by default
+    */
+    SimpleRenameMap(const SimpleRenameMap& src)
+                  : map(src.map)
+                  , zeroReg(src.zeroReg)
+    {
+      freeList = new SimpleFreeList(*src.freeList);
+    }
+
+    SimpleRenameMap& operator=(const SimpleRenameMap&) = default;
+
     /**
      * Because we have an array of rename maps (one per thread) in the CPU,
      * it's awkward to initialize this object via the constructor.
@@ -209,7 +231,29 @@ class UnifiedRenameMap
     UnifiedRenameMap() : regFile(nullptr) {};
 
     /** Destructor. */
-    ~UnifiedRenameMap() {};
+    ~UnifiedRenameMap() {
+      delete regFile;
+    };
+
+    /** 
+     * Copy constructor to make deep copy when checkpointing before runahead 
+     * SimpleRenameMap has an explicitly defined copy constructor
+    */
+    UnifiedRenameMap(const UnifiedRenameMap& source)
+                    : intMap(source.intMap)
+                    , floatMap(source.floatMap)
+                    , ccMap(source.ccMap)
+                    , vecMap(source.vecMap)
+                    , vecElemMap(source.vecElemMap)
+                    , predMap(source.predMap)
+                    , vecMode(source.vecMode)
+    {
+      // PhysRegFile can use its default copy constructor,
+      // as there are no pointers inside the class
+      regFile = new PhysRegFile(*source.regFile);
+    }
+
+    UnifiedRenameMap& operator=(const UnifiedRenameMap&) = default;
 
     /** Initializes rename map with given parameters. */
     void init(const BaseISA::RegClasses &regClasses,

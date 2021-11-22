@@ -11,6 +11,7 @@ class L1():
 
   i_size = '16kB'
   d_size = '32kB'
+  ra_size = '16kB'
 
 class L2():
     size = '256kB'

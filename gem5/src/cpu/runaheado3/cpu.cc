@@ -55,6 +55,7 @@
 #include "debug/Drain.hh"
 #include "debug/RunaheadO3CPU.hh"
 #include "debug/Quiesce.hh"
+#include "debug/RunaheadDebug.hh"
 #include "enums/MemoryMode.hh"
 #include "sim/cur_tick.hh"
 #include "sim/full_system.hh"
@@ -421,7 +422,18 @@ CPU::CPUStats::CPUStats(CPU *cpu)
       ADD_STAT(miscRegfileReads, statistics::units::Count::get(),
                "number of misc regfile reads"),
       ADD_STAT(miscRegfileWrites, statistics::units::Count::get(),
-               "number of misc regfile writes")
+               "number of misc regfile writes"),
+    // Runahead statictics
+      ADD_STAT(robFull, statistics::units::Count::get(),
+               "Number of times that the ROB becomes full"),
+      ADD_STAT(timesEnteredRunahead, statistics::units::Count::get(),
+                "Number of times the CPU enters runahead"),
+      ADD_STAT(robHeadL2Miss, statistics::units::Count::get(),
+                "Number of times the head instruction of ROB is waiting on a L2 miss while executing in normal mode"),
+      ADD_STAT(robHeadL2MissInRunahead, statistics::units::Count::get(),
+                "Number of times the head instruction of ROB is waiting on a L2 miss while executing in runahead mode"),
+      ADD_STAT(fetchedInRunahead, statistics::units::Count::get(),
+                "Number of instructions fetched in runahead mode.")
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -496,6 +508,13 @@ CPU::CPUStats::CPUStats(CPU *cpu)
 
     miscRegfileWrites
         .prereq(miscRegfileWrites);
+    
+    // Runahead statistics
+    robFull.prereq(robFull);
+    timesEnteredRunahead.prereq(timesEnteredRunahead);
+    robHeadL2Miss.prereq(robHeadL2Miss);
+    robHeadL2MissInRunahead.prereq(robHeadL2MissInRunahead);
+    fetchedInRunahead.prereq(fetchedInRunahead);
 }
 
 void
@@ -548,6 +567,10 @@ CPU::tick()
             schedule(tickEvent, clockEdge(Cycles(1)));
             DPRINTF(RunaheadO3CPU, "Scheduling next tick!\n");
         }
+    }
+    if (rob.isFull()) {
+        cpuStats.robFull++;
+        DPRINTF(RunaheadDebug, "ROB full!\n");
     }
 
     if (!FullSystem)
@@ -1753,6 +1776,58 @@ CPU::htmSendAbortSignal(ThreadID tid, uint64_t htm_uid,
     if (!iew.ldstQueue.getDataPort().sendTimingReq(abort_pkt)) {
         panic("HTM abort signal was not sent to the memory subsystem.");
     }
+}
+
+
+void
+CPU::enterRunaheadMode(DynInstPtr inst, ThreadID tid){
+    DPRINTF(RunaheadDebug, "CPU enter runahead mode!: inst: %d, tid: %d\n", inst->seqNum, tid);
+    DPRINTF(RunaheadDebug, "Current PC state: [sn:%llu]\n", commit.pcState(tid));
+    assert(!_inRunahead);
+    _inRunahead = true;
+    raTriggerInst = inst;
+    ra_tid = tid;
+    cpuStats.timesEnteredRunahead++;
+
+    // checkpoint the architectural state and PC for the thread
+    raCheckpt.renameMaps[ra_tid] = std::make_unique<UnifiedRenameMap>(commitRenameMap[ra_tid]);
+    raCheckpt.pc[ra_tid] = commit.pcState(ra_tid);
+    
+    rob.markAllInstRunahead();
+
+    // Remove the head insruction from ROB
+    // PageFault if this only is added
+    // inst->setCanCommit();
+    // inst->setSquashed();
+
+    // inst->setExecuted();
+    // rob.retireHead(ra_tid);
+
+}
+
+bool
+CPU::isInRunaheadMode(){
+    return _inRunahead;
+}
+
+void 
+CPU::exitRunaheadMode(){
+    DPRINTF(RunaheadDebug, "CPU exit runahead mode!\n");
+    assert(_inRunahead);
+    _inRunahead = false;
+
+    // Flush all instructions in the machine.
+    // After squash - the processor starts fetching instructions starting 
+    // at the address of the instruction that caused entry into runahead.
+    // This also resets the PC
+    iew.squashDueToRunaheadExit(raTriggerInst, ra_tid);
+
+    // Restore the architectural state: the rename map 
+    // and the PC of the instruction which caused runahead
+    commitRenameMap[ra_tid] = *raCheckpt.renameMaps[ra_tid];
+    // commit.pcState(raCheckpt.pc[ra_tid], ra_tid);
+
+    DPRINTF(RunaheadDebug, "Reverted PC state: [sn:%llu]\n", commit.pcState(ra_tid));
 }
 
 } // namespace runaheado3

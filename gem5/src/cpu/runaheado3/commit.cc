@@ -64,6 +64,7 @@
 #include "debug/ExecFaulting.hh"
 #include "debug/HtmCpu.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/RunaheadDebug.hh"
 #include "params/RunaheadO3CPU.hh"
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
@@ -669,7 +670,15 @@ Commit::tick()
     while (threads != end) {
         ThreadID tid = *threads++;
 
-        if (!rob->isEmpty(tid) && rob->readHeadInst(tid)->readyToCommit()) {
+
+        if (!rob->isEmpty(tid) && rob->readHeadInst(tid)->isRunaheadInst()) {
+            DynInstPtr inst = rob->readHeadInst(tid);
+            if (inst->readyToCommit() || inst->missedInL2()) {
+                DPRINTF(RunaheadDebug, "Intruction sn:%d is head of ROB in runahead and should pseudoretire\n",
+                        inst->seqNum);
+                
+            }
+        } else if (!rob->isEmpty(tid) && rob->readHeadInst(tid)->readyToCommit()) {
             // The ROB has more instructions it can commit. Its next status
             // will be active.
             _nextStatus = Active;
@@ -955,6 +964,8 @@ Commit::commitInsts()
     ////////////////////////////////////
 
     DPRINTF(Commit, "Trying to commit instructions in the ROB.\n");
+    DPRINTF(RunaheadDebug, "ROB at commit: ");
+    rob->debugPrintROB();
 
     unsigned num_committed = 0;
 
@@ -985,25 +996,54 @@ Commit::commitInsts()
 
         // ThreadID commit_thread = getCommittingThread();
 
-        if (commit_thread == -1 || !rob->isHeadReady(commit_thread))
-            break;
 
+        if (commit_thread == -1)
+            break;
+        
         head_inst = rob->readHeadInst(commit_thread);
+        if (!head_inst){
+            break;
+        }
+
+
+        if (!rob->isHeadReady(commit_thread)) {
+            // enter runahead mode if the head instruction is waiting on a L2 cache miss
+            // if the CPU has just returned from runahead mode,
+            // the head instruction may still not be ready - don't enter runahead again
+            // check if it isn't the inst which has triggered runahead
+            DPRINTF(RunaheadDebug, "Commit: head not ready - inst: %d\n", head_inst->seqNum);
+            if (head_inst->missedInL2()) {
+                DPRINTF(RunaheadDebug, "Commit: head not ready and missed in L2 - inst: %d\n", head_inst->seqNum);
+                if (!cpu->isInRunaheadMode() && !head_inst->hasTriggeredRunahead()) {
+                    cpu->enterRunaheadMode(head_inst, commit_thread);
+                    head_inst->setTriggeredRunahead();
+                    // cpu->cpuStats.robHeadL2Miss++;
+                    // halo
+                    break;
+                } else {
+                    // cpu->cpuStats.robHeadL2MissInRunahead++;
+                    // running in runahead mode and the head has missed in L2
+                    // we should remove the head instruction and continue commit
+                    DPRINTF(RunaheadDebug, "Head [sn:%llu] not ready in runahead - remove it from ROB in next cycle\n", head_inst->seqNum);
+                    // runs forever if this is added and the same in the triggering inst
+                    // head_inst->setCanCommit();
+                    // head_inst->setSquashed();
+                    break;
+                }
+            } else {
+            break;}
+        }     
 
         ThreadID tid = head_inst->threadNumber;
 
         assert(tid == commit_thread);
 
-        DPRINTF(Commit,
-                "Trying to commit head instruction, [tid:%i] [sn:%llu]\n",
-                tid, head_inst->seqNum);
 
         // If the head instruction is squashed, it is ready to retire
         // (be removed from the ROB) at any time.
         if (head_inst->isSquashed()) {
 
-            DPRINTF(Commit, "Retiring squashed instruction from "
-                    "ROB.\n");
+            DPRINTF(Commit, "Retiring squashed instruction from ROB. [sn:%llu]\n", head_inst->seqNum);
 
             rob->retireHead(commit_thread);
 
@@ -1014,6 +1054,8 @@ Commit::commitInsts()
             // Record that the number of ROB entries has changed.
             changedROBNumEntries[tid] = true;
         } else {
+            DPRINTF(Commit, "Trying to commit head instruction, [tid:%i] [sn:%llu]\n",
+                tid, head_inst->seqNum);
             pc[tid] = head_inst->pcState();
 
             // Try to commit the head instruction.
@@ -1148,6 +1190,10 @@ Commit::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
 
     ThreadID tid = head_inst->threadNumber;
 
+    if (head_inst->isRunaheadInst()) {
+        DPRINTF(RunaheadDebug, "Trying to commit head in Runahead!\n");
+    }
+
     // If the instruction is not executed yet, then it will need extra
     // handling.  Signal backwards that it should be executed.
     if (!head_inst->isExecuted()) {
@@ -1217,8 +1263,8 @@ Commit::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
     }
 
     if (inst_fault != NoFault) {
-        DPRINTF(Commit, "Inst [tid:%i] [sn:%llu] PC %s has a fault\n",
-                tid, head_inst->seqNum, head_inst->pcState());
+        DPRINTF(Commit, "Inst [tid:%i] [sn:%llu] PC %s has a fault: %s\n",
+                tid, head_inst->seqNum, head_inst->pcState(), inst_fault->name());
 
         if (iewStage->hasStoresToWB(tid) || inst_num > 0) {
             DPRINTF(Commit,

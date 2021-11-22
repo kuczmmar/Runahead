@@ -235,6 +235,12 @@ class IEW
     {
         ldstQueue.setLastRetiredHtmUid(tid, htmUid);
     }
+    
+    /** 
+     * Sends proper information to the commit stage 
+     * for a squash due to exiting the runahead mode.
+     */
+    void squashDueToRunaheadExit(const DynInstPtr &inst, ThreadID tid);
 
   private:
     /** Sends commit proper information for a squash due to a branch
@@ -474,6 +480,10 @@ class IEW
             statistics::Formula numStoreInsts;
             /** Number of instructions executed per cycle. */
             statistics::Formula numRate;
+            /** Stat for total number of executed load instructions in runahead mode. 
+             * Note that numLoadInsts counts only these instructions in normal mode!
+            */
+            statistics::Vector numLoadInstsRunahead;
         } executedInstStats;
 
         /** Number of instructions sent to commit. */

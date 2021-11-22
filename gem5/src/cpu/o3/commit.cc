@@ -64,6 +64,7 @@
 #include "debug/ExecFaulting.hh"
 #include "debug/HtmCpu.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/RunaheadCompare.hh"
 #include "params/O3CPU.hh"
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
@@ -955,6 +956,8 @@ Commit::commitInsts()
     ////////////////////////////////////
 
     DPRINTF(Commit, "Trying to commit instructions in the ROB.\n");
+    DPRINTF(RunaheadCompare, "ROB at commit: ");
+    rob->debugPrintROB();
 
     unsigned num_committed = 0;
 

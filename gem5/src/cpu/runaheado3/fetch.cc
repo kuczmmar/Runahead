@@ -62,6 +62,7 @@
 #include "debug/Fetch.hh"
 #include "debug/RunaheadO3CPU.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/RunaheadDebug.hh"
 #include "mem/packet.hh"
 #include "params/RunaheadO3CPU.hh"
 #include "sim/byteswap.hh"
@@ -726,6 +727,8 @@ Fetch::doSquash(const TheISA::PCState &newPC, const DynInstPtr squashInst,
     if (fetchStatus[tid] == IcacheWaitResponse) {
         DPRINTF(Fetch, "[tid:%i] Squashing outstanding Icache miss.\n",
                 tid);
+        DPRINTF(RunaheadDebug, "[tid:%i] Squashing outstanding Icache miss.\n",
+                tid);
         memReq[tid] = NULL;
     } else if (fetchStatus[tid] == ItlbWait) {
         DPRINTF(Fetch, "[tid:%i] Squashing outstanding ITLB miss.\n",
@@ -1089,6 +1092,12 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
 
     // Keep track of if we can take an interrupt at this boundary
     delayedCommit[tid] = instruction->isDelayedCommit();
+
+    // check if fetched in runahead mode
+    if (cpu->isInRunaheadMode()) {
+        cpu->cpuStats.fetchedInRunahead++;
+        instruction->setRunaheadInst();
+    }
 
     return instruction;
 }

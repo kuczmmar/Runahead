@@ -340,6 +340,9 @@ class ROB
         // The number of rob_writes
         statistics::Scalar writes;
     } stats;
+
+  public:
+    void debugPrintROB();
 };
 
 } // namespace o3

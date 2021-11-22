@@ -190,6 +190,12 @@ struct StringWrap
     }                                            \
 } while (0)
 
+#define DPRINTF_NO_LOG(x, ...) do {                     \
+    if (GEM5_UNLIKELY(TRACING_ON && ::gem5::debug::x)) {   \
+        printf(__VA_ARGS__); \
+    }                                            \
+} while (0)
+
 #define DPRINTFS(x, s, ...) do {                        \
     if (GEM5_UNLIKELY(TRACING_ON && ::gem5::debug::x)) {          \
         ::gem5::Trace::getDebugLogger()->dprintf_flag(          \

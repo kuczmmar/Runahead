@@ -4,3 +4,5 @@ __pycache__/
 /gem5/out.txt
 /gem5/m5out
 /gem5/stats/simple.csv
+/test
+/test.cpp

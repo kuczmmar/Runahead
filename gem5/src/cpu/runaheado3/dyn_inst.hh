@@ -165,6 +165,7 @@ class DynInst : public ExecContext, public RefCounted
         ReqMade,
         MemOpDone,
         HtmFromTransaction,
+        MissedInL2,
         MaxFlags
     };
 
@@ -1327,6 +1328,29 @@ class DynInst : public ExecContext, public RefCounted
     {
         this->cpu->setCCReg(this->regs.renamedDestIdx(idx), val);
         setScalarResult(val);
+    }
+
+
+// Runahead support
+private:
+    bool _triggeredRunahead = false;
+    bool _runaheadInst = false;
+    
+
+public:
+    void setL2Miss() { 
+        // assert(!instFlags[MissedInL2]);
+        instFlags.set(MissedInL2); 
+    }
+    bool missedInL2() { 
+        return instFlags[MissedInL2]; 
+    }
+    bool isRunaheadInst() { return _runaheadInst; }
+    void setRunaheadInst() { _runaheadInst = true; }
+    bool hasTriggeredRunahead() { return _triggeredRunahead; }
+    void setTriggeredRunahead() { 
+        _triggeredRunahead = true; 
+        _runaheadInst = true; 
     }
 };
 

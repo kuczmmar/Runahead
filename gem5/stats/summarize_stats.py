@@ -33,10 +33,23 @@ def write_to_csv(file, data_dict):
         for key, value in data_dict.items():
             writer.writerow([key, value])
 
+def split_name(key):
+    if key.startswith('system.'):
+        key = key.split('system.')[1]
+    if key.startswith('cpu.mmu.'):
+        key = key.split('cpu.mmu.')[1]
+    if key.startswith('mem_ctrl.dram.'):
+        key = key.split('mem_ctrl.dram.')[1]
+    if key.startswith('l2cache.'):
+        key = key.split('l2cache.')[1]
+    if key.startswith('cpu.'):
+        key = key.split('cpu.')[1]
+    return key
+
 def filter_out_stats(original_dict):
     target_stats = read_file_line_by_line()
     target_stats.append('configuration')
-    filtered_dict = {k: v for (k, v) in original_dict.items() if k in target_stats}
+    filtered_dict = {split_name(k): v for (k, v) in original_dict.items() if k in target_stats}
     return filtered_dict
 
 def list_all_sub_directories(directory):

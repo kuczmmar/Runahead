@@ -1,5 +1,11 @@
 simTicks
-system.mem_ctrl.dram.rank0.readEnergy
-system.mem_ctrl.dram.rank1.readEnergy
-system.cpu.mmu.dtb.rdAccesses
-system.cpu.mmu.itb.rdAccesses
+system.l2cache.overallL2Misses
+system.l2cache.L2MissesInRunahead
+system.cpu.cpi
+system.cpu.timesEnteredRunahead 
+system.cpu.robHeadL2Miss
+system.cpu.robHeadL2MissInRunahead
+system.cpu.fetchedInRunahead
+system.cpu.numLoadInsts 
+system.cpu.numLoadInstsRunahead
+system.cpu.robFull

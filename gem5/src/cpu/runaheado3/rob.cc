@@ -47,6 +47,7 @@
 #include "cpu/runaheado3/limits.hh"
 #include "debug/Fetch.hh"
 #include "debug/RunaheadROB.hh"
+#include "debug/RunaheadDebug.hh"
 #include "params/RunaheadO3CPU.hh"
 
 namespace gem5
@@ -225,6 +226,8 @@ ROB::insertInst(const DynInstPtr &inst)
     ++threadEntries[tid];
 
     assert((*tail) == inst);
+    DPRINTF(RunaheadROB, "[tid:%i] Adding inst PC %s to ROB [sn:%d] - now has %d instructions\n", 
+        tid, inst->pcState(), inst->seqNum, threadEntries[tid]);
 
     DPRINTF(RunaheadROB, "[tid:%i] Now has %d instructions.\n", tid,
             threadEntries[tid]);
@@ -245,9 +248,16 @@ ROB::retireHead(ThreadID tid)
 
     assert(head_inst->readyToCommit());
 
-    DPRINTF(RunaheadROB, "[tid:%i] Retiring head instruction, "
+    if (!head_inst->isRunaheadInst()) {
+        DPRINTF(RunaheadROB, "[tid:%i] Retiring head instruction, "
             "instruction PC %s, [sn:%llu]\n", tid, head_inst->pcState(),
             head_inst->seqNum);
+    }
+    else {
+        DPRINTF(RunaheadROB, "[tid:%i] Retiring head instruction in runahead, "
+            "instruction PC %s, [sn:%llu]\n", tid, head_inst->pcState(),
+            head_inst->seqNum);
+    }
 
     --numInstsInROB;
     --threadEntries[tid];
@@ -480,7 +490,7 @@ ROB::squash(InstSeqNum squash_num, ThreadID tid)
         return;
     }
 
-    DPRINTF(RunaheadROB, "Starting to squash within the ROB.\n");
+    DPRINTF(RunaheadROB, "Starting to squash within the ROB, squash_num = %d\n", squash_num);
 
     robStatus[tid] = ROBSquashing;
 
@@ -539,6 +549,42 @@ ROB::findInst(ThreadID tid, InstSeqNum squash_inst)
         }
     }
     return NULL;
+}
+
+void
+ROB::markAllInstRunahead() {
+    for (auto threadList : instList) {
+        for (auto instPtr : threadList) {
+            instPtr->setRunaheadInst();
+        }
+    }
+}
+
+void 
+ROB::debugPrintROB() {
+    bool all_empty = true;
+    for (auto thread_list :  instList) {
+
+        if (!thread_list.empty()) {
+            all_empty = false;
+            for (auto inst : thread_list) {
+                std::string flags = "";
+                flags += (inst->isSquashed() ? "s" : "");
+                flags += (inst->isRunaheadInst() ? "r" : "");
+                flags += (inst->readyToCommit() ? "c" : "");
+                // add invalid flag
+                DPRINTF_NO_LOG(RunaheadDebug, "%3ld[%4s] ", inst->seqNum, flags.c_str());
+            }
+            DPRINTF_NO_LOG(RunaheadDebug, "\n%43s", "");
+            for (auto inst : thread_list) {
+                DPRINTF_NO_LOG(RunaheadDebug, " %#lx ",  inst->instAddr());
+            }
+            DPRINTF_NO_LOG(RunaheadDebug, "\n");
+        }
+    }
+    if (all_empty) { 
+        DPRINTF_NO_LOG(RunaheadDebug, "ROB is empty\n");
+    }
 }
 
 } // namespace runaheado3
