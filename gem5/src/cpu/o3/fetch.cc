@@ -62,6 +62,7 @@
 #include "debug/Fetch.hh"
 #include "debug/O3CPU.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/RunaheadCompare.hh"
 #include "mem/packet.hh"
 #include "params/O3CPU.hh"
 #include "sim/byteswap.hh"
@@ -354,6 +355,7 @@ Fetch::processCacheCompletion(PacketPtr pkt)
     ThreadID tid = cpu->contextToThread(pkt->req->contextId());
 
     DPRINTF(Fetch, "[tid:%i] Waking up from cache miss.\n", tid);
+    DPRINTF_NO_LOG(RunaheadCompare, "[tid:%i] Waking up from cache miss.\n", tid);
     assert(!cpu->switchedOut());
 
     // Only change the status if it's still waiting on the icache access
@@ -1065,6 +1067,10 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
             instruction->staticInst->
             disassemble(thisPC.instAddr()));
 
+    DPRINTF_NO_LOG(RunaheadCompare, "Instruction PC %#lx (%d) created [sn:%lu], is %s\n", 
+            thisPC.instAddr(), thisPC.microPC(), seq,
+            instruction->staticInst->disassemble(thisPC.instAddr()).c_str());
+
 #if TRACING_ON
     if (trace) {
         instruction->traceData =
@@ -1129,6 +1135,7 @@ Fetch::fetch(bool &status_change)
     // to tick() function.
     if (fetchStatus[tid] == IcacheAccessComplete) {
         DPRINTF(Fetch, "[tid:%i] Icache miss is complete.\n", tid);
+        DPRINTF_NO_LOG(RunaheadCompare, "[tid:%i] Icache miss is complete.\n", tid);
 
         fetchStatus[tid] = Running;
         status_change = true;

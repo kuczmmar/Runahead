@@ -140,8 +140,10 @@ X86StaticInst::divideStep(uint64_t dividend, uint64_t divisor,
 
 void
 X86StaticInst::printReg(std::ostream &os, RegId reg, int size)
-{
-    // assert(size == 1 || size == 2 || size == 4 || size == 8);
+{ 
+    if (!((size == 1 || size == 2 || size == 4 || size == 8)))
+      printf("reg size %d\n", size);
+    assert(size == 1 || size == 2 || size == 4 || size == 8);
     static const char * abcdFormats[9] =
         {"", "%s",  "%sx",  "", "e%sx", "", "", "", "r%sx"};
     static const char * piFormats[9] =
@@ -249,7 +251,8 @@ X86StaticInst::printReg(std::ostream &os, RegId reg, int size)
         }
         break;
       default:
-        panic("Unrecognized register class.");
+        // panic("Unrecognized register class.");
+        ccprintf(os, "%%Not found%d", reg_idx);
     }
 }
 

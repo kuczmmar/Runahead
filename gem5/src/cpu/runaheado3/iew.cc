@@ -238,7 +238,7 @@ IEW::IEWStats::ExecutedInstStats::ExecutedInstStats(CPU *cpu)
     ADD_STAT(numRate, statistics::units::Rate<
                 statistics::units::Count, statistics::units::Cycle>::get(),
              "Inst execution rate", numInsts / cpu->baseStats.numCycles),
-    ADD_STAT(numLoadInstsRunahead, statistics::units::Count::get(),
+    ADD_STAT(numLoadInstsInRA, statistics::units::Count::get(),
              "Number of load instructions executed in runahead mode")
 {
     numLoadInsts
@@ -268,7 +268,7 @@ IEW::IEWStats::ExecutedInstStats::ExecutedInstStats(CPU *cpu)
     numRate
         .flags(statistics::total);
 
-    numLoadInstsRunahead
+    numLoadInstsInRA
         .init(cpu->numThreads)
         .flags(statistics::total);
 }
@@ -487,12 +487,11 @@ IEW::squashDueToRunaheadExit(const DynInstPtr& inst, ThreadID tid)
 {
     DPRINTF(RunaheadIEW, "[tid:%i] [sn:%llu] Squashing due to runahead mode exit, PC: %s \n", 
             tid, inst->seqNum, inst->pcState() );
-    DPRINTF(RunaheadIEW, "[tid:%i] [sn:%llu] Squashing due to runahead mode exit, PC: %s \n", 
-            tid, inst->seqNum, inst->pcState() );
 
     if (!toCommit->squash[tid] ||
             inst->seqNum < toCommit->squashedSeqNum[tid]) {
         toCommit->squash[tid] = true;
+        toCommit->squashAfterRunahead[tid] = true;
         toCommit->squashedSeqNum[tid] = inst->seqNum;
         toCommit->includeSquashInst[tid] = true;
         toCommit->pc[tid] = inst->pcState();
@@ -1610,7 +1609,7 @@ IEW::updateExeInstStats(const DynInstPtr& inst)
 
         if (inst->isLoad()) {
             if (cpu->isInRunaheadMode()){
-                iewStats.executedInstStats.numLoadInstsRunahead[tid]++;
+                iewStats.executedInstStats.numLoadInstsInRA[tid]++;
             } else {
                 iewStats.executedInstStats.numLoadInsts[tid]++;
             }

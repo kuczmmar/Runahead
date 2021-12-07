@@ -1026,13 +1026,19 @@ private:
      *  used in CPUs with Runahead execution, only valid when hasInstSeqNum */
     runaheado3::DynInst* _reqInst = nullptr;
     bool _generatedInRunahead = false;
+    bool _triggeredRunahead = false;
 
 public:
     void setInst(runaheado3::DynInst* inst) { _reqInst = inst; }
-    bool isGeneratedInRunahead() { return _generatedInRunahead; }
     runaheado3::DynInst* getInst() { return _reqInst; }
 
-}; // Runahead
+    void setGeneratedInRunahead() { _generatedInRunahead = true; }
+    bool isGeneratedInRunahead() { return _generatedInRunahead; }
+
+    void setTriggeredRunahead() { _triggeredRunahead = true; }
+    bool triggeredRunahead() { return _triggeredRunahead; }
+
+}; // Request
 
 } // namespace gem5
 

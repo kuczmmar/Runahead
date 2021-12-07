@@ -1,11 +1,12 @@
 simTicks
-system.l2cache.overallL2Misses
-system.l2cache.L2MissesInRunahead
+system.l2cache.l2Misses
+system.l2cache.l2MissesInRA
 system.cpu.cpi
-system.cpu.timesEnteredRunahead 
+system.cpu.numEnteredRA 
 system.cpu.robHeadL2Miss
 system.cpu.robHeadL2MissInRunahead
-system.cpu.fetchedInRunahead
+system.cpu.fetchedInRA
 system.cpu.numLoadInsts 
-system.cpu.numLoadInstsRunahead
+system.cpu.numLoadInstsInRA
 system.cpu.robFull
+system.cpu.robFullInRA

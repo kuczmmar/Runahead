@@ -553,12 +553,12 @@ ROB::debugPrintROB() {
                 std::string flags = "";
                 flags += (inst->isSquashed() ? "s" : "");
                 flags += (inst->readyToCommit() ? "c" : "");
-                DPRINTF_NO_LOG(RunaheadCompare, "%3ld[%3s] ", inst->seqNum, flags.c_str());
+                DPRINTF_NO_LOG(RunaheadCompare, "%4ld[%4s] ", inst->seqNum, flags.c_str());
 
             }
-            DPRINTF_NO_LOG(RunaheadCompare, "\n%43s", "");
+            DPRINTF_NO_LOG(RunaheadCompare, "\n%15s", "");//43
             for (auto inst : thread_list) {
-                DPRINTF_NO_LOG(RunaheadCompare, " %#lx",  inst->instAddr());
+                DPRINTF_NO_LOG(RunaheadCompare, "%10lx ",  inst->instAddr());
             }
             DPRINTF_NO_LOG(RunaheadCompare, "\n");
         }

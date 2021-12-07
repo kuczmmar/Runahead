@@ -56,6 +56,7 @@
 #include "debug/HtmCpu.hh"
 #include "debug/RunaheadLSQ.hh"
 #include "debug/RunaheadWriteback.hh"
+#include "debug/RunaheadDebug.hh"
 #include "params/RunaheadO3CPU.hh"
 
 namespace gem5
@@ -417,8 +418,22 @@ LSQ::recvTimingResp(PacketPtr pkt)
     auto senderState = dynamic_cast<LSQSenderState*>(pkt->senderState);
     panic_if(!senderState, "Got packet back with unknown sender state\n");
     
-    if (pkt->req->getInst()->hasTriggeredRunahead()){
-        cpu->exitRunaheadMode();
+    DynInst* i = pkt->req->getInst();
+    
+    i->reqCompleted(pkt->req);
+    // DPRINTF(RunaheadDebug, "Req completed sn:%lu; left:%d reqs\n", 
+    //     i->seqNum, i->numOutstandingRequests());
+
+    // Reset the miss in L2 flag
+    // prevents entering runahead just after the request has returned
+    if (i->numOutstandingRequests() == 0){
+        i->resetL2Miss();
+
+        // exit runahead if the request's instruction has triggered it
+        // and this was the last outstanding request from this inst
+        if (cpu->isInRunaheadMode() && i->hasTriggeredRunahead()){
+            cpu->exitRunaheadMode();
+        }
     }
 
     thread[cpu->contextToThread(senderState->contextId())].recvTimingResp(pkt);
@@ -952,6 +967,7 @@ LSQ::SingleDataRequest::initiateTranslation()
         _requests.back()->setReqInstSeqNum(_inst->seqNum);
         _requests.back()->taskId(_taskId);
         _requests.back()->setInst(_inst.get());
+        _inst->addReq(_requests.back());
 
         _inst->translationStarted(true);
         setState(State::Translation);
@@ -1028,7 +1044,7 @@ LSQ::SplitDataRequest::initiateTranslation()
             r->setReqInstSeqNum(_inst->seqNum);
             r->taskId(_taskId);
             r->setInst(_inst.get());
-
+            _inst->addReq(r);
         }
 
         _inst->translationStarted(true);
@@ -1392,7 +1408,7 @@ LSQ::HtmCmdRequest::HtmCmdRequest(LSQUnit* port, const DynInstPtr& inst,
         _requests.back()->setPaddr(_addr);
         _requests.back()->setInstCount(_inst->getCpuPtr()->totalInsts());
         _requests.back()->setInst(_inst.get());
-        
+        _inst->addReq(_requests.back());
 
         _inst->strictlyOrdered(_requests.back()->isStrictlyOrdered());
         _inst->fault = NoFault;

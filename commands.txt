@@ -16,3 +16,10 @@ cd hpl/ ; make clean_arch_all; rm -r lib/Unix; cd ..
 build/X86/gem5.opt configs/learning_gem5/part1/simple.py
 
 python ./stats/summarizeStat.py ./m5out ./stats/simple.csv
+
+clang -O3 test.cpp -o test -static -lstdc++
+objdump -Sd --dwarf=decodedline test > test_dump.txt
+
+
+delete all lines following 1000
+sed -i.bak '1000,$d' out.txt 

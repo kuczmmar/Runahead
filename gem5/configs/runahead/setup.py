@@ -1,6 +1,8 @@
 # File defining parameters of memory objects
 # these values are set to be default for objects in caches.py
 
+ROB_size = 192 # default is 192
+
 class L1():
   assoc = 2
   tag_latency = 2

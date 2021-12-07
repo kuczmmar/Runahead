@@ -246,12 +246,13 @@ ROB::retireHead(ThreadID tid)
     DynInstPtr head_inst = std::move(*head_it);
     instList[tid].erase(head_it);
 
-    assert(head_inst->readyToCommit());
+    
 
     if (!head_inst->isRunaheadInst()) {
         DPRINTF(RunaheadROB, "[tid:%i] Retiring head instruction, "
             "instruction PC %s, [sn:%llu]\n", tid, head_inst->pcState(),
             head_inst->seqNum);
+        assert(head_inst->readyToCommit());
     }
     else {
         DPRINTF(RunaheadROB, "[tid:%i] Retiring head instruction in runahead, "
@@ -552,7 +553,7 @@ ROB::findInst(ThreadID tid, InstSeqNum squash_inst)
 }
 
 void
-ROB::markAllInstRunahead() {
+ROB::markAllRunahead() {
     for (auto threadList : instList) {
         for (auto instPtr : threadList) {
             instPtr->setRunaheadInst();
@@ -572,18 +573,21 @@ ROB::debugPrintROB() {
                 flags += (inst->isSquashed() ? "s" : "");
                 flags += (inst->isRunaheadInst() ? "r" : "");
                 flags += (inst->readyToCommit() ? "c" : "");
-                // add invalid flag
-                DPRINTF_NO_LOG(RunaheadDebug, "%3ld[%4s] ", inst->seqNum, flags.c_str());
+                flags += (inst->isInvalid() ? "i" : "");
+                // flags += (inst->missedInL2() ? "m" : "");
+                DPRINTF_NO_LOG(RunaheadDebug, "%4ld[%4s] ", inst->seqNum, flags.c_str());
             }
-            DPRINTF_NO_LOG(RunaheadDebug, "\n%43s", "");
+            DPRINTF_NO_LOG(RunaheadDebug, "\n%15s", "");//43
             for (auto inst : thread_list) {
-                DPRINTF_NO_LOG(RunaheadDebug, " %#lx ",  inst->instAddr());
+                DPRINTF_NO_LOG(RunaheadDebug, "%#lx   ",  inst->instAddr());
             }
             DPRINTF_NO_LOG(RunaheadDebug, "\n");
         }
     }
     if (all_empty) { 
         DPRINTF_NO_LOG(RunaheadDebug, "ROB is empty\n");
+    } else if (isFull()) {
+        DPRINTF(RunaheadDebug, "ROB is full!\n");
     }
 }
 

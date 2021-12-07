@@ -483,7 +483,7 @@ class IEW
             /** Stat for total number of executed load instructions in runahead mode. 
              * Note that numLoadInsts counts only these instructions in normal mode!
             */
-            statistics::Vector numLoadInstsRunahead;
+            statistics::Vector numLoadInstsInRA;
         } executedInstStats;
 
         /** Number of instructions sent to commit. */

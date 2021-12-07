@@ -45,6 +45,7 @@
 #include "debug/DynInst.hh"
 #include "debug/RunaheadIQ.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/RunaheadDebug.hh"
 
 namespace gem5
 {
@@ -331,6 +332,75 @@ DynInst::initiateMemAMO(Addr addr, unsigned size, Request::Flags flags,
             dynamic_cast<DynInstPtr::PtrType>(this),
             /* atomic */ false, nullptr, size, addr, flags, nullptr,
             std::move(amo_op), std::vector<bool>(size, true));
+}
+
+void 
+DynInst::setRunaheadInst() { 
+    _runaheadInst = true;
+    for (auto r : _outstandingReqs) {
+        r->setGeneratedInRunahead(); 
+    }
+}
+
+
+void 
+DynInst::setTriggeredRunahead() 
+{ 
+    assert(numOutstandingRequests() > 0);
+    _triggeredRunahead = true; 
+    _runaheadInst = true;
+}
+
+bool
+DynInst::isInvalid()
+{
+    if (_invalid) return true;
+    
+    // the instruction is invalid if any of the source registers is invalid
+    for (int src=0; src<numSrcRegs(); ++src){
+        if (regs.renamedSrcIdx(src)->isInvalid())
+            return true;
+    }
+
+    return false;
+}
+
+void
+DynInst::invalidateDestRegs(bool setINV)
+{
+    for (int d=0; d<numDestRegs(); ++d){
+        PhysRegIdPtr r = regs.renamedDestIdx(d);
+        setINV ? r->setInvBit() : r->resetInvBit();
+    }
+}
+
+void
+DynInst::invalidateSrcRegs(bool setINV)
+{
+    for (int s=0; s<numDestRegs(); ++s){
+        PhysRegIdPtr r = regs.renamedDestIdx(s);
+        setINV ? r->setInvBit() : r->resetInvBit();
+    }
+} 
+
+void 
+DynInst::addReq(RequestPtr req) 
+{   
+    _outstandingReqs.emplace_back(req);
+    if (_runaheadInst) {
+        req->setGeneratedInRunahead();
+    }
+}
+
+void 
+DynInst::reqCompleted(RequestPtr req)
+{
+    // romove the completed request
+    for (int i=0; i<_outstandingReqs.size(); ++i) {
+        if (_outstandingReqs[i].get() == req.get()) {
+            _outstandingReqs.erase(_outstandingReqs.begin() + i);
+        }
+    }
 }
 
 } // namespace runaheado3

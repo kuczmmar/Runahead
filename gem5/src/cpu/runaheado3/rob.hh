@@ -343,7 +343,7 @@ class ROB
 
 // Runahead support
 public:
-  void markAllInstRunahead();
+  void markAllRunahead();
   void debugPrintROB();
   
 };

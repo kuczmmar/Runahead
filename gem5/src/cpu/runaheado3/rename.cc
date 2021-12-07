@@ -1023,6 +1023,9 @@ Rename::renameSrcRegs(const DynInstPtr &inst, ThreadID tid)
         PhysRegIdPtr renamed_reg;
 
         renamed_reg = map->lookup(tc->flattenRegId(src_reg));
+        // make sure the register is not invalid after previous runahead execution
+        renamed_reg->resetInvBit();
+
         switch (src_reg.classValue()) {
           case IntRegClass:
             stats.intLookups++;
@@ -1091,6 +1094,8 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
         flat_dest_regid.setNumPinnedWrites(dest_reg.getNumPinnedWrites());
 
         rename_result = map->rename(flat_dest_regid);
+        // make sure the register is not invalid after previous runahead execution
+        rename_result.first->resetInvBit();
 
         inst->regs.flattenedDestIdx(dest_idx, flat_dest_regid);
 

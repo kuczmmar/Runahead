@@ -99,6 +99,7 @@ struct IEWStruct
     bool branchMispredict[MaxThreads];
     bool branchTaken[MaxThreads];
     bool includeSquashInst[MaxThreads];
+    bool squashAfterRunahead[MaxThreads];
 };
 
 struct IssueStruct
@@ -124,6 +125,7 @@ struct TimeStruct
         bool predIncorrect;
         bool branchMispredict;
         bool branchTaken;
+        bool squashAfterRunahead;
     };
 
     DecodeComm decodeInfo[MaxThreads];

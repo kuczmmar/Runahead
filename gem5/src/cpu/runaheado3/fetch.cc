@@ -62,7 +62,7 @@
 #include "debug/Fetch.hh"
 #include "debug/RunaheadO3CPU.hh"
 #include "debug/O3PipeView.hh"
-#include "debug/RunaheadDebug.hh"
+#include "debug/RunaheadFetch.hh"
 #include "mem/packet.hh"
 #include "params/RunaheadO3CPU.hh"
 #include "sim/byteswap.hh"
@@ -355,6 +355,8 @@ Fetch::processCacheCompletion(PacketPtr pkt)
     ThreadID tid = cpu->contextToThread(pkt->req->contextId());
 
     DPRINTF(Fetch, "[tid:%i] Waking up from cache miss.\n", tid);
+    DPRINTF_NO_LOG(RunaheadFetch, "[tid:%i] Waking up from cache miss.\n", tid);
+    
     assert(!cpu->switchedOut());
 
     // Only change the status if it's still waiting on the icache access
@@ -727,8 +729,6 @@ Fetch::doSquash(const TheISA::PCState &newPC, const DynInstPtr squashInst,
     if (fetchStatus[tid] == IcacheWaitResponse) {
         DPRINTF(Fetch, "[tid:%i] Squashing outstanding Icache miss.\n",
                 tid);
-        DPRINTF(RunaheadDebug, "[tid:%i] Squashing outstanding Icache miss.\n",
-                tid);
         memReq[tid] = NULL;
     } else if (fetchStatus[tid] == ItlbWait) {
         DPRINTF(Fetch, "[tid:%i] Squashing outstanding ITLB miss.\n",
@@ -1068,6 +1068,12 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
             instruction->staticInst->
             disassemble(thisPC.instAddr()));
 
+    DPRINTF_NO_LOG(RunaheadFetch, "Instruction PC %#lx (%d) created [sn:%lu], is %s, st:%d, ld:%d\n", 
+            thisPC.instAddr(), thisPC.microPC(), seq,
+            instruction->staticInst->disassemble(thisPC.instAddr()).c_str(), 
+            instruction->isStore(), instruction->isLoad());
+
+
 #if TRACING_ON
     if (trace) {
         instruction->traceData =
@@ -1095,7 +1101,7 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
 
     // check if fetched in runahead mode
     if (cpu->isInRunaheadMode()) {
-        cpu->cpuStats.fetchedInRunahead++;
+        cpu->cpuStats.fetchedInRA++;
         instruction->setRunaheadInst();
     }
 
@@ -1138,6 +1144,7 @@ Fetch::fetch(bool &status_change)
     // to tick() function.
     if (fetchStatus[tid] == IcacheAccessComplete) {
         DPRINTF(Fetch, "[tid:%i] Icache miss is complete.\n", tid);
+        DPRINTF_NO_LOG(RunaheadFetch, "[tid:%i] Icache miss is complete.\n", tid);
 
         fetchStatus[tid] = Running;
         status_change = true;

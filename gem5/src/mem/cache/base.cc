@@ -395,24 +395,23 @@ BaseCache::recvTimingReq(PacketPtr pkt)
         handleTimingReqMiss(pkt, blk, forward_time, request_time);
         RequestPtr r = pkt->req;
         
-        // runahead support
-        if (this->name() == "system.l2cache"){
-            if (r->hasInstSeqNum()){
+        // runahead support - check when instruction misses in L2
+        // make sure that the miss is caused by an instruction
+        // which hasn't been executed nor squashed yet
+        if (this->name() == "system.l2cache" && r->hasInstSeqNum() && \
+            r->getInst() != nullptr && !r->getInst()->isExecuted() && \
+            !r->getInst()->isSquashed()){
                 runaheado3::DynInst *inst = r->getInst();
                 if (inst) {
                     DPRINTF(RunaheadDebug, "Setting L2 miss flag in DynInst: %d\n", inst->seqNum);
                     inst->setL2Miss();
                 }
-
-                stats.overallL2Misses++;
                 
-                // if (r->isGeneratedInRunahead()) {
-                //     stats.L2MissesInRunahead++;
-                // } else {
-                //    stats.overallL2Misses++;
-                // }
-                
-            }
+                if (r->isGeneratedInRunahead()) {
+                    // DPRINTF(RunaheadDebug, "Generated in runahead %d\n", inst->seqNum);
+                    stats.l2MissesInRA++;
+                } 
+                stats.l2Misses++;
         }
         
         ppMiss->notify(pkt);
@@ -2205,9 +2204,9 @@ BaseCache::CacheStats::CacheStats(BaseCache &c)
     ADD_STAT(dataContractions, statistics::units::Count::get(),
              "number of data contractions"),
     cmd(MemCmd::NUM_MEM_CMDS),
-    ADD_STAT(overallL2Misses, statistics::units::Count::get(),
+    ADD_STAT(l2Misses, statistics::units::Count::get(),
             "number of times a miss in L2 occurred in normal mode"),
-    ADD_STAT(L2MissesInRunahead, statistics::units::Count::get(),
+    ADD_STAT(l2MissesInRA, statistics::units::Count::get(),
             "number of times a miss in L2 occurred in runahead mode")
 {
     for (int idx = 0; idx < MemCmd::NUM_MEM_CMDS; ++idx)
@@ -2426,8 +2425,8 @@ BaseCache::CacheStats::regStats()
 
     dataExpansions.flags(nozero | nonan);
     dataContractions.flags(nozero | nonan);
-    overallL2Misses.flags(nozero | nonan);
-    L2MissesInRunahead.flags(nozero | nonan);
+    l2Misses.flags(nozero | nonan);
+    l2MissesInRA.flags(nozero | nonan);
 }
 
 void

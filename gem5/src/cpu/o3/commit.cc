@@ -956,7 +956,7 @@ Commit::commitInsts()
     ////////////////////////////////////
 
     DPRINTF(Commit, "Trying to commit instructions in the ROB.\n");
-    DPRINTF(RunaheadCompare, "ROB at commit: ");
+    DPRINTF_NO_LOG(RunaheadCompare, "ROB at commit: ");
     rob->debugPrintROB();
 
     unsigned num_committed = 0;

@@ -82,20 +82,27 @@ system.mem_mode = 'timing'               # Use timing accesses
 system.mem_ranges = [AddrRange('512MB')] # Create an address range
 
 # 03 out of order CPU
-if args.mode == 'baseline':
-    print('baseline---------------------------------\n')
+runahead = True if args.mode == 'runahead' else False
+if not runahead:
+    print('----------------baseline----------------\n')
     system.cpu = O3CPU()
-elif args.mode == 'runahead':
-    print('runahead---------------------------------\n')
+else:
+    print('----------------runahead----------------\n')
     system.cpu = RunaheadO3CPU()
+
+system.cpu.numROBEntries = ROB_size
 
 # Create an L1 instruction and data cache
 system.cpu.icache = L1ICache(args)
 system.cpu.dcache = L1DCache(args)
+# if runahead:
+#     system.cpu.ra_cache = L1RunaheadCache(args)
 
 # Connect the instruction and data caches to the CPU
 system.cpu.icache.connectCPU(system.cpu)
 system.cpu.dcache.connectCPU(system.cpu)
+# if runahead:
+#     system.cpu.ra_cache.connectCPU(system.cpu)
 
 # Create a memory bus, a coherent crossbar, in this case
 system.l2bus = L2XBar()
@@ -103,6 +110,8 @@ system.l2bus = L2XBar()
 # Hook the CPU ports up to the l2bus
 system.cpu.icache.connectBus(system.l2bus)
 system.cpu.dcache.connectBus(system.l2bus)
+# if runahead:
+#     system.cpu.ra_cache.connectBus(system.l2bus)
 
 # Create an L2 cache and connect it to the l2bus
 system.l2cache = L2Cache(args)

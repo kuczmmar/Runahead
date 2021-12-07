@@ -44,11 +44,14 @@ def split_name(key):
         key = key.split('l2cache.')[1]
     if key.startswith('cpu.'):
         key = key.split('cpu.')[1]
+    if key.startswith('fetch.'):
+        key = key.split('fetch.')[1]
     return key
 
 def filter_out_stats(original_dict):
     target_stats = read_file_line_by_line()
     target_stats.append('configuration')
+    
     filtered_dict = {split_name(k): v for (k, v) in original_dict.items() if k in target_stats}
     return filtered_dict
 
