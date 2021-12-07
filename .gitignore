@@ -6,3 +6,4 @@ __pycache__/
 /gem5/stats/simple.csv
 /test
 /test.cpp
+/gem5/out1.txt
