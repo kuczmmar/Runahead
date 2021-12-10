@@ -69,6 +69,8 @@ namespace gem5
 
 class DynInstParent;
 
+class MSHR;
+
 /**
  * Special TaskIds that are used for per-context-switch stats dumps
  * and Cache Occupancy. Having too many tasks seems to be a problem
@@ -1026,6 +1028,7 @@ private:
     // DynInstParent* _o3Inst = nullptr;
     bool _generatedInRunahead = false;
     bool _triggeredRunahead = false;
+    MSHR* _mshr = nullptr;
 
 public:
     void setInst(DynInstParent* inst) { _reqInst = inst; }
@@ -1039,6 +1042,9 @@ public:
 
     void setTriggeredRunahead() { _triggeredRunahead = true; }
     bool triggeredRunahead() { return _triggeredRunahead; }
+
+    void setMshr(MSHR* mshr) { _mshr = mshr; }
+    MSHR* getMshr() { return _mshr; }
 
 }; // Request
 

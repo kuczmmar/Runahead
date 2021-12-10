@@ -520,6 +520,15 @@ class MSHR : public QueueEntry, public Printable
     bool matchBlockAddr(const Addr addr, const bool is_secure) const override;
     bool matchBlockAddr(const PacketPtr pkt) const override;
     bool conflictAddr(const QueueEntry* entry) const override;
+
+    /** 
+     * Runahead support 
+     * When one of the requests in this MSHR misses in L2
+     * need to mark all instructions relying on the same block
+     * of memory as missed in L2.
+    */
+   void markTargetsMissedInL2();
+   TargetList* getTargets() { return &targets; }
 };
 
 } // namespace gem5

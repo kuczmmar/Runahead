@@ -297,6 +297,16 @@ BaseCache::handleTimingReqMiss(PacketPtr pkt, MSHR *mshr, CacheBlk *blk,
                 // delay of the xbar.
                 mshr->allocateTarget(pkt, forward_time, order++,
                                      allocOnFill(pkt->cmd));
+                if (pkt->req->getInst()){
+                    DPRINTF(RunaheadDebug, "Allocated target in MSHR for addr:%#x, "
+                    "in %s\n",
+                        pkt->req->getInst()->instAddr(), this->name());
+                    DPRINTF_NO_LOG(RunaheadDebug, " setting MSHR: %u for req:%u , inst sn:%lu, inst ptr: %u\n", 
+                        mshr, pkt->req, pkt->req->getInst()->seqNum, pkt->req->getInst());
+                }
+                pkt->req->setMshr(mshr);
+
+
                 if (mshr->getNumTargets() == numTarget) {
                     noTargetMSHR = mshr;
                     setBlocked(Blocked_NoTargets);
@@ -343,7 +353,11 @@ BaseCache::handleTimingReqMiss(PacketPtr pkt, MSHR *mshr, CacheBlk *blk,
             // Here we are using forward_time, modelling the latency of
             // a miss (outbound) just as forwardLatency, neglecting the
             // lookupLatency component.
-            allocateMissBuffer(pkt, forward_time);
+            MSHR *mshr = allocateMissBuffer(pkt, forward_time);
+            pkt->req->setMshr(mshr);
+            if (pkt->req->getInst())
+                    DPRINTF_NO_LOG(RunaheadDebug, " setting MSHR: %u for req:%u , inst sn:%lu, inst ptr: %u\n", 
+                        mshr, pkt->req, pkt->req->getInst()->seqNum, pkt->req->getInst());
         }
     }
 }
@@ -402,10 +416,23 @@ BaseCache::recvTimingReq(PacketPtr pkt)
         if (this->name() == "system.l2cache" && r->hasInstSeqNum() && \
             inst && !inst->isExecuted() && \
             !inst->isSquashed()){
-                
-                DPRINTF(RunaheadDebug, "Setting L2 miss flag in DynInst: %d\n", 
-                    inst->getSeqNum());
-                inst->setL2Miss();
+
+                runaheado3::DynInst *inst = r->getInst();
+                if (inst) {
+                    DPRINTF(RunaheadDebug, "Setting L2 miss flag in DynInst: %d, req ptr:%d\n",
+                     inst->seqNum, r);
+                    inst->setL2Miss();
+                    MSHR *mshr = r->getMshr();
+                    assert(mshr);
+                    DPRINTF(RunaheadDebug, "Set flags in MSHR ptr:%d: %s", mshr, mshr->print());
+                    mshr->markTargetsMissedInL2();
+                    for (auto origin_inst : pkt->originInstructions) {
+                        printf(" Setting L2 miss in origin inst: %#d\n",
+                             origin_inst->instAddr());
+                        origin_inst->setL2Miss();
+                    }
+                }
+
                 
                 if (r->isGeneratedInRunahead()) {
                     // DPRINTF(RunaheadDebug, "Generated in runahead %d\n", inst->seqNum);
@@ -1847,6 +1874,14 @@ BaseCache::sendMSHRQueuePacket(MSHR* mshr)
     // MSHR request, proceed to get the packet to send downstream
     PacketPtr pkt = createMissPacket(tgt_pkt, blk, mshr->needsWritable(),
                                      mshr->isWholeLineWrite());
+
+    for (auto &t : *(mshr->getTargets())) {
+        for (auto inst : t.pkt->originInstructions){
+            // runaheado3::DynInst* i = dynamic_cast<runaheado3::DynInst*>(inst);
+            printf("  Target inst %#d\n", inst->instAddr());
+            pkt->addOriginInst(inst);
+        }
+    }
 
     mshr->isForward = (pkt == nullptr);
 

@@ -55,6 +55,8 @@
 #include "debug/MSHR.hh"
 #include "mem/cache/base.hh"
 #include "mem/request.hh"
+#include "cpu/runaheado3/dyn_inst.hh"
+#include "debug/RunaheadDebug.hh"
 
 namespace gem5
 {
@@ -182,6 +184,11 @@ MSHR::TargetList::add(PacketPtr pkt, Tick readyTime,
     emplace_back(pkt, readyTime, order, source, markPending, alloc_on_fill);
 
     DPRINTF(MSHR, "New target allocated: %s\n", pkt->print());
+    if (pkt->req->getInst())
+        DPRINTF(MSHR, "   For inst sn:%lu, req ptr:%d\n", 
+            pkt->req->getInst()->seqNum, pkt->req);
+
+    // pkt->req->setMshrList(this);
 }
 
 
@@ -292,7 +299,10 @@ MSHR::TargetList::print(std::ostream &os, int verbosity,
             s = "";
             break;
         }
-        ccprintf(os, "%s%s: ", prefix, s);
+        uint64_t sn=0;
+        if (t.pkt->req->getInst())
+            sn = t.pkt->req->getInst()->seqNum;
+        ccprintf(os, "%s%s: [sn:%lu] ", prefix, s, sn);
         t.pkt->print(os, verbosity, "");
         ccprintf(os, "\n");
     }
@@ -414,9 +424,11 @@ MSHR::allocateTarget(PacketPtr pkt, Tick whenReady, Counter _order,
         // (isn't in service).
         targets.add(pkt, whenReady, _order, Target::FromCPU, !inService,
                     alloc_on_fill);
+        
     }
 
     DPRINTF(MSHR, "After target allocation: %s", print());
+    DPRINTF(MSHR, "Ptr is: %d, targets ptr: %d\n", this, &targets);
 }
 
 bool
@@ -761,6 +773,21 @@ MSHR::conflictAddr(const QueueEntry* entry) const
 {
     assert(hasTargets());
     return entry->matchBlockAddr(blkAddr, isSecure);
+}
+
+void 
+MSHR::markTargetsMissedInL2()
+{
+    DPRINTF(RunaheadDebug, "Targets Size: %d in MSHR\n",targets.size());
+    for (auto t : targets) {
+        assert(t.pkt->req->getInst());
+        if (t.source == Target::FromCPU) {
+            t.pkt->req->getInst()->setL2Miss();
+            DPRINTF(RunaheadDebug, "Inst %#x marked miss in L2 in MSHR\n",
+                t.pkt->req->getInst()->instAddr());
+        }
+    
+    }    
 }
 
 } // namespace gem5

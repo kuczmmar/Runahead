@@ -17,15 +17,18 @@ fi
 
 # define benchmark variables
 RANDACC='--binary=/home/marta/runahead/benchmarks/cgo2017/program/randacc/bin/x86/randacc-no --binary_args 100'
+# RANDACC='--binary=/home/marta/runahead/test'
 
 # define paths to configuration files
 TWO_LEVEL='configs/learning_gem5/part1/two_level.py'
 O3_TWO_LEVEL='configs/runahead/o3_2level.py'
 
-GEM_FLAGS='--stats-file=baseline/2level_randacc --dot-config=base_2level_randacc --debug-flags=RunaheadCompare,Commit'
-RUN_GEM_FLAGS='--stats-file=runahead/2level_randacc --dot-config=run_2level_randacc --debug-flags=RunaheadDebug,Commit'
+GEM_FLAGS='--stats-file=baseline/2level_randacc --dot-config=base_2level_randacc --debug-flags=RunaheadCompare'
+RUN_GEM_FLAGS='--stats-file=runahead/2level_randacc --dot-config=run_2level_randacc --debug-flags=RunaheadDebug,Cache,MSHR'
+
 # RunaheadO3CPU
 OUT='out.txt'
+OUT1='out1.txt'
 
 echo_lines() {
   yes '' | sed 3q
@@ -41,14 +44,17 @@ print_new_line() {
 rm -r m5out/
 mkdir m5out && mkdir m5out/baseline && mkdir m5out/runahead
 rm $OUT
+rm $OUT1
 
 # run two level of cache setup on randacc benchmark
 # baseline
-build/X86/gem5.opt $GEM_FLAGS $O3_TWO_LEVEL $RANDACC > $OUT
+build/X86/gem5.opt $GEM_FLAGS $O3_TWO_LEVEL $RANDACC > $OUT1
 print_new_line
 
 # runahead
 build/X86/gem5.opt $RUN_GEM_FLAGS $O3_TWO_LEVEL --mode=runahead $RANDACC >> $OUT
+
+# --l1i_size='32kB' --l1d_size='64kB'
 print_new_line
 
 
@@ -61,3 +67,6 @@ cat stats/simple.csv  |sed 's/,/ ,/g' | column -t -s,
 # gdb build/X86/gem5.debug
 # run configs/runahead/o3_2level.py --mode=runahead --binary=/home/marta/runahead/benchmarks/cgo2017/program/randacc/bin/x86/randacc-no --binary_args 100
 # run configs/runahead/o3_2level.py --binary=/home/marta/runahead/benchmarks/cgo2017/program/randacc/bin/x86/randacc-no --binary_args 100
+# run configs/runahead/o3_2level.py --mode=runahead --binary=/home/marta/runahead/test
+
+

@@ -48,6 +48,8 @@
 
 #include "debug/MSHR.hh"
 #include "mem/cache/mshr.hh"
+#include "cpu/runaheado3/dyn_inst.hh"
+
 
 namespace gem5
 {
@@ -74,6 +76,10 @@ MSHRQueue::allocate(Addr blk_addr, unsigned blk_size, PacketPtr pkt,
     mshr->allocate(blk_addr, blk_size, pkt, when_ready, order, alloc_on_fill);
     mshr->allocIter = allocatedList.insert(allocatedList.end(), mshr);
     mshr->readyIter = addToReadyList(mshr);
+    if (pkt->req->getInst())
+        DPRINTF_NO_LOG(MSHR, "   New MSHR for inst sn:%lu\n", pkt->req->getInst()->seqNum);
+
+
 
     allocated += 1;
     return mshr;
