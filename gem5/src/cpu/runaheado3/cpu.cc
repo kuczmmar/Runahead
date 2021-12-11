@@ -430,10 +430,6 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                "Number of times that the ROB becomes full in runahead mode."),
       ADD_STAT(numEnteredRA, statistics::units::Count::get(),
                 "Number of times the CPU enters runahead"),
-      ADD_STAT(robHeadL2Miss, statistics::units::Count::get(),
-                "Number of times the head instruction of ROB is waiting on a L2 miss while executing in normal mode"),
-      ADD_STAT(robHeadL2MissInRunahead, statistics::units::Count::get(),
-                "Number of times the head instruction of ROB is waiting on a L2 miss while executing in runahead mode"),
       ADD_STAT(fetchedInRA, statistics::units::Count::get(),
                 "Number of instructions fetched in runahead mode.")
 {
@@ -515,8 +511,6 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     robFull.prereq(robFull);
     robFullInRA.prereq(robFullInRA);
     numEnteredRA.prereq(numEnteredRA);
-    robHeadL2Miss.prereq(robHeadL2Miss);
-    robHeadL2MissInRunahead.prereq(robHeadL2MissInRunahead);
     fetchedInRA.prereq(fetchedInRA);
 }
 

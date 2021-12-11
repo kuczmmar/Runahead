@@ -64,6 +64,7 @@
 #include "cpu/static_inst.hh"
 #include "cpu/translation.hh"
 #include "debug/HtmCpu.hh"
+#include "cpu/dyn_inst_parent.hh"
 
 namespace gem5
 {
@@ -73,7 +74,7 @@ class Packet;
 namespace o3
 {
 
-class DynInst : public ExecContext, public RefCounted
+class DynInst : public ExecContext, public RefCounted, public DynInstParent
 {
   public:
     // The list of instructions iterator type.
@@ -1328,6 +1329,24 @@ class DynInst : public ExecContext, public RefCounted
         this->cpu->setCCReg(this->regs.renamedDestIdx(idx), val);
         setScalarResult(val);
     }
+
+    int getSeqNum() override { return seqNum; }
+
+// Runahead comparison
+private:
+    bool _wouldTriggerRA = false;
+    bool _runaheadInst = false;
+
+public:
+    // this bool flag indicates whether this instruction was fetched
+    // withing cpu->numFutureInsts after an exit from funahead 
+    // would take place, it is updated when the instruction is added 
+    // to the ROB in Commit::getInsts()
+    bool assumePrefetchedInRA = false;
+    void setL2Miss() override;
+    bool wouldTriggeredRunahead() { return _wouldTriggerRA; }
+    void setTriggeredRunahead();
+
 };
 
 } // namespace o3

@@ -1018,12 +1018,12 @@ Commit::commitInsts()
         // if the CPU has just returned from runahead mode,
         // the head instruction may still not be ready - don't enter runahead again
         // check if it isn't a runahead instruction
-        if (!rob->isHeadReady(commit_thread) && head_inst->missedInL2() && !head_inst->isRunaheadInst()) {
-                DPRINTF(RunaheadCommit, "Commit: head not ready and missed in L2 - inst: %d\n", head_inst->seqNum);
-                cpu->enterRunaheadMode(head_inst, commit_thread);
-                
-                // cpu->cpuStats.robHeadL2Miss++;
-                break;
+        if (!rob->isHeadReady(commit_thread) && head_inst->missedInL2() 
+                && !head_inst->isRunaheadInst()) {
+            DPRINTF(RunaheadCommit, "Commit: head not ready and missed in L2 - inst: %d\n", head_inst->seqNum);
+            cpu->enterRunaheadMode(head_inst, commit_thread);
+            
+            break;
         }     
 
         ThreadID tid = head_inst->threadNumber;

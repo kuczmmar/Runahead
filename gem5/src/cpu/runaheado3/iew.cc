@@ -221,7 +221,7 @@ IEW::IEWStats::ExecutedInstStats::ExecutedInstStats(CPU *cpu)
     : statistics::Group(cpu),
     ADD_STAT(numInsts, statistics::units::Count::get(),
              "Number of executed instructions"),
-    ADD_STAT(numLoadInsts, statistics::units::Count::get(),
+    ADD_STAT(loadInsts, statistics::units::Count::get(),
              "Number of load instructions executed"),
     ADD_STAT(numSquashedInsts, statistics::units::Count::get(),
              "Number of squashed instructions skipped in execute"),
@@ -238,10 +238,10 @@ IEW::IEWStats::ExecutedInstStats::ExecutedInstStats(CPU *cpu)
     ADD_STAT(numRate, statistics::units::Rate<
                 statistics::units::Count, statistics::units::Cycle>::get(),
              "Inst execution rate", numInsts / cpu->baseStats.numCycles),
-    ADD_STAT(numLoadInstsInRA, statistics::units::Count::get(),
+    ADD_STAT(loadInstsInRA, statistics::units::Count::get(),
              "Number of load instructions executed in runahead mode")
 {
-    numLoadInsts
+    loadInsts
         .init(cpu->numThreads)
         .flags(statistics::total);
 
@@ -263,12 +263,12 @@ IEW::IEWStats::ExecutedInstStats::ExecutedInstStats(CPU *cpu)
 
     numStoreInsts
         .flags(statistics::total);
-    numStoreInsts = numRefs - numLoadInsts;
+    numStoreInsts = numRefs - loadInsts;
 
     numRate
         .flags(statistics::total);
 
-    numLoadInstsInRA
+    loadInstsInRA
         .init(cpu->numThreads)
         .flags(statistics::total);
 }
@@ -1609,9 +1609,9 @@ IEW::updateExeInstStats(const DynInstPtr& inst)
 
         if (inst->isLoad()) {
             if (cpu->isInRunaheadMode()){
-                iewStats.executedInstStats.numLoadInstsInRA[tid]++;
+                iewStats.executedInstStats.loadInstsInRA[tid]++;
             } else {
-                iewStats.executedInstStats.numLoadInsts[tid]++;
+                iewStats.executedInstStats.loadInsts[tid]++;
             }
         }
     }

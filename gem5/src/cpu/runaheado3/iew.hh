@@ -464,7 +464,7 @@ class IEW
             /** Stat for total number of executed instructions. */
             statistics::Scalar numInsts;
             /** Stat for total number of executed load instructions. */
-            statistics::Vector numLoadInsts;
+            statistics::Vector loadInsts;
             /** Stat for total number of squashed instructions skipped at
              *  execute. */
             statistics::Scalar numSquashedInsts;
@@ -481,9 +481,9 @@ class IEW
             /** Number of instructions executed per cycle. */
             statistics::Formula numRate;
             /** Stat for total number of executed load instructions in runahead mode. 
-             * Note that numLoadInsts counts only these instructions in normal mode!
+             * Note that loadInsts counts only these instructions in normal mode!
             */
-            statistics::Vector numLoadInstsInRA;
+            statistics::Vector loadInstsInRA;
         } executedInstStats;
 
         /** Number of instructions sent to commit. */

@@ -57,6 +57,12 @@
 namespace gem5
 {
 
+
+struct RunaheadO3CPUParams;
+
+namespace runaheado3
+{
+  
 struct SNHash
 {
     size_t
@@ -67,11 +73,6 @@ struct SNHash
         return hash;
     }
 };
-
-struct RunaheadO3CPUParams;
-
-namespace runaheado3
-{
 
 class CPU;
 class InstructionQueue;

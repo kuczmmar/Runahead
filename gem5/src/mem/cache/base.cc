@@ -398,14 +398,14 @@ BaseCache::recvTimingReq(PacketPtr pkt)
         // runahead support - check when instruction misses in L2
         // make sure that the miss is caused by an instruction
         // which hasn't been executed nor squashed yet
+        DynInstParent* inst = r->getInst();
         if (this->name() == "system.l2cache" && r->hasInstSeqNum() && \
-            r->getInst() != nullptr && !r->getInst()->isExecuted() && \
-            !r->getInst()->isSquashed()){
-                runaheado3::DynInst *inst = r->getInst();
-                if (inst) {
-                    DPRINTF(RunaheadDebug, "Setting L2 miss flag in DynInst: %d\n", inst->seqNum);
-                    inst->setL2Miss();
-                }
+            inst && !inst->isExecuted() && \
+            !inst->isSquashed()){
+                
+                DPRINTF(RunaheadDebug, "Setting L2 miss flag in DynInst: %d\n", 
+                    inst->getSeqNum());
+                inst->setL2Miss();
                 
                 if (r->isGeneratedInRunahead()) {
                     // DPRINTF(RunaheadDebug, "Generated in runahead %d\n", inst->seqNum);

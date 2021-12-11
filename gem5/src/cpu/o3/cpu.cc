@@ -120,7 +120,8 @@ CPU::CPU(const O3CPUParams &params)
       globalSeqNum(1),
       system(params.system),
       lastRunningCycle(curCycle()),
-      cpuStats(this)
+      cpuStats(this),
+      numFutureInsts(params.numROBEntries)
 {
     fatal_if(FullSystem && params.numThreads > 1,
             "SMT is not supported in O3 in full system mode currently.");
@@ -424,7 +425,24 @@ CPU::CPUStats::CPUStats(CPU *cpu)
       ADD_STAT(miscRegfileWrites, statistics::units::Count::get(),
                "number of misc regfile writes"),
       ADD_STAT(robFull, statistics::units::Count::get(),
-               "Number of times that the ROB becomes full")
+               "Number of times that the ROB becomes full"),
+      ADD_STAT(totalRobSizeAtEnterRA, statistics::units::Count::get(),
+               "Sum of number of entries in the ROB when the CPU would enter runahead"),
+      ADD_STAT(totalRobSizeAtExitRA, statistics::units::Count::get(),
+               "Sum of number of entries in the ROB when the CPU would exit runahead"),
+      ADD_STAT(numEnteredRA, statistics::units::Count::get(),
+               "number of times the CPU would enter runahead"),
+      ADD_STAT(avgRobSizeAtEnterRA, statistics::units::Ratio::get(),
+               "Average number of entries in the ROB when the CPU would enter runahead",
+               totalRobSizeAtEnterRA / numEnteredRA),
+      ADD_STAT(avgRobSizeAtExitRA, statistics::units::Ratio::get(),
+               "Average number of entries in the ROB when the CPU would exit runahead",
+               totalRobSizeAtExitRA / numEnteredRA),
+      ADD_STAT(numPossiblePrefetchesInRA, statistics::units::Count::get(),
+               "number of instructions that could possibly be prefetched in runahead "
+               "looking at one rob_size instructions after exit from runahead"),
+      ADD_STAT(possibleMissesInL2, statistics::units::Count::get(),
+               "number of misses in L2 that could be potentially prefetched by runahead")
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -501,6 +519,15 @@ CPU::CPUStats::CPUStats(CPU *cpu)
         .prereq(miscRegfileWrites);
 
     robFull.prereq(robFull);
+
+    totalRobSizeAtEnterRA.prereq(totalRobSizeAtEnterRA);
+    totalRobSizeAtExitRA.prereq(totalRobSizeAtExitRA);
+    numEnteredRA.prereq(numEnteredRA);
+    avgRobSizeAtEnterRA.precision(3);
+    avgRobSizeAtExitRA.precision(3);
+    numPossiblePrefetchesInRA.prereq(numPossiblePrefetchesInRA);
+    possibleMissesInL2.prereq(possibleMissesInL2);
+    
 }
 
 void

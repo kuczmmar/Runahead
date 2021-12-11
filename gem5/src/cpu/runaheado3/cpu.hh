@@ -708,8 +708,6 @@ class CPU : public BaseCPU
         statistics::Scalar robFull;
         statistics::Scalar robFullInRA;
         statistics::Scalar numEnteredRA;
-        statistics::Scalar robHeadL2Miss;
-        statistics::Scalar robHeadL2MissInRunahead;
         statistics::Scalar fetchedInRA;
     } cpuStats;
 

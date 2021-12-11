@@ -458,7 +458,7 @@ class IEW
             /** Stat for total number of executed instructions. */
             statistics::Scalar numInsts;
             /** Stat for total number of executed load instructions. */
-            statistics::Vector numLoadInsts;
+            statistics::Vector loadInsts;
             /** Stat for total number of squashed instructions skipped at
              *  execute. */
             statistics::Scalar numSquashedInsts;

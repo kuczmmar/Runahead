@@ -986,12 +986,42 @@ Commit::commitInsts()
             }
         }
 
-        // ThreadID commit_thread = getCommittingThread();
-
-        if (commit_thread == -1 || !rob->isHeadReady(commit_thread))
-            break;
-
+        if (commit_thread == -1) break;
         head_inst = rob->readHeadInst(commit_thread);
+        if (!head_inst){
+            break;
+        }
+        DPRINTF(RunaheadCompare, "Head inst: ptr:%d, sn:%lu\n", 
+            head_inst, head_inst->seqNum);
+
+        /*
+        statistics for when Runahead mode would have been entered
+        want to determine how much improvement RA can achieve over
+        baseline. This is done by looking at how many instructions
+        miss in L2 following the first ROB_size instructions in ROB.
+        This is because the first ROB_size of entries can be loaded 
+        into memory in the baseline, only the following window_width
+        (or so) is where RA benefits the most.
+        */
+        if (!rob->isHeadReady(commit_thread) && head_inst->missedInL2() 
+                && !cpu->wouldBeInRA) {
+                    
+            DPRINTF(RunaheadCompare, "Would enter runahead - sn:%d,"
+                " entries in ROB:%D\n", 
+                head_inst->seqNum, rob->numInstsInROB);
+
+            cpu->wouldBeInRA = true;
+            head_inst->setTriggeredRunahead();
+
+            // update stats
+            cpu->cpuStats.totalRobSizeAtEnterRA += rob->numInstsInROB;
+            cpu->cpuStats.numEnteredRA++;
+
+            cpu->numRobEntriesWhenEnter = rob->numInstsInROB;
+            cpu->numInsertedInRA = 0;
+        }  
+
+        if (!rob->isHeadReady(commit_thread)) break;
 
         ThreadID tid = head_inst->threadNumber;
 
@@ -1350,6 +1380,15 @@ Commit::getInsts()
             DPRINTF(Commit, "[tid:%i] [sn:%llu] Inserting PC %s into ROB.\n",
                     tid, inst->seqNum, inst->pcState());
 
+            if (cpu->wouldBeInRA) {
+                ++cpu->numInsertedInRA;
+            } else {
+                // running outside of RA, count instructions which 
+                // might have been fetched during RA
+                if (++cpu->instsAfterLastRA < cpu->numFutureInsts) {
+                    inst->assumePrefetchedInRA = true;
+                }
+            }
             rob->insertInst(inst);
 
             assert(rob->getThreadEntries(tid) <= rob->getMaxEntries(tid));

@@ -130,7 +130,7 @@ class SimpleExecContext : public ExecContext
                        "Number of times the CC registers were written"),
               ADD_STAT(numMemRefs, statistics::units::Count::get(),
                        "Number of memory refs"),
-              ADD_STAT(numLoadInsts, statistics::units::Count::get(),
+              ADD_STAT(loadInsts, statistics::units::Count::get(),
                        "Number of load instructions"),
               ADD_STAT(numStoreInsts, statistics::units::Count::get(),
                        "Number of store instructions"),
@@ -239,7 +239,7 @@ class SimpleExecContext : public ExecContext
 
         // Number of simulated memory references
         statistics::Scalar numMemRefs;
-        statistics::Scalar numLoadInsts;
+        statistics::Scalar loadInsts;
         statistics::Scalar numStoreInsts;
 
         // Number of idle cycles

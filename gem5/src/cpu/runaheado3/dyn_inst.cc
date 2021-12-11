@@ -348,7 +348,7 @@ DynInst::setTriggeredRunahead()
 { 
     assert(numOutstandingRequests() > 0);
     _triggeredRunahead = true; 
-    _runaheadInst = true;
+    this->setRunaheadInst();
 }
 
 bool
@@ -382,26 +382,6 @@ DynInst::invalidateSrcRegs(bool setINV)
         setINV ? r->setInvBit() : r->resetInvBit();
     }
 } 
-
-void 
-DynInst::addReq(RequestPtr req) 
-{   
-    _outstandingReqs.emplace_back(req);
-    if (_runaheadInst) {
-        req->setGeneratedInRunahead();
-    }
-}
-
-void 
-DynInst::reqCompleted(RequestPtr req)
-{
-    // romove the completed request
-    for (int i=0; i<_outstandingReqs.size(); ++i) {
-        if (_outstandingReqs[i].get() == req.get()) {
-            _outstandingReqs.erase(_outstandingReqs.begin() + i);
-        }
-    }
-}
 
 } // namespace runaheado3
 } // namespace gem5

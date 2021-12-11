@@ -418,7 +418,7 @@ LSQ::recvTimingResp(PacketPtr pkt)
     auto senderState = dynamic_cast<LSQSenderState*>(pkt->senderState);
     panic_if(!senderState, "Got packet back with unknown sender state\n");
     
-    DynInst* i = pkt->req->getInst();
+    DynInst* i = dynamic_cast<DynInst*>(pkt->req->getInst());
     
     i->reqCompleted(pkt->req);
     // DPRINTF(RunaheadDebug, "Req completed sn:%lu; left:%d reqs\n", 

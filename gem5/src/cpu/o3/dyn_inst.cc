@@ -333,5 +333,23 @@ DynInst::initiateMemAMO(Addr addr, unsigned size, Request::Flags flags,
             std::move(amo_op), std::vector<bool>(size, true));
 }
 
-} // namespace o3
+void 
+DynInst::setL2Miss()
+{ 
+    runaheadFlags.set(MissedInL2);
+    if (assumePrefetchedInRA) {
+        ++cpu->cpuStats.possibleMissesInL2;
+        // make sure this will not get called twice 
+        // if instruction has multiple requests
+        assumePrefetchedInRA = false;
+    }
+}
+
+void 
+DynInst::setTriggeredRunahead() 
+{ 
+    _wouldTriggerRA = true;
+}
+
+} // namespace runaheado3
 } // namespace gem5

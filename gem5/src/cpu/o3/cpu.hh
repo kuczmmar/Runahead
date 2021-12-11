@@ -704,12 +704,33 @@ class CPU : public BaseCPU
         statistics::Scalar miscRegfileReads;
         statistics::Scalar miscRegfileWrites;
         statistics::Scalar robFull;
+        // stats for comparison with runahead performance
+        statistics::Scalar totalRobSizeAtEnterRA;
+        statistics::Scalar totalRobSizeAtExitRA;
+        statistics::Scalar numEnteredRA;
+        statistics::Formula avgRobSizeAtEnterRA;
+        statistics::Formula avgRobSizeAtExitRA;
+        statistics::Scalar numPossiblePrefetchesInRA;
+        statistics::Scalar possibleMissesInL2;
     } cpuStats;
 
   public:
     // hardware transactional memory
     void htmSendAbortSignal(ThreadID tid, uint64_t htm_uid,
                             HtmFailureFaultCause cause);
+
+    // Runahead comparison to baseline
+
+    // Indicates whether the runaheado3 cpu would be running 
+    // in RA at any point of the simulation
+    bool wouldBeInRA = false;
+    int numRobEntriesWhenEnter;
+    int numInsertedInRA;
+
+    int instsAfterLastRA;
+    int numFutureInsts;
+
+    int numRobEntries() { return rob.numInstsInROB; }
 };
 
 } // namespace o3

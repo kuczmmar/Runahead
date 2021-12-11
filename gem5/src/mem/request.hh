@@ -67,9 +67,7 @@
 namespace gem5
 {
 
-namespace runaheado3{
-    class DynInst;
-}
+class DynInstParent;
 
 /**
  * Special TaskIds that are used for per-context-switch stats dumps
@@ -1024,13 +1022,17 @@ class Request
 private:
     /** Pointer to the instruction associated with this request, 
      *  used in CPUs with Runahead execution, only valid when hasInstSeqNum */
-    runaheado3::DynInst* _reqInst = nullptr;
+    DynInstParent* _reqInst = nullptr;
+    // DynInstParent* _o3Inst = nullptr;
     bool _generatedInRunahead = false;
     bool _triggeredRunahead = false;
 
 public:
-    void setInst(runaheado3::DynInst* inst) { _reqInst = inst; }
-    runaheado3::DynInst* getInst() { return _reqInst; }
+    void setInst(DynInstParent* inst) { _reqInst = inst; }
+    // void setInst(o3::DynInst* inst) { _o3Inst = inst; }
+    
+    DynInstParent* getInst() { return _reqInst; }
+    // o3::DynInst* getInstO3() { return _o3Inst; }
 
     void setGeneratedInRunahead() { _generatedInRunahead = true; }
     bool isGeneratedInRunahead() { return _generatedInRunahead; }

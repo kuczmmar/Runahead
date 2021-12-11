@@ -56,6 +56,7 @@
 #include "debug/HtmCpu.hh"
 #include "debug/LSQ.hh"
 #include "debug/Writeback.hh"
+#include "debug/RunaheadCompare.hh"
 #include "params/O3CPU.hh"
 
 namespace gem5
@@ -418,6 +419,22 @@ LSQ::recvTimingResp(PacketPtr pkt)
     panic_if(!senderState, "Got packet back with unknown sender state\n");
 
     thread[cpu->contextToThread(senderState->contextId())].recvTimingResp(pkt);
+
+    // The CPU would exit runahead 
+    // for simplicity assume we exit when any of the requests generated 
+    // by this instruction has returned, this is not true in runahead 
+    // implementation, since we would normally wait for all requests to return
+
+    DynInst* i = dynamic_cast<DynInst*>(pkt->req->getInst());
+    if (i && cpu->wouldBeInRA && i->wouldTriggeredRunahead()){
+        DPRINTF(RunaheadCompare, "Would exit runahead - sn:%d,"
+                " in ROB when entered: %d, entries inserted in RA:%d\n", 
+                i->seqNum, cpu->numRobEntriesWhenEnter, cpu->numInsertedInRA);
+        cpu->wouldBeInRA = false;
+        cpu->instsAfterLastRA = 0;
+        i->resetL2Miss();
+        cpu->cpuStats.totalRobSizeAtExitRA += cpu->numRobEntries();
+    }
 
     if (pkt->isInvalidate()) {
         // This response also contains an invalidate; e.g. this can be the case
@@ -947,6 +964,7 @@ LSQ::SingleDataRequest::initiateTranslation()
     if (_requests.size() > 0) {
         _requests.back()->setReqInstSeqNum(_inst->seqNum);
         _requests.back()->taskId(_taskId);
+        _requests.back()->setInst(_inst.get());
         _inst->translationStarted(true);
         setState(State::Translation);
         flags.set(Flag::TranslationStarted);
@@ -1021,6 +1039,7 @@ LSQ::SplitDataRequest::initiateTranslation()
         for (auto& r: _requests) {
             r->setReqInstSeqNum(_inst->seqNum);
             r->taskId(_taskId);
+            r->setInst(_inst.get());
         }
 
         _inst->translationStarted(true);
@@ -1383,6 +1402,7 @@ LSQ::HtmCmdRequest::HtmCmdRequest(LSQUnit* port, const DynInstPtr& inst,
         _requests.back()->taskId(_taskId);
         _requests.back()->setPaddr(_addr);
         _requests.back()->setInstCount(_inst->getCpuPtr()->totalInsts());
+        _requests.back()->setInst(_inst.get());
 
         _inst->strictlyOrdered(_requests.back()->isStrictlyOrdered());
         _inst->fault = NoFault;

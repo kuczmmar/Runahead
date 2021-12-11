@@ -143,7 +143,7 @@ X86StaticInst::printReg(std::ostream &os, RegId reg, int size)
 { 
     if (!((size == 1 || size == 2 || size == 4 || size == 8)))
       printf("reg size %d\n", size);
-    assert(size == 1 || size == 2 || size == 4 || size == 8);
+    // assert(size == 1 || size == 2 || size == 4 || size == 8);
     static const char * abcdFormats[9] =
         {"", "%s",  "%sx",  "", "e%sx", "", "", "", "r%sx"};
     static const char * piFormats[9] =

@@ -57,6 +57,10 @@
 namespace gem5
 {
 
+struct O3CPUParams;
+
+namespace o3
+{
 struct SNHash
 {
     size_t
@@ -68,10 +72,6 @@ struct SNHash
     }
 };
 
-struct O3CPUParams;
-
-namespace o3
-{
 
 class CPU;
 class InstructionQueue;

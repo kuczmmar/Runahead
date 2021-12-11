@@ -443,7 +443,7 @@ BaseSimpleCPU::postExecute()
 
     //result bus acceses
     if (curStaticInst->isLoad()){
-        t_info.execContextStats.numLoadInsts++;
+        t_info.execContextStats.loadInsts++;
     }
 
     if (curStaticInst->isStore() || curStaticInst->isAtomic()){
