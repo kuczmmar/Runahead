@@ -38,8 +38,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_DEP_GRAPH_HH__
-#define __CPU_RUNAHEAD_O3_DEP_GRAPH_HH__
+#ifndef __CPU_PRE_DEP_GRAPH_HH__
+#define __CPU_PRE_DEP_GRAPH_HH__
 
 #include "cpu/pre/comm.hh"
 
@@ -301,4 +301,4 @@ DependencyGraph<DynInstPtr>::dump()
 } // namespace pre
 } // namespace gem5
 
-#endif // __CPU_RUNAHEAD_O3_DEP_GRAPH_HH__
+#endif // __CPU_PRE_DEP_GRAPH_HH__

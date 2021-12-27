@@ -38,8 +38,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_MEM_DEP_UNIT_HH__
-#define __CPU_RUNAHEAD_O3_MEM_DEP_UNIT_HH__
+#ifndef __CPU_PRE_MEM_DEP_UNIT_HH__
+#define __CPU_PRE_MEM_DEP_UNIT_HH__
 
 #include <list>
 #include <memory>
@@ -57,6 +57,12 @@
 namespace gem5
 {
 
+
+struct PreO3CPUParams;
+
+namespace pre
+{
+  
 struct SNHash
 {
     size_t
@@ -67,11 +73,6 @@ struct SNHash
         return hash;
     }
 };
-
-struct PreO3CPUParams;
-
-namespace pre
-{
 
 class CPU;
 class InstructionQueue;
@@ -282,4 +283,4 @@ class MemDepUnit
 } // namespace pre
 } // namespace gem5
 
-#endif // __CPU_RUNAHEAD_O3_MEM_DEP_UNIT_HH__
+#endif // __CPU_PRE_MEM_DEP_UNIT_HH__

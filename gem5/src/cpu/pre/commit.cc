@@ -64,6 +64,8 @@
 #include "debug/ExecFaulting.hh"
 #include "debug/HtmCpu.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/PreDebug.hh"
+#include "debug/PreCommit.hh"
 #include "params/PreO3CPU.hh"
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
@@ -83,7 +85,7 @@ Commit::processTrapEvent(ThreadID tid)
 }
 
 Commit::Commit(CPU *_cpu, const PreO3CPUParams &params)
-    : commitPolicy(params.smtCommitPolicy),
+    : commitPolicy(params.smtPreCommitPolicy),
       cpu(_cpu),
       iewToCommitDelay(params.iewToCommitDelay),
       commitToIEWDelay(params.commitToIEWDelay),
@@ -107,7 +109,7 @@ Commit::Commit(CPU *_cpu, const PreO3CPUParams &params)
     _status = Active;
     _nextStatus = Inactive;
 
-    if (commitPolicy == CommitPolicy::RoundRobin) {
+    if (commitPolicy == PreCommitPolicy::RoundRobin) {
         //Set-Up Priority List
         for (ThreadID tid = 0; tid < numThreads; tid++) {
             priority_list.push_back(tid);
@@ -836,6 +838,10 @@ Commit::commit()
                     tid,
                     fromIEW->mispredictInst[tid]->instAddr(),
                     fromIEW->squashedSeqNum[tid]);
+            } else if (fromIEW->squashAfterPre[tid]) {
+                DPRINTF(Commit,
+                    "[tid:%i] Squashing due to runahead exit [sn:%llu]\n",
+                    tid, fromIEW->squashedSeqNum[tid]);
             } else {
                 DPRINTF(Commit,
                     "[tid:%i] Squashing due to order violation [sn:%llu]\n",
@@ -955,7 +961,10 @@ Commit::commitInsts()
     ////////////////////////////////////
 
     DPRINTF(Commit, "Trying to commit instructions in the ROB.\n");
+    DPRINTF(PreDebug, "ROB at commit: ");
+    rob->debugPrintROB();
 
+    bool first_iter = true;
     unsigned num_committed = 0;
 
     DynInstPtr head_inst;
@@ -983,12 +992,26 @@ Commit::commitInsts()
             }
         }
 
-        // ThreadID commit_thread = getCommittingThread();
-
-        if (commit_thread == -1 || !rob->isHeadReady(commit_thread))
+        if (commit_thread == -1)
             break;
 
         head_inst = rob->readHeadInst(commit_thread);
+        if (!head_inst){
+            break;
+        }
+
+        if (cpu->isInPreMode() && first_iter) {
+            first_iter = false;
+            cpu->cpuStats.maxAtRobHead = std::max(
+                ++head_inst->cyclesAtHeadInRA,
+                int(cpu->cpuStats.maxAtRobHead.value()));
+            DPRINTF(PreDebug, "Max at rob head: %d\n", 
+                head_inst->cyclesAtHeadInRA);
+
+            if (head_inst->cyclesAtHeadInRA == 20) {
+                rob->debugPrintRegisters();
+            }
+        }
 
         ThreadID tid = head_inst->threadNumber;
 
@@ -1014,6 +1037,8 @@ Commit::commitInsts()
             // Record that the number of ROB entries has changed.
             changedROBNumEntries[tid] = true;
         } else {
+            DPRINTF(Commit, "Trying to commit head instruction, [tid:%i] [sn:%llu]\n",
+                tid, head_inst->seqNum);
             pc[tid] = head_inst->pcState();
 
             // Try to commit the head instruction.
@@ -1147,6 +1172,10 @@ Commit::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
     assert(head_inst);
 
     ThreadID tid = head_inst->threadNumber;
+
+    if (head_inst->isRunaheadInst()) {
+        DPRINTF(PreCommit, "Trying to commit head in Pre!\n");
+    }
 
     // If the instruction is not executed yet, then it will need extra
     // handling.  Signal backwards that it should be executed.
@@ -1347,6 +1376,11 @@ Commit::getInsts()
             DPRINTF(Commit, "[tid:%i] [sn:%llu] Inserting PC %s into ROB.\n",
                     tid, inst->seqNum, inst->pcState());
 
+            if (cpu->isInPreMode()) {
+                inst->setRunaheadInst();
+                ++cpu->cpuStats.totalInsertedInRA;
+            }
+
             rob->insertInst(inst);
 
             assert(rob->getThreadEntries(tid) <= rob->getMaxEntries(tid));
@@ -1447,10 +1481,10 @@ Commit::getCommittingThread()
 {
     if (numThreads > 1) {
         switch (commitPolicy) {
-          case CommitPolicy::RoundRobin:
+          case PreCommitPolicy::RoundRobin:
             return roundRobin();
 
-          case CommitPolicy::OldestReady:
+          case PreCommitPolicy::OldestReady:
             return oldestReady();
 
           default:

@@ -38,8 +38,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_DECODE_HH__
-#define __CPU_RUNAHEAD_O3_DECODE_HH__
+#ifndef __CPU_PRE_DECODE_HH__
+#define __CPU_PRE_DECODE_HH__
 
 #include <queue>
 
@@ -326,4 +326,4 @@ class Decode
 } // namespace pre
 } // namespace gem5
 
-#endif // __CPU_RUNAHEAD_O3_DECODE_HH__
+#endif // __CPU_PRE_DECODE_HH__

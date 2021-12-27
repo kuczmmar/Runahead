@@ -38,8 +38,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_ROB_HH__
-#define __CPU_RUNAHEAD_O3_ROB_HH__
+#ifndef __CPU_PRE_ROB_HH__
+#define __CPU_PRE_ROB_HH__
 
 #include <string>
 #include <utility>
@@ -52,7 +52,7 @@
 #include "cpu/pre/dyn_inst_ptr.hh"
 #include "cpu/pre/limits.hh"
 #include "cpu/reg_class.hh"
-#include "enums/SMTQueuePolicy.hh"
+#include "enums/PreSMTQueuePolicy.hh"
 
 namespace gem5
 {
@@ -88,7 +88,7 @@ class ROB
     Status robStatus[MaxThreads];
 
     /** ROB resource sharing policy for SMT mode. */
-    SMTQueuePolicy robPolicy;
+    PreSMTQueuePolicy robPolicy;
 
   public:
     /** ROB constructor.
@@ -340,9 +340,16 @@ class ROB
         // The number of rob_writes
         statistics::Scalar writes;
     } stats;
+
+// Pre support
+public:
+  void markAllPre();
+  void debugPrintROB();
+  void debugPrintRegisters();
+  
 };
 
 } // namespace pre
 } // namespace gem5
 
-#endif //__CPU_RUNAHEAD_O3_ROB_HH__
+#endif //__CPU_PRE_ROB_HH__

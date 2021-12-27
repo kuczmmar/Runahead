@@ -123,13 +123,13 @@ InstructionQueue::InstructionQueue(CPU *cpu_ptr, IEW *iew_ptr,
     resetState();
 
     //Figure out resource sharing policy
-    if (iqPolicy == SMTQueuePolicy::Dynamic) {
+    if (iqPolicy == PreSMTQueuePolicy::Dynamic) {
         //Set Max Entries to Total ROB Capacity
         for (ThreadID tid = 0; tid < numThreads; tid++) {
             maxEntries[tid] = numEntries;
         }
 
-    } else if (iqPolicy == SMTQueuePolicy::Partitioned) {
+    } else if (iqPolicy == PreSMTQueuePolicy::Partitioned) {
         //@todo:make work if part_amt doesnt divide evenly.
         int part_amt = numEntries / numThreads;
 
@@ -140,7 +140,7 @@ InstructionQueue::InstructionQueue(CPU *cpu_ptr, IEW *iew_ptr,
 
         DPRINTF(PreIQ, "IQ sharing policy set to Partitioned:"
                 "%i entries per thread.\n",part_amt);
-    } else if (iqPolicy == SMTQueuePolicy::Threshold) {
+    } else if (iqPolicy == PreSMTQueuePolicy::Threshold) {
         double threshold =  (double)params.smtIQThreshold / 100;
 
         int thresholdIQ = (int)((double)threshold * numEntries);
@@ -475,7 +475,7 @@ InstructionQueue::takeOverFrom()
 int
 InstructionQueue::entryAmount(ThreadID num_threads)
 {
-    if (iqPolicy == SMTQueuePolicy::Partitioned) {
+    if (iqPolicy == PreSMTQueuePolicy::Partitioned) {
         return numEntries / num_threads;
     } else {
         return 0;
@@ -486,7 +486,7 @@ InstructionQueue::entryAmount(ThreadID num_threads)
 void
 InstructionQueue::resetEntries()
 {
-    if (iqPolicy != SMTQueuePolicy::Dynamic || numThreads > 1) {
+    if (iqPolicy != PreSMTQueuePolicy::Dynamic || numThreads > 1) {
         int active_threads = activeThreads->size();
 
         list<ThreadID>::iterator threads = activeThreads->begin();
@@ -495,9 +495,9 @@ InstructionQueue::resetEntries()
         while (threads != end) {
             ThreadID tid = *threads++;
 
-            if (iqPolicy == SMTQueuePolicy::Partitioned) {
+            if (iqPolicy == PreSMTQueuePolicy::Partitioned) {
                 maxEntries[tid] = numEntries / active_threads;
-            } else if (iqPolicy == SMTQueuePolicy::Threshold &&
+            } else if (iqPolicy == PreSMTQueuePolicy::Threshold &&
                        active_threads == 1) {
                 maxEntries[tid] = numEntries;
             }

@@ -47,6 +47,7 @@
 #include "cpu/pre/limits.hh"
 #include "debug/Fetch.hh"
 #include "debug/PreROB.hh"
+#include "debug/PreDebug.hh"
 #include "params/PreO3CPU.hh"
 
 namespace gem5
@@ -65,13 +66,13 @@ ROB::ROB(CPU *_cpu, const PreO3CPUParams &params)
       stats(_cpu)
 {
     //Figure out rob policy
-    if (robPolicy == SMTQueuePolicy::Dynamic) {
+    if (robPolicy == PreSMTQueuePolicy::Dynamic) {
         //Set Max Entries to Total ROB Capacity
         for (ThreadID tid = 0; tid < numThreads; tid++) {
             maxEntries[tid] = numEntries;
         }
 
-    } else if (robPolicy == SMTQueuePolicy::Partitioned) {
+    } else if (robPolicy == PreSMTQueuePolicy::Partitioned) {
         DPRINTF(Fetch, "ROB sharing policy set to Partitioned\n");
 
         //@todo:make work if part_amt doesnt divide evenly.
@@ -82,7 +83,7 @@ ROB::ROB(CPU *_cpu, const PreO3CPUParams &params)
             maxEntries[tid] = part_amt;
         }
 
-    } else if (robPolicy == SMTQueuePolicy::Threshold) {
+    } else if (robPolicy == PreSMTQueuePolicy::Threshold) {
         DPRINTF(Fetch, "ROB sharing policy set to Threshold\n");
 
         int threshold =  params.smtROBThreshold;;
@@ -147,7 +148,7 @@ ROB::takeOverFrom()
 void
 ROB::resetEntries()
 {
-    if (robPolicy != SMTQueuePolicy::Dynamic || numThreads > 1) {
+    if (robPolicy != PreSMTQueuePolicy::Dynamic || numThreads > 1) {
         auto active_threads = activeThreads->size();
 
         std::list<ThreadID>::iterator threads = activeThreads->begin();
@@ -156,9 +157,9 @@ ROB::resetEntries()
         while (threads != end) {
             ThreadID tid = *threads++;
 
-            if (robPolicy == SMTQueuePolicy::Partitioned) {
+            if (robPolicy == PreSMTQueuePolicy::Partitioned) {
                 maxEntries[tid] = numEntries / active_threads;
-            } else if (robPolicy == SMTQueuePolicy::Threshold &&
+            } else if (robPolicy == PreSMTQueuePolicy::Threshold &&
                        active_threads == 1) {
                 maxEntries[tid] = numEntries;
             }
@@ -169,7 +170,7 @@ ROB::resetEntries()
 int
 ROB::entryAmount(ThreadID num_threads)
 {
-    if (robPolicy == SMTQueuePolicy::Partitioned) {
+    if (robPolicy == PreSMTQueuePolicy::Partitioned) {
         return numEntries / num_threads;
     } else {
         return 0;
@@ -225,9 +226,8 @@ ROB::insertInst(const DynInstPtr &inst)
     ++threadEntries[tid];
 
     assert((*tail) == inst);
-
-    DPRINTF(PreROB, "[tid:%i] Now has %d instructions.\n", tid,
-            threadEntries[tid]);
+    DPRINTF(PreROB, "[tid:%i] Adding inst PC %s to ROB [sn:%d] - now has %d instructions\n", 
+        tid, inst->pcState(), inst->seqNum, threadEntries[tid]);
 }
 
 void
@@ -243,11 +243,18 @@ ROB::retireHead(ThreadID tid)
     DynInstPtr head_inst = std::move(*head_it);
     instList[tid].erase(head_it);
 
-    assert(head_inst->readyToCommit());
-
-    DPRINTF(PreROB, "[tid:%i] Retiring head instruction, "
+    
+    if (!head_inst->isRunaheadInst()) {
+        DPRINTF(PreROB, "[tid:%i] Retiring head instruction, "
             "instruction PC %s, [sn:%llu]\n", tid, head_inst->pcState(),
             head_inst->seqNum);
+        assert(head_inst->readyToCommit());
+    }
+    else {
+        DPRINTF(PreROB, "[tid:%i] Retiring head instruction in runahead, "
+            "instruction PC %s, [sn:%llu]\n", tid, head_inst->pcState(),
+            head_inst->seqNum);
+    }
 
     --numInstsInROB;
     --threadEntries[tid];
@@ -480,7 +487,7 @@ ROB::squash(InstSeqNum squash_num, ThreadID tid)
         return;
     }
 
-    DPRINTF(PreROB, "Starting to squash within the ROB.\n");
+    DPRINTF(PreROB, "Starting to squash within the ROB, squash_num = %d\n", squash_num);
 
     robStatus[tid] = ROBSquashing;
 
@@ -539,6 +546,69 @@ ROB::findInst(ThreadID tid, InstSeqNum squash_inst)
         }
     }
     return NULL;
+}
+
+void
+ROB::markAllPre() {
+    for (auto threadList : instList) {
+        for (auto instPtr : threadList) {
+            instPtr->setRunaheadInst();
+        }
+    }
+}
+
+void 
+ROB::debugPrintROB() {
+    bool all_empty = true;
+    for (auto thread_list :  instList) {
+
+        if (!thread_list.empty()) {
+            all_empty = false;
+            for (auto inst : thread_list) {
+                std::string flags = "";
+                flags += (inst->isSquashed() ? "s" : "");
+                flags += (inst->isRunaheadInst() ? "r" : "");
+                flags += (inst->readyToCommit() ? "c" : "");
+                flags += (inst->isInvalid() ? "i" : "");
+                flags += (inst->missedInL2() ? "m" : "");
+                DPRINTF_NO_LOG(PreDebug, "%4ld[%4s] ", inst->seqNum, flags.c_str());
+            }
+            DPRINTF_NO_LOG(PreDebug, "\n%43s", "");//43
+            for (auto inst : thread_list) {
+                DPRINTF_NO_LOG(PreDebug, "%#lx   ",  inst->instAddr());
+            }
+            DPRINTF_NO_LOG(PreDebug, "\n");
+        }
+    }
+    if (all_empty) { 
+        DPRINTF_NO_LOG(PreDebug, "ROB is empty\n");
+    } else if (isFull()) {
+        std::string str = cpu->isInPreMode() ? " in RA" : "";
+        DPRINTF(PreDebug, "ROB is full%s\n", str.c_str());
+    }
+}
+
+void 
+ROB::debugPrintRegisters() {
+    for (auto thread_list :  instList) {
+        for (auto inst : thread_list) {
+            DPRINTF_NO_LOG(PreDebug, "Inst PC %#lx [sn:%lu], is %s, st:%d, ld:%d"
+                "control:%d, call:%d, ret:%d, dire:%d, indir:%d, cond:%d, uncond:%d, ser:%d\n", 
+                inst->instAddr(), inst->seqNum,
+                inst->staticInst->disassemble(inst->instAddr()).c_str(), 
+                inst->isStore(), inst->isLoad(),
+                inst->isControl(), inst->isCall(), inst->isReturn(), 
+                inst->isDirectCtrl() ,
+                inst->isIndirectCtrl(), inst->isCondCtrl() , inst->isUncondCtrl()  , 
+                inst->isSerializing()
+            );
+            std::ostringstream str;
+            inst->printSrcRegs(str);
+            inst->printDestRegs(str);
+            DPRINTF_NO_LOG(PreDebug, "  %s\n", 
+                str.str().c_str());
+        }
+    }
 }
 
 } // namespace pre

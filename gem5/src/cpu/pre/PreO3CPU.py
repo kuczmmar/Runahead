@@ -45,13 +45,13 @@ from m5.objects.PreFUPool import *
 from m5.objects.PreO3Checker import PreO3Checker
 from m5.objects.BranchPredictor import *
 
-class SMTFetchPolicy(ScopedEnum):
+class PreSMTFetchPolicy(ScopedEnum):
     vals = [ 'RoundRobin', 'Branch', 'IQCount', 'LSQCount' ]
 
-class SMTQueuePolicy(ScopedEnum):
+class PreSMTQueuePolicy(ScopedEnum):
     vals = [ 'Dynamic', 'Partitioned', 'Threshold' ]
 
-class CommitPolicy(ScopedEnum):
+class PreCommitPolicy(ScopedEnum):
     vals = [ 'RoundRobin', 'OldestReady' ]
 
 class PreO3CPU(BaseCPU):
@@ -158,17 +158,17 @@ class PreO3CPU(BaseCPU):
     numROBEntries = Param.Unsigned(192, "Number of reorder buffer entries")
 
     smtNumFetchingThreads = Param.Unsigned(1, "SMT Number of Fetching Threads")
-    smtFetchPolicy = Param.SMTFetchPolicy('RoundRobin', "SMT Fetch policy")
-    smtLSQPolicy    = Param.SMTQueuePolicy('Partitioned',
+    smtFetchPolicy = Param.PreSMTFetchPolicy('RoundRobin', "SMT Fetch policy")
+    smtLSQPolicy    = Param.PreSMTQueuePolicy('Partitioned',
                                            "SMT LSQ Sharing Policy")
     smtLSQThreshold = Param.Int(100, "SMT LSQ Threshold Sharing Parameter")
-    smtIQPolicy    = Param.SMTQueuePolicy('Partitioned',
+    smtIQPolicy    = Param.PreSMTQueuePolicy('Partitioned',
                                           "SMT IQ Sharing Policy")
     smtIQThreshold = Param.Int(100, "SMT IQ Threshold Sharing Parameter")
-    smtROBPolicy   = Param.SMTQueuePolicy('Partitioned',
+    smtROBPolicy   = Param.PreSMTQueuePolicy('Partitioned',
                                           "SMT ROB Sharing Policy")
     smtROBThreshold = Param.Int(100, "SMT ROB Threshold Sharing Parameter")
-    smtCommitPolicy = Param.CommitPolicy('RoundRobin', "SMT Commit Policy")
+    smtPreCommitPolicy = Param.PreCommitPolicy('RoundRobin', "SMT Commit Policy")
 
     branchPred = Param.BranchPredictor(TournamentBP(numThreads =
                                                        Parent.numThreads),

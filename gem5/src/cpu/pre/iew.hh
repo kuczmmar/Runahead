@@ -38,8 +38,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_IEW_HH__
-#define __CPU_RUNAHEAD_O3_IEW_HH__
+#ifndef __CPU_PRE_IEW_HH__
+#define __CPU_PRE_IEW_HH__
 
 #include <queue>
 #include <set>
@@ -235,6 +235,12 @@ class IEW
     {
         ldstQueue.setLastRetiredHtmUid(tid, htmUid);
     }
+    
+    /** 
+     * Sends proper information to the commit stage 
+     * for a squash due to exiting the runahead mode.
+     */
+    void squashDueToPreExit(const DynInstPtr &inst, ThreadID tid);
 
   private:
     /** Sends commit proper information for a squash due to a branch
@@ -458,7 +464,7 @@ class IEW
             /** Stat for total number of executed instructions. */
             statistics::Scalar numInsts;
             /** Stat for total number of executed load instructions. */
-            statistics::Vector numLoadInsts;
+            statistics::Vector loadInsts;
             /** Stat for total number of squashed instructions skipped at
              *  execute. */
             statistics::Scalar numSquashedInsts;
@@ -474,6 +480,10 @@ class IEW
             statistics::Formula numStoreInsts;
             /** Number of instructions executed per cycle. */
             statistics::Formula numRate;
+            /** Stat for total number of executed load instructions in runahead mode. 
+             * Note that loadInsts counts only these instructions in normal mode!
+            */
+            statistics::Vector loadsInRA;
         } executedInstStats;
 
         /** Number of instructions sent to commit. */
@@ -494,4 +504,4 @@ class IEW
 } // namespace pre
 } // namespace gem5
 
-#endif // __CPU_RUNAHEAD_O3_IEW_HH__
+#endif // __CPU_PRE_IEW_HH__

@@ -1,15 +1,21 @@
 #ifndef __CPU_DYN_INST_PARENT_HH__
 #define __CPU_DYN_INST_PARENT_HH__
 
+#include <bitset>
+#include <string>
+
 #include "mem/request.hh"
 #include "base/types.hh"
-#include <bitset>
-#include "debug/RunaheadEnter.hh"
+#include "cpu/reg_class.hh"
+#include "cpu/static_inst.hh"
 
 namespace gem5
 {
 
 class DynInstParent {
+public:
+  DynInstParent(InstSeqNum seq_num);
+  
 protected:
   enum Flags
   {
@@ -25,29 +31,35 @@ protected:
   this may result in more requests being created */
   std::vector<RequestPtr> _outstandingReqs;
 
-  // 
   bool _runaheadInst = false;
+  bool _invalid = false;
+  bool _triggeredRunahead = false;
 
 public:
+  /** The sequence number of the instruction. */
+  InstSeqNum seqNum = 0;
+
+  int cyclesAtHeadInRA = 0;
   virtual void setL2Miss()  { runaheadFlags.set(MissedInL2); }
   void resetL2Miss()        { runaheadFlags.reset(MissedInL2); }
   bool missedInL2()         { return runaheadFlags[MissedInL2]; }
   
   virtual bool isExecuted() const = 0;
   virtual bool isSquashed() const = 0;
-  virtual int getSeqNum() = 0;
   virtual Addr instAddr() const = 0;
   virtual bool isInROB() const = 0;
 
   void addReq(RequestPtr req);
-
   bool numOutstandingRequests() { return _outstandingReqs.size(); }
   void reqCompleted(RequestPtr req);
 
   bool isRunaheadInst() { return _runaheadInst; }
   void setRunaheadInst();
   // reset does not modify any request associated with this instruction
-  void resetRunaheadInst();
+  void resetRunaheadInst() { _runaheadInst = false; }
+
+  bool hasTriggeredRunahead() { return _triggeredRunahead; }
+  void setTriggeredRunahead();
 
 };
 

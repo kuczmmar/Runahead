@@ -38,8 +38,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_COMMIT_HH__
-#define __CPU_RUNAHEAD_O3_COMMIT_HH__
+#ifndef __CPU_PRE_COMMIT_HH__
+#define __CPU_PRE_COMMIT_HH__
 
 #include <queue>
 
@@ -53,7 +53,7 @@
 #include "cpu/pre/rename_map.hh"
 #include "cpu/pre/rob.hh"
 #include "cpu/timebuf.hh"
-#include "enums/CommitPolicy.hh"
+#include "enums/PreCommitPolicy.hh"
 #include "sim/probe/probe.hh"
 
 namespace gem5
@@ -119,7 +119,7 @@ class Commit
     /** Per-thread status. */
     ThreadStatus commitStatus[MaxThreads];
     /** Commit policy used in SMT mode. */
-    CommitPolicy commitPolicy;
+    PreCommitPolicy commitPolicy;
 
     /** Probe Points. */
     ProbePointArg<DynInstPtr> *ppCommit;
@@ -522,4 +522,4 @@ class Commit
 } // namespace pre
 } // namespace gem5
 
-#endif // __CPU_RUNAHEAD_O3_COMMIT_HH__
+#endif // __CPU_PRE_COMMIT_HH__

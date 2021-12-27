@@ -30,6 +30,8 @@ GEM='build/X86/gem5.opt'
 GEM_FLAGS="--stats-file=base/rand_${ARG} --dot-config=base_randacc"
 RA64_GEM_FLAGS="--stats-file=run/rand_rob64_${ARG} --dot-config=run_randacc_64"
 RA192_GEM_FLAGS="--stats-file=run/rand_rob192_${ARG} --dot-config=run_randacc_192"
+PRE64_GEM_FLAGS="--stats-file=pre/rand_rob64_${ARG} --dot-config=pre_randacc_64"
+PRE192_GEM_FLAGS="--stats-file=pre/rand_rob192_${ARG} --dot-config=pre_randacc_192"
 # CACHE,MSHR,RunaheadCommit
 
 
@@ -37,6 +39,8 @@ RA192_GEM_FLAGS="--stats-file=run/rand_rob192_${ARG} --dot-config=run_randacc_19
 RA='ra.txt'
 RA192='ra192.txt'
 BASE='base.txt'
+PRE64='pre64.txt'
+PRE192='pre192.txt'
 
 echo_lines() {
   yes '' | sed 3q
@@ -50,13 +54,14 @@ echo_lines() {
 
 # WARNING: Clears previous statistics outputs
 rm -r m5out/
-mkdir m5out && mkdir m5out/base && mkdir m5out/run
+mkdir m5out && mkdir m5out/base && mkdir m5out/run && mkdir m5out/pre
 rm $RA $BASE
 
 # run two level of cache setup on randacc benchmark
 $GEM $GEM_FLAGS $O3_TWO_LEVEL --rob_size=64 $RANDACC > $BASE 
 $GEM $RA64_GEM_FLAGS $O3_TWO_LEVEL --mode=runahead --rob_size=64 $RANDACC >> $RA
 # $GEM $RA192_GEM_FLAGS $O3_TWO_LEVEL --mode=runahead --rob_size=192 $RANDACC >> $RA192
+$GEM $PRE64_GEM_FLAGS $O3_TWO_LEVEL --mode=pre --rob_size=64 $RANDACC >> $PRE64
 # --l1i_size='32kB' --l1d_size='64kB'
 
 python stats/summarize_stats.py m5out stats/simple.csv

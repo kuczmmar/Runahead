@@ -99,9 +99,6 @@ class DynInst : public ExecContext, public RefCounted, public DynInstParent
     /** Completes the access.  Only valid for memory operations. */
     Fault completeAcc(PacketPtr pkt);
 
-    /** The sequence number of the instruction. */
-    InstSeqNum seqNum = 0;
-
     /** The StaticInst used by this BaseDynInst. */
     const StaticInstPtr staticInst;
 
@@ -1330,26 +1327,18 @@ class DynInst : public ExecContext, public RefCounted, public DynInstParent
         setScalarResult(val);
     }
 
-    int getSeqNum() override { return seqNum; }
-
 // Runahead support
 private:
-    bool _triggeredRunahead = false;
-    bool _invalid = false;
     bool _branchPredicted = false;
 
 public:
-    int cyclesAtHeadInRA = 0;
-    bool hasTriggeredRunahead() { return _triggeredRunahead; }
-    void setTriggeredRunahead();
-
     // Instruction that sources a register whose INV bit is set
     // is an invalid instruction.
     bool isInvalid();
     void setInvalid() { _invalid = true; }
     void invalidateDestRegs(bool setINV = true);
     void invalidateSrcRegs(bool setINV = true);
-
+    
     bool wasBranchPredicted() { return _branchPredicted; }
     void setBranchPredicted() {_branchPredicted = true; }
 

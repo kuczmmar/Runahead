@@ -38,8 +38,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_FU_POOL_HH__
-#define __CPU_RUNAHEAD_O3_FU_POOL_HH__
+#ifndef __CPU_PRE_FU_POOL_HH__
+#define __CPU_PRE_FU_POOL_HH__
 
 #include <array>
 #include <bitset>
@@ -185,4 +185,4 @@ class PreFUPool : public SimObject
 } // namespace pre
 } // namespace gem5
 
-#endif // __CPU_RUNAHEAD_O3_FU_POOL_HH__
+#endif // __CPU_PRE_FU_POOL_HH__

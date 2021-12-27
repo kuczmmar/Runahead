@@ -1,4 +1,4 @@
 TARGET_ISA = 'x86'
-CPU_MODELS = 'TimingSimpleCPU,O3CPU,AtomicSimpleCPU,RunaheadO3CPU'
+CPU_MODELS = 'TimingSimpleCPU,O3CPU,AtomicSimpleCPU,RunaheadO3CPU,PreO3CPU'
 PROTOCOL = 'MESI_Two_Level'
 NUMBER_BITS_PER_SET = '128'

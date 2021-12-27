@@ -40,8 +40,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_CPU_HH__
-#define __CPU_RUNAHEAD_O3_CPU_HH__
+#ifndef __CPU_PRE_CPU_HH__
+#define __CPU_PRE_CPU_HH__
 
 #include <iostream>
 #include <list>
@@ -703,6 +703,19 @@ class CPU : public BaseCPU
         //number of misc
         statistics::Scalar miscRegfileReads;
         statistics::Scalar miscRegfileWrites;
+
+        // Additional statistics for runahead
+        statistics::Scalar robFull;
+        statistics::Scalar robFullInRA;
+        statistics::Scalar enteredRA;
+        statistics::Scalar fetchedInRA;
+        statistics::Scalar totalCyclesInRA;
+        statistics::Formula cyclesAvgInRA;
+        statistics::Scalar cyclesRobEmptyInRA;
+        statistics::Formula pctRobEmptyInRA;
+        statistics::Scalar totalInsertedInRA;
+        statistics::Formula insertedAvgInRA;
+        statistics::Scalar maxAtRobHead;
     } cpuStats;
 
   public:
@@ -714,4 +727,4 @@ class CPU : public BaseCPU
 } // namespace pre
 } // namespace gem5
 
-#endif // __CPU_RUNAHEAD_O3_CPU_HH__
+#endif // __CPU_PRE_CPU_HH__

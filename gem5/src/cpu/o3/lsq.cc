@@ -423,7 +423,7 @@ LSQ::recvTimingResp(PacketPtr pkt)
     // The CPU would exit runahead
     DynInst* i = dynamic_cast<DynInst*>(pkt->req->getInst());
     DPRINTF(RunaheadCompare, "outstanding for i %d is :%d, in RA:%d, trig:%d\n", 
-        i->getSeqNum(), i->numOutstandingRequests(),
+        i->seqNum, i->numOutstandingRequests(),
         cpu->wouldBeInRA, i->wouldTriggeredRunahead());
     i->reqCompleted(pkt->req);
     if (i->numOutstandingRequests() == 0){

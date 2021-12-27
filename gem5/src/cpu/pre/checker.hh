@@ -38,8 +38,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_CHECKER_HH__
-#define __CPU_RUNAHEAD_O3_CHECKER_HH__
+#ifndef __CPU_PRE_CHECKER_HH__
+#define __CPU_PRE_CHECKER_HH__
 
 #include "cpu/checker/cpu.hh"
 #include "cpu/pre/dyn_inst.hh"
@@ -69,4 +69,4 @@ class Checker : public gem5::Checker<DynInstPtr>
 } // namespace pre
 } // namespace gem5
 
-#endif // __CPU_RUNAHEAD_O3_CHECKER_HH__
+#endif // __CPU_PRE_CHECKER_HH__

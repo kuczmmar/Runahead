@@ -56,6 +56,7 @@
 #include "debug/HtmCpu.hh"
 #include "debug/PreLSQ.hh"
 #include "debug/PreWriteback.hh"
+#include "debug/PreDebug.hh"
 #include "params/PreO3CPU.hh"
 
 namespace gem5
@@ -100,13 +101,13 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const PreO3CPUParams &params)
     //**********************************************
 
     /* Run SMT olicy checks. */
-        if (lsqPolicy == SMTQueuePolicy::Dynamic) {
+        if (lsqPolicy == PreSMTQueuePolicy::Dynamic) {
         DPRINTF(PreLSQ, "LSQ sharing policy set to Dynamic\n");
-    } else if (lsqPolicy == SMTQueuePolicy::Partitioned) {
+    } else if (lsqPolicy == PreSMTQueuePolicy::Partitioned) {
         DPRINTF(Fetch, "LSQ sharing policy set to Partitioned: "
                 "%i entries per LQ | %i entries per SQ\n",
                 maxLQEntries,maxSQEntries);
-    } else if (lsqPolicy == SMTQueuePolicy::Threshold) {
+    } else if (lsqPolicy == PreSMTQueuePolicy::Threshold) {
 
         assert(params.smtLSQThreshold > params.LQEntries);
         assert(params.smtLSQThreshold > params.SQEntries);
@@ -416,6 +417,24 @@ LSQ::recvTimingResp(PacketPtr pkt)
 
     auto senderState = dynamic_cast<LSQSenderState*>(pkt->senderState);
     panic_if(!senderState, "Got packet back with unknown sender state\n");
+    
+    DynInst* i = dynamic_cast<DynInst*>(pkt->req->getInst());
+    
+    // mark this request as completed
+    // TODO: will all requests on all MSHRs be marked as completed???
+    i->reqCompleted(pkt->req);
+
+    // Reset the miss in L2 flag
+    // prevents entering runahead just after the request has returned
+    if (i->numOutstandingRequests() == 0){
+        i->resetL2Miss();
+
+        // exit runahead if the request's instruction has triggered it
+        // and this was the last outstanding request from this inst
+        if (cpu->isInPreMode() && i->hasTriggeredRunahead()){
+            cpu->exitPreMode();
+        }
+    }
 
     thread[cpu->contextToThread(senderState->contextId())].recvTimingResp(pkt);
 
@@ -578,7 +597,7 @@ LSQ::isFull(ThreadID tid)
 {
     //@todo: Change to Calculate All Entries for
     //Dynamic Policy
-    if (lsqPolicy == SMTQueuePolicy::Dynamic)
+    if (lsqPolicy == PreSMTQueuePolicy::Dynamic)
         return isFull();
     else
         return thread[tid].lqFull() || thread[tid].sqFull();
@@ -643,7 +662,7 @@ LSQ::lqFull(ThreadID tid)
 {
     //@todo: Change to Calculate All Entries for
     //Dynamic Policy
-    if (lsqPolicy == SMTQueuePolicy::Dynamic)
+    if (lsqPolicy == PreSMTQueuePolicy::Dynamic)
         return lqFull();
     else
         return thread[tid].lqFull();
@@ -670,7 +689,7 @@ LSQ::sqFull(ThreadID tid)
 {
      //@todo: Change to Calculate All Entries for
     //Dynamic Policy
-    if (lsqPolicy == SMTQueuePolicy::Dynamic)
+    if (lsqPolicy == PreSMTQueuePolicy::Dynamic)
         return sqFull();
     else
         return thread[tid].sqFull();
@@ -695,7 +714,7 @@ LSQ::isStalled()
 bool
 LSQ::isStalled(ThreadID tid)
 {
-    if (lsqPolicy == SMTQueuePolicy::Dynamic)
+    if (lsqPolicy == PreSMTQueuePolicy::Dynamic)
         return isStalled();
     else
         return thread[tid].isStalled();
@@ -947,6 +966,9 @@ LSQ::SingleDataRequest::initiateTranslation()
     if (_requests.size() > 0) {
         _requests.back()->setReqInstSeqNum(_inst->seqNum);
         _requests.back()->taskId(_taskId);
+        _requests.back()->setInst(_inst.get());
+        _inst->addReq(_requests.back());
+
         _inst->translationStarted(true);
         setState(State::Translation);
         flags.set(Flag::TranslationStarted);
@@ -1021,6 +1043,8 @@ LSQ::SplitDataRequest::initiateTranslation()
         for (auto& r: _requests) {
             r->setReqInstSeqNum(_inst->seqNum);
             r->taskId(_taskId);
+            r->setInst(_inst.get());
+            _inst->addReq(r);
         }
 
         _inst->translationStarted(true);
@@ -1383,6 +1407,8 @@ LSQ::HtmCmdRequest::HtmCmdRequest(LSQUnit* port, const DynInstPtr& inst,
         _requests.back()->taskId(_taskId);
         _requests.back()->setPaddr(_addr);
         _requests.back()->setInstCount(_inst->getCpuPtr()->totalInsts());
+        _requests.back()->setInst(_inst.get());
+        _inst->addReq(_requests.back());
 
         _inst->strictlyOrdered(_requests.back()->isStrictlyOrdered());
         _inst->fault = NoFault;

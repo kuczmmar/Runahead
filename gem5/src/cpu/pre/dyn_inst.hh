@@ -39,8 +39,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_DYN_INST_HH__
-#define __CPU_RUNAHEAD_O3_DYN_INST_HH__
+#ifndef __CPU_PRE_DYN_INST_HH__
+#define __CPU_PRE_DYN_INST_HH__
 
 #include <algorithm>
 #include <array>
@@ -64,6 +64,7 @@
 #include "cpu/static_inst.hh"
 #include "cpu/translation.hh"
 #include "debug/HtmCpu.hh"
+#include "cpu/dyn_inst_parent.hh"
 
 namespace gem5
 {
@@ -73,7 +74,7 @@ class Packet;
 namespace pre
 {
 
-class DynInst : public ExecContext, public RefCounted
+class DynInst : public ExecContext, public RefCounted, public DynInstParent
 {
   public:
     // The list of instructions iterator type.
@@ -97,9 +98,6 @@ class DynInst : public ExecContext, public RefCounted
 
     /** Completes the access.  Only valid for memory operations. */
     Fault completeAcc(PacketPtr pkt);
-
-    /** The sequence number of the instruction. */
-    InstSeqNum seqNum = 0;
 
     /** The StaticInst used by this BaseDynInst. */
     const StaticInstPtr staticInst;
@@ -1333,4 +1331,4 @@ class DynInst : public ExecContext, public RefCounted
 } // namespace pre
 } // namespace gem5
 
-#endif // __CPU_RUNAHEAD_O3_DYN_INST_HH__
+#endif // __CPU_PRE_DYN_INST_HH__

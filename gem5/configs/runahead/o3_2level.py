@@ -64,7 +64,7 @@ default_binary = os.path.join(thispath, '../../../',
 # Binary to execute
 SimpleOpts.add_option("--binary", nargs='?', default=default_binary, help="Test binary")
 SimpleOpts.add_option("--binary_args", help="Arguments to the test binary")
-SimpleOpts.add_option("--mode", default='baseline', choices=['baseline', 'runahead'], 
+SimpleOpts.add_option("--mode", default='baseline', choices=['baseline', 'runahead', 'pre'], 
     help="Which implementstion of the o3 CPU should be run")
 SimpleOpts.add_option("--rob_size", help="size of re-order buffer", default=192)
 
@@ -85,12 +85,15 @@ system.mem_ranges = [AddrRange('512MB')] # Create an address range
 
 # 03 out of order CPU
 runahead = True if args.mode == 'runahead' else False
-if not runahead:
+if args.mode == 'baseline':
     print('----------------baseline----------------\n')
     system.cpu = O3CPU()
-else:
+elif args.mode == 'runahead':
     print('----------------runahead----------------\n')
     system.cpu = RunaheadO3CPU()
+elif args.mode == 'pre':
+    print('----------------PRE----------------\n')
+    system.cpu = PreO3CPU()
 
 system.cpu.numROBEntries = args.rob_size
 

@@ -55,9 +55,11 @@ namespace o3
 DynInst::DynInst(const StaticInstPtr &static_inst,
         const StaticInstPtr &_macroop, TheISA::PCState _pc,
         TheISA::PCState pred_pc, InstSeqNum seq_num, CPU *_cpu)
-    : seqNum(seq_num), staticInst(static_inst), cpu(_cpu), pc(_pc),
-      regs(staticInst->numSrcRegs(), staticInst->numDestRegs()),
-      predPC(pred_pc), macroop(_macroop)
+    : staticInst(static_inst)
+    , cpu(_cpu), pc(_pc)
+    , predPC(pred_pc)
+    , macroop(_macroop)
+    , DynInstParent(seq_num)
 {
     this->regs.init();
 
@@ -342,11 +344,6 @@ DynInst::setL2Miss()
     runaheadFlags.set(MissedInL2);
 }
 
-void 
-DynInst::setTriggeredRunahead() 
-{ 
-    _wouldTriggerRA = true;
-}
 
 } // namespace runaheado3
 } // namespace gem5

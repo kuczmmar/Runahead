@@ -60,8 +60,8 @@
 #include "debug/Activity.hh"
 #include "debug/Drain.hh"
 #include "debug/Fetch.hh"
-#include "debug/PreO3CPU.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/PreO3CPU.hh"
 #include "mem/packet.hh"
 #include "params/PreO3CPU.hh"
 #include "sim/byteswap.hh"
@@ -1090,6 +1090,12 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
     // Keep track of if we can take an interrupt at this boundary
     delayedCommit[tid] = instruction->isDelayedCommit();
 
+    // check if fetched in runahead mode
+    if (cpu->isInPreMode()) {
+        cpu->cpuStats.fetchedInRA++;
+        instruction->setRunaheadInst();
+    }
+
     return instruction;
 }
 
@@ -1390,13 +1396,13 @@ Fetch::getFetchingThread()
 {
     if (numThreads > 1) {
         switch (fetchPolicy) {
-          case SMTFetchPolicy::RoundRobin:
+          case PreSMTFetchPolicy::RoundRobin:
             return roundRobin();
-          case SMTFetchPolicy::IQCount:
+          case PreSMTFetchPolicy::IQCount:
             return iqCount();
-          case SMTFetchPolicy::LSQCount:
+          case PreSMTFetchPolicy::LSQCount:
             return lsqCount();
-          case SMTFetchPolicy::Branch:
+          case PreSMTFetchPolicy::Branch:
             return branchCount();
           default:
             return InvalidThreadID;

@@ -39,8 +39,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_COMM_HH__
-#define __CPU_RUNAHEAD_O3_COMM_HH__
+#ifndef __CPU_PRE_COMM_HH__
+#define __CPU_PRE_COMM_HH__
 
 #include <vector>
 
@@ -99,6 +99,7 @@ struct IEWStruct
     bool branchMispredict[MaxThreads];
     bool branchTaken[MaxThreads];
     bool includeSquashInst[MaxThreads];
+    bool squashAfterPre[MaxThreads];
 };
 
 struct IssueStruct
@@ -124,6 +125,7 @@ struct TimeStruct
         bool predIncorrect;
         bool branchMispredict;
         bool branchTaken;
+        bool squashAfterPre;
     };
 
     DecodeComm decodeInfo[MaxThreads];
@@ -213,6 +215,7 @@ struct TimeStruct
         /// the IEW stage.
         bool strictlyOrdered; // *I
 
+        bool squashAfterPre;
     };
 
     CommitComm commitInfo[MaxThreads];
@@ -228,4 +231,4 @@ struct TimeStruct
 } // namespace pre
 } // namespace gem5
 
-#endif //__CPU_RUNAHEAD_O3_COMM_HH__
+#endif //__CPU_PRE_COMM_HH__

@@ -2,6 +2,9 @@
 
 namespace gem5 {
 
+DynInstParent::DynInstParent(InstSeqNum seq_num) : seqNum(seq_num)
+{}
+
 void
 DynInstParent::addReq(RequestPtr req)
 {   
@@ -32,8 +35,11 @@ DynInstParent::setRunaheadInst() {
 
 
 void 
-DynInstParent::resetRunaheadInst() { 
-    _runaheadInst = false;
+DynInst::setTriggeredRunahead() 
+{ 
+    assert(numOutstandingRequests() > 0);
+    _triggeredRunahead = true; 
+    setRunaheadInst();
 }
 
-}
+} //namespace gem5

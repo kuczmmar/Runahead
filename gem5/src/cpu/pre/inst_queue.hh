@@ -39,8 +39,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_INST_QUEUE_HH__
-#define __CPU_RUNAHEAD_O3_INST_QUEUE_HH__
+#ifndef __CPU_PRE_INST_QUEUE_HH__
+#define __CPU_PRE_INST_QUEUE_HH__
 
 #include <list>
 #include <map>
@@ -58,7 +58,7 @@
 #include "cpu/pre/store_set.hh"
 #include "cpu/op_class.hh"
 #include "cpu/timebuf.hh"
-#include "enums/SMTQueuePolicy.hh"
+#include "enums/PreSMTQueuePolicy.hh"
 #include "sim/eventq.hh"
 
 namespace gem5
@@ -408,7 +408,7 @@ class InstructionQueue
     //////////////////////////////////////
 
     /** IQ sharing policy for SMT. */
-    SMTQueuePolicy iqPolicy;
+    PreSMTQueuePolicy iqPolicy;
 
     /** Number of Total Threads*/
     ThreadID numThreads;
@@ -565,4 +565,4 @@ class InstructionQueue
 } // namespace pre
 } // namespace gem5
 
-#endif //__CPU_RUNAHEAD_O3_INST_QUEUE_HH__
+#endif //__CPU_PRE_INST_QUEUE_HH__

@@ -55,6 +55,7 @@
 #include "debug/Drain.hh"
 #include "debug/PreO3CPU.hh"
 #include "debug/Quiesce.hh"
+#include "debug/PreDebug.hh"
 #include "enums/MemoryMode.hh"
 #include "sim/cur_tick.hh"
 #include "sim/full_system.hh"
@@ -421,7 +422,34 @@ CPU::CPUStats::CPUStats(CPU *cpu)
       ADD_STAT(miscRegfileReads, statistics::units::Count::get(),
                "number of misc regfile reads"),
       ADD_STAT(miscRegfileWrites, statistics::units::Count::get(),
-               "number of misc regfile writes")
+               "number of misc regfile writes"),
+    // Pre statictics
+      ADD_STAT(robFull, statistics::units::Count::get(),
+               "Number of times that the ROB becomes full"),
+      ADD_STAT(robFullInRA, statistics::units::Count::get(),
+               "Number of times that the ROB becomes full in runahead mode."),
+      ADD_STAT(enteredRA, statistics::units::Count::get(),
+                "Number of times the CPU enters runahead"),
+      ADD_STAT(fetchedInRA, statistics::units::Count::get(),
+                "Number of instructions fetched in runahead mode."),
+      ADD_STAT(cyclesAvgInRA, statistics::units::Rate<
+                statistics::units::Cycle, statistics::units::Count>::get(),
+                "average number of cycles the CPU spends in runahead"),
+      ADD_STAT(totalCyclesInRA, statistics::units::Cycle::get(),
+                "total number of cycles the CPU spends in runahead"),
+      ADD_STAT(cyclesRobEmptyInRA, statistics::units::Cycle::get(),
+                "total number of cycles when ROB would be empty in runahead"),
+      ADD_STAT(pctRobEmptyInRA, statistics::units::Ratio::get(),
+                "percentage of cycles spent in runahead, when ROB would be empty",
+                100 * cyclesRobEmptyInRA / totalCyclesInRA),
+      ADD_STAT(totalInsertedInRA, statistics::units::Count::get(),
+                "total number of instructions inserted into ROB in runahead"),
+      ADD_STAT(insertedAvgInRA, statistics::units::Ratio::get(),
+                "average number of instructions inserted into ROB in runahead",
+                totalInsertedInRA / enteredRA),
+      ADD_STAT(maxAtRobHead, statistics::units::Count::get(),
+                "maximum number of cycles one instruction spends at the head "
+                "of ROB in runahead")
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -496,6 +524,21 @@ CPU::CPUStats::CPUStats(CPU *cpu)
 
     miscRegfileWrites
         .prereq(miscRegfileWrites);
+    
+    // Pre statistics
+    robFull.prereq(robFull);
+    robFullInRA.prereq(robFullInRA);
+    enteredRA.prereq(enteredRA);
+    fetchedInRA.prereq(fetchedInRA);
+
+    totalCyclesInRA.prereq(totalCyclesInRA);
+    cyclesAvgInRA.precision(3);
+    cyclesAvgInRA = totalCyclesInRA / enteredRA;
+    cyclesRobEmptyInRA.prereq(cyclesRobEmptyInRA);
+    pctRobEmptyInRA.precision(3);
+    totalInsertedInRA.prereq(totalInsertedInRA);
+    insertedAvgInRA.precision(3);
+    maxAtRobHead.prereq(maxAtRobHead);
 }
 
 void
@@ -549,11 +592,22 @@ CPU::tick()
             DPRINTF(PreO3CPU, "Scheduling next tick!\n");
         }
     }
+    if (rob.isFull()) {
+        cpuStats.robFull++;
+        if (isInPreMode()) {
+            cpuStats.robFullInRA++;
+        }
+    }
 
     if (!FullSystem)
         updateThreadPriority();
 
     tryDrain();
+
+    if (isInPreMode()) {
+        ++cpuStats.totalCyclesInRA;
+        if (rob.isEmpty()) ++cpuStats.cyclesRobEmptyInRA;
+    }
 }
 
 void

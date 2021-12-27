@@ -39,8 +39,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_REGFILE_HH__
-#define __CPU_RUNAHEAD_O3_REGFILE_HH__
+#ifndef __CPU_PRE_REGFILE_HH__
+#define __CPU_PRE_REGFILE_HH__
 
 #include <vector>
 
@@ -370,4 +370,4 @@ class PhysRegFile
 } // namespace pre
 } // namespace gem5
 
-#endif //__CPU_RUNAHEAD_O3_REGFILE_HH__
+#endif //__CPU_PRE_REGFILE_HH__

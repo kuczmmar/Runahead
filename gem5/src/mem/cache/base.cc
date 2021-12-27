@@ -366,7 +366,7 @@ BaseCache::handleTimingReqMiss(PacketPtr pkt, MSHR *mshr, CacheBlk *blk,
             pkt->req->setMshr(mshr);
             if (pkt->req->getInst())
                 DPRINTF_NO_LOG(RunaheadDebug, " Creating MSHR: for req - inst sn:%lu\n", 
-                    pkt->req->getInst()->getSeqNum());
+                    pkt->req->getInst()->seqNum);
         }
     }
 }

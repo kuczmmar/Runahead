@@ -26,8 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_STORE_SET_HH__
-#define __CPU_RUNAHEAD_O3_STORE_SET_HH__
+#ifndef __CPU_PRE_STORE_SET_HH__
+#define __CPU_PRE_STORE_SET_HH__
 
 #include <list>
 #include <map>
@@ -166,4 +166,4 @@ class StoreSet
 } // namespace pre
 } // namespace gem5
 
-#endif // __CPU_RUNAHEAD_O3_STORE_SET_HH__
+#endif // __CPU_PRE_STORE_SET_HH__

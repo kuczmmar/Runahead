@@ -8,4 +8,8 @@ __pycache__/
 /gem5/base.txt
 /gem5/ra.txt
 /gem5/ra192.txt
+/gem5/pre64.txt
+/gem5/pre192.txt
 /dump.txt
+/gem5/lib
+/gem5/bin

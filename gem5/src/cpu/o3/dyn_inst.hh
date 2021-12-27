@@ -99,9 +99,6 @@ class DynInst : public ExecContext, public RefCounted, public DynInstParent
     /** Completes the access.  Only valid for memory operations. */
     Fault completeAcc(PacketPtr pkt);
 
-    /** The sequence number of the instruction. */
-    InstSeqNum seqNum = 0;
-
     /** The StaticInst used by this BaseDynInst. */
     const StaticInstPtr staticInst;
 
@@ -1330,16 +1327,13 @@ class DynInst : public ExecContext, public RefCounted, public DynInstParent
         setScalarResult(val);
     }
 
-    int getSeqNum() override { return seqNum; }
-
 // Runahead comparison
 private:
     bool _wouldTriggerRA = false;
 
 public:
     void setL2Miss() override;
-    bool wouldTriggeredRunahead() { return _wouldTriggerRA; }
-    void setTriggeredRunahead();
+    bool wouldTriggeredRunahead() { return hasTriggeredRunahead(); }
 
 };
 

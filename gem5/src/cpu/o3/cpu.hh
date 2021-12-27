@@ -713,8 +713,8 @@ class CPU : public BaseCPU
         statistics::Scalar numPossiblePrefetchesInRA;
         statistics::Scalar l2MissInRA;
         statistics::Scalar fullRobInRA;
-        statistics::Scalar totalCyclesInRA;
         statistics::Formula cyclesAvgInRA;
+        statistics::Scalar totalCyclesInRA;
         statistics::Scalar totalInsertedInRA;
         statistics::Formula insertedAvgInRA;
     } cpuStats;

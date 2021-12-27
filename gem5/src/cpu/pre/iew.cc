@@ -57,6 +57,7 @@
 #include "debug/Drain.hh"
 #include "debug/PreIEW.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/PreDebug.hh"
 #include "params/PreO3CPU.hh"
 
 namespace gem5
@@ -220,7 +221,7 @@ IEW::IEWStats::ExecutedInstStats::ExecutedInstStats(CPU *cpu)
     : statistics::Group(cpu),
     ADD_STAT(numInsts, statistics::units::Count::get(),
              "Number of executed instructions"),
-    ADD_STAT(numLoadInsts, statistics::units::Count::get(),
+    ADD_STAT(loadInsts, statistics::units::Count::get(),
              "Number of load instructions executed"),
     ADD_STAT(numSquashedInsts, statistics::units::Count::get(),
              "Number of squashed instructions skipped in execute"),
@@ -236,9 +237,11 @@ IEW::IEWStats::ExecutedInstStats::ExecutedInstStats(CPU *cpu)
              "Number of stores executed"),
     ADD_STAT(numRate, statistics::units::Rate<
                 statistics::units::Count, statistics::units::Cycle>::get(),
-             "Inst execution rate", numInsts / cpu->baseStats.numCycles)
+             "Inst execution rate", numInsts / cpu->baseStats.numCycles),
+    ADD_STAT(loadsInRA, statistics::units::Count::get(),
+             "Number of load instructions executed in runahead mode")
 {
-    numLoadInsts
+    loadInsts
         .init(cpu->numThreads)
         .flags(statistics::total);
 
@@ -260,9 +263,13 @@ IEW::IEWStats::ExecutedInstStats::ExecutedInstStats(CPU *cpu)
 
     numStoreInsts
         .flags(statistics::total);
-    numStoreInsts = numRefs - numLoadInsts;
+    numStoreInsts = numRefs - loadInsts;
 
     numRate
+        .flags(statistics::total);
+
+    loadsInRA
+        .init(cpu->numThreads)
         .flags(statistics::total);
 }
 
@@ -473,6 +480,23 @@ IEW::squashDueToBranch(const DynInstPtr& inst, ThreadID tid)
         wroteToTimeBuffer = true;
     }
 
+}
+
+void
+IEW::squashDueToPreExit(const DynInstPtr& inst, ThreadID tid)
+{
+    DPRINTF(PreIEW, "[tid:%i] [sn:%llu] Squashing due to runahead mode exit, PC: %s \n", 
+            tid, inst->seqNum, inst->pcState() );
+
+    if (!toCommit->squash[tid] ||
+            inst->seqNum < toCommit->squashedSeqNum[tid]) {
+        toCommit->squash[tid] = true;
+        toCommit->squashAfterPre[tid] = true;
+        toCommit->squashedSeqNum[tid] = inst->seqNum;
+        toCommit->includeSquashInst[tid] = true;
+        toCommit->pc[tid] = inst->pcState();
+        wroteToTimeBuffer = true;
+    }
 }
 
 void
@@ -1157,9 +1181,9 @@ IEW::executeInsts()
     for (; inst_num < insts_to_execute;
           ++inst_num) {
 
-        DPRINTF(PreIEW, "Execute: Executing instructions from IQ.\n");
-
         DynInstPtr inst = instQueue.getInstToExecute();
+
+        DPRINTF(PreIEW, "Execute: Executing instructions from IQ sn:%d.\n", inst->seqNum);
 
         DPRINTF(PreIEW, "Execute: Processing PC %s, [tid:%i] [sn:%llu].\n",
                 inst->pcState(), inst->threadNumber,inst->seqNum);
@@ -1584,7 +1608,11 @@ IEW::updateExeInstStats(const DynInstPtr& inst)
         iewStats.executedInstStats.numRefs[tid]++;
 
         if (inst->isLoad()) {
-            iewStats.executedInstStats.numLoadInsts[tid]++;
+            if (cpu->isInPreMode()){
+                iewStats.executedInstStats.loadsInRA[tid]++;
+            } else {
+                iewStats.executedInstStats.loadInsts[tid]++;
+            }
         }
     }
 }

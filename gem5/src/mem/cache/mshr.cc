@@ -186,7 +186,7 @@ MSHR::TargetList::add(PacketPtr pkt, Tick readyTime,
     DPRINTF(MSHR, "\nNew target allocated: %s\n", pkt->print());
     if (pkt->req->getInst())
         DPRINTF(MSHR, "   For inst sn:%lu, req ptr:%d\n", 
-            pkt->req->getInst()->getSeqNum(), pkt->req);
+            pkt->req->getInst()->seqNum, pkt->req);
     std::ostringstream str;
     print(str, 0, "");
     DPRINTF(MSHR, "MSHR targets: %s\n", str.str());
@@ -304,7 +304,7 @@ MSHR::TargetList::print(std::ostream &os, int verbosity,
         }
         uint64_t sn=0;
         if (t.pkt->req->getInst())
-            sn = t.pkt->req->getInst()->getSeqNum();
+            sn = t.pkt->req->getInst()->seqNum;
         ccprintf(os, "%s%s: [sn:%lu] ", prefix, s, sn);
         t.pkt->print(os, verbosity, "");
         ccprintf(os, "\n");
@@ -786,7 +786,7 @@ MSHR::markTargetsMissedInL2()
         assert(t.pkt->req->getInst());
         if (t.source == Target::FromCPU) {
             t.pkt->req->getInst()->setL2Miss();
-            DPRINTF_NO_LOG(RunaheadDebug, " Inst %#x marked miss in L2 in MSHR ptr:%d\n",
+            DPRINTF_NO_LOG(RunaheadDebug, " Inst %#lu marked miss in L2 in MSHR ptr:%d\n",
                 t.pkt->req->getInst()->instAddr(), this);
         }
     }    

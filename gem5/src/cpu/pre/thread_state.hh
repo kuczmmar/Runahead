@@ -38,8 +38,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_THREAD_STATE_HH__
-#define __CPU_RUNAHEAD_O3_THREAD_STATE_HH__
+#ifndef __CPU_PRE_THREAD_STATE_HH__
+#define __CPU_PRE_THREAD_STATE_HH__
 
 #include <memory>
 
@@ -106,4 +106,4 @@ class ThreadState : public gem5::ThreadState
 } // namespace pre
 } // namespace gem5
 
-#endif // __CPU_RUNAHEAD_O3_THREAD_STATE_HH__
+#endif // __CPU_PRE_THREAD_STATE_HH__

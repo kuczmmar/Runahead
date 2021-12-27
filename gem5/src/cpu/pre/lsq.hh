@@ -39,8 +39,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_LSQ_HH__
-#define __CPU_RUNAHEAD_O3_LSQ_HH__
+#ifndef __CPU_PRE_LSQ_HH__
+#define __CPU_PRE_LSQ_HH__
 
 #include <cassert>
 #include <cstdint>
@@ -56,7 +56,7 @@
 #include "cpu/inst_seq.hh"
 #include "cpu/pre/dyn_inst_ptr.hh"
 #include "cpu/utils.hh"
-#include "enums/SMTQueuePolicy.hh"
+#include "enums/PreSMTQueuePolicy.hh"
 #include "mem/port.hh"
 #include "sim/sim_object.hh"
 
@@ -1023,7 +1023,7 @@ class LSQ
 
 
     /** The LSQ policy for SMT mode. */
-    SMTQueuePolicy lsqPolicy;
+    PreSMTQueuePolicy lsqPolicy;
 
     /** Auxiliary function to calculate per-thread max LSQ allocation limit.
      * Depending on a policy, number of entries and possibly number of threads
@@ -1031,15 +1031,15 @@ class LSQ
      * can occupy at most.
      */
     static uint32_t
-    maxLSQAllocation(SMTQueuePolicy pol, uint32_t entries,
+    maxLSQAllocation(PreSMTQueuePolicy pol, uint32_t entries,
             uint32_t numThreads, uint32_t SMTThreshold)
     {
-        if (pol == SMTQueuePolicy::Dynamic) {
+        if (pol == PreSMTQueuePolicy::Dynamic) {
             return entries;
-        } else if (pol == SMTQueuePolicy::Partitioned) {
+        } else if (pol == PreSMTQueuePolicy::Partitioned) {
             //@todo:make work if part_amt doesnt divide evenly.
             return entries / numThreads;
-        } else if (pol == SMTQueuePolicy::Threshold) {
+        } else if (pol == PreSMTQueuePolicy::Threshold) {
             //Divide up by threshold amount
             //@todo: Should threads check the max and the total
             //amount of the LSQ
@@ -1075,4 +1075,4 @@ class LSQ
 } // namespace pre
 } // namespace gem5
 
-#endif // __CPU_RUNAHEAD_O3_LSQ_HH__
+#endif // __CPU_PRE_LSQ_HH__

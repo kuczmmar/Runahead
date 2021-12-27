@@ -38,8 +38,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_FETCH_HH__
-#define __CPU_RUNAHEAD_O3_FETCH_HH__
+#ifndef __CPU_PRE_FETCH_HH__
+#define __CPU_PRE_FETCH_HH__
 
 #include "arch/decoder.hh"
 #include "arch/generic/mmu.hh"
@@ -52,7 +52,7 @@
 #include "cpu/pred/bpred_unit.hh"
 #include "cpu/timebuf.hh"
 #include "cpu/translation.hh"
-#include "enums/SMTFetchPolicy.hh"
+#include "enums/PreSMTFetchPolicy.hh"
 #include "mem/packet.hh"
 #include "mem/port.hh"
 #include "sim/eventq.hh"
@@ -191,7 +191,7 @@ class Fetch
     ThreadStatus fetchStatus[MaxThreads];
 
     /** Fetch policy. */
-    SMTFetchPolicy fetchPolicy;
+    PreSMTFetchPolicy fetchPolicy;
 
     /** List that has the threads organized by priority. */
     std::list<ThreadID> priorityList;
@@ -592,4 +592,4 @@ class Fetch
 } // namespace pre
 } // namespace gem5
 
-#endif //__CPU_RUNAHEAD_O3_FETCH_HH__
+#endif //__CPU_PRE_FETCH_HH__

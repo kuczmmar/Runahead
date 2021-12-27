@@ -39,8 +39,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_RUNAHEAD_O3_LSQ_UNIT_HH__
-#define __CPU_RUNAHEAD_O3_LSQ_UNIT_HH__
+#ifndef __CPU_PRE_LSQ_UNIT_HH__
+#define __CPU_PRE_LSQ_UNIT_HH__
 
 #include <algorithm>
 #include <cstring>
@@ -610,4 +610,4 @@ class LSQUnit
 } // namespace pre
 } // namespace gem5
 
-#endif // __CPU_RUNAHEAD_O3_LSQ_UNIT_HH__
+#endif // __CPU_PRE_LSQ_UNIT_HH__
