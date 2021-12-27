@@ -577,7 +577,7 @@ ROB::debugPrintROB() {
                 flags += (inst->missedInL2() ? "m" : "");
                 DPRINTF_NO_LOG(RunaheadDebug, "%4ld[%4s] ", inst->seqNum, flags.c_str());
             }
-            DPRINTF_NO_LOG(RunaheadDebug, "\n%15s", "");//43
+            DPRINTF_NO_LOG(RunaheadDebug, "\n%43s", "");//43
             for (auto inst : thread_list) {
                 DPRINTF_NO_LOG(RunaheadDebug, "%#lx   ",  inst->instAddr());
             }
@@ -587,7 +587,31 @@ ROB::debugPrintROB() {
     if (all_empty) { 
         DPRINTF_NO_LOG(RunaheadDebug, "ROB is empty\n");
     } else if (isFull()) {
-        DPRINTF(RunaheadDebug, "ROB is full!\n");
+        std::string str = cpu->isInRunaheadMode() ? " in RA" : "";
+        DPRINTF(RunaheadDebug, "ROB is full%s\n", str.c_str());
+    }
+}
+
+void 
+ROB::debugPrintRegisters() {
+    for (auto thread_list :  instList) {
+        for (auto inst : thread_list) {
+            DPRINTF_NO_LOG(RunaheadDebug, "Inst PC %#lx [sn:%lu], is %s, st:%d, ld:%d"
+                "control:%d, call:%d, ret:%d, dire:%d, indir:%d, cond:%d, uncond:%d, ser:%d\n", 
+                inst->instAddr(), inst->seqNum,
+                inst->staticInst->disassemble(inst->instAddr()).c_str(), 
+                inst->isStore(), inst->isLoad(),
+                inst->isControl(), inst->isCall(), inst->isReturn(), 
+                inst->isDirectCtrl() ,
+                inst->isIndirectCtrl(), inst->isCondCtrl() , inst->isUncondCtrl()  , 
+                inst->isSerializing()
+            );
+            std::ostringstream str;
+            inst->printSrcRegs(str);
+            inst->printDestRegs(str);
+            DPRINTF_NO_LOG(RunaheadDebug, "  %s\n", 
+                str.str().c_str());
+        }
     }
 }
 

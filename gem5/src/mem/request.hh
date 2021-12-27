@@ -55,6 +55,7 @@
 #include <limits>
 #include <memory>
 #include <vector>
+#include <set>
 
 #include "base/amo.hh"
 #include "base/compiler.hh"
@@ -1028,23 +1029,17 @@ private:
     // DynInstParent* _o3Inst = nullptr;
     bool _generatedInRunahead = false;
     bool _triggeredRunahead = false;
-    MSHR* _mshr = nullptr;
+    std::set<MSHR*> mshrs;
 
 public:
     void setInst(DynInstParent* inst) { _reqInst = inst; }
-    // void setInst(o3::DynInst* inst) { _o3Inst = inst; }
-    
     DynInstParent* getInst() { return _reqInst; }
-    // o3::DynInst* getInstO3() { return _o3Inst; }
 
     void setGeneratedInRunahead() { _generatedInRunahead = true; }
     bool isGeneratedInRunahead() { return _generatedInRunahead; }
 
-    void setTriggeredRunahead() { _triggeredRunahead = true; }
-    bool triggeredRunahead() { return _triggeredRunahead; }
-
-    void setMshr(MSHR* mshr) { _mshr = mshr; }
-    MSHR* getMshr() { return _mshr; }
+    void setMshr(MSHR* mshr) { mshrs.insert(mshr); }
+    std::set<MSHR*> getMshrs() { return mshrs; }
 
 }; // Request
 

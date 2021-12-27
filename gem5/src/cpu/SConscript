@@ -111,6 +111,7 @@ Source('simple_thread.cc')
 Source('thread_context.cc')
 Source('thread_state.cc')
 Source('timing_expr.cc')
+Source('dyn_inst_parent.cc')
 
 SimObject('DummyChecker.py')
 SimObject('StaticInstFlags.py')

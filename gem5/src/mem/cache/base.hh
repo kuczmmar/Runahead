@@ -1137,8 +1137,8 @@ class BaseCache : public ClockedObject
         std::vector<std::unique_ptr<CacheCmdStats>> cmd;
 
         // Additional statistics for runahead
-        statistics::Scalar l2Misses;
-        statistics::Scalar l2MissesInRA;
+        statistics::Scalar l2Miss;
+        statistics::Scalar l2MissInRA;
     } stats;
 
     /** Registers probes. */

@@ -420,20 +420,17 @@ LSQ::recvTimingResp(PacketPtr pkt)
 
     thread[cpu->contextToThread(senderState->contextId())].recvTimingResp(pkt);
 
-    // The CPU would exit runahead 
-    // for simplicity assume we exit when any of the requests generated 
-    // by this instruction has returned, this is not true in runahead 
-    // implementation, since we would normally wait for all requests to return
-
+    // The CPU would exit runahead
     DynInst* i = dynamic_cast<DynInst*>(pkt->req->getInst());
-    if (i && cpu->wouldBeInRA && i->wouldTriggeredRunahead()){
-        DPRINTF(RunaheadCompare, "Would exit runahead - sn:%d,"
-                " in ROB when entered: %d, entries inserted in RA:%d\n", 
-                i->seqNum, cpu->numRobEntriesWhenEnter, cpu->numInsertedInRA);
-        cpu->wouldBeInRA = false;
-        cpu->instsAfterLastRA = 0;
+    DPRINTF(RunaheadCompare, "outstanding for i %d is :%d, in RA:%d, trig:%d\n", 
+        i->getSeqNum(), i->numOutstandingRequests(),
+        cpu->wouldBeInRA, i->wouldTriggeredRunahead());
+    i->reqCompleted(pkt->req);
+    if (i->numOutstandingRequests() == 0){
         i->resetL2Miss();
-        cpu->cpuStats.totalRobSizeAtExitRA += cpu->numRobEntries();
+        if (i && cpu->wouldBeInRA && i->wouldTriggeredRunahead()){
+            cpu->wouldExitRA(i);
+        }
     }
 
     if (pkt->isInvalidate()) {
@@ -965,6 +962,7 @@ LSQ::SingleDataRequest::initiateTranslation()
         _requests.back()->setReqInstSeqNum(_inst->seqNum);
         _requests.back()->taskId(_taskId);
         _requests.back()->setInst(_inst.get());
+        _inst->addReq(_requests.back());
         _inst->translationStarted(true);
         setState(State::Translation);
         flags.set(Flag::TranslationStarted);
@@ -1040,6 +1038,7 @@ LSQ::SplitDataRequest::initiateTranslation()
             r->setReqInstSeqNum(_inst->seqNum);
             r->taskId(_taskId);
             r->setInst(_inst.get());
+            _inst->addReq(r);
         }
 
         _inst->translationStarted(true);
@@ -1403,6 +1402,7 @@ LSQ::HtmCmdRequest::HtmCmdRequest(LSQUnit* port, const DynInstPtr& inst,
         _requests.back()->setPaddr(_addr);
         _requests.back()->setInstCount(_inst->getCpuPtr()->totalInsts());
         _requests.back()->setInst(_inst.get());
+        _inst->addReq(_requests.back());
 
         _inst->strictlyOrdered(_requests.back()->isStrictlyOrdered());
         _inst->fault = NoFault;

@@ -56,6 +56,7 @@
 #include "debug/RunaheadO3CPU.hh"
 #include "debug/Quiesce.hh"
 #include "debug/RunaheadDebug.hh"
+#include "debug/RunaheadEnter.hh"
 #include "enums/MemoryMode.hh"
 #include "sim/cur_tick.hh"
 #include "sim/full_system.hh"
@@ -428,10 +429,28 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                "Number of times that the ROB becomes full"),
       ADD_STAT(robFullInRA, statistics::units::Count::get(),
                "Number of times that the ROB becomes full in runahead mode."),
-      ADD_STAT(numEnteredRA, statistics::units::Count::get(),
+      ADD_STAT(enteredRA, statistics::units::Count::get(),
                 "Number of times the CPU enters runahead"),
       ADD_STAT(fetchedInRA, statistics::units::Count::get(),
-                "Number of instructions fetched in runahead mode.")
+                "Number of instructions fetched in runahead mode."),
+      ADD_STAT(cyclesAvgInRA, statistics::units::Rate<
+                statistics::units::Cycle, statistics::units::Count>::get(),
+                "average number of cycles the CPU spends in runahead"),
+      ADD_STAT(totalCyclesInRA, statistics::units::Cycle::get(),
+                "total number of cycles the CPU spends in runahead"),
+      ADD_STAT(cyclesRobEmptyInRA, statistics::units::Cycle::get(),
+                "total number of cycles when ROB would be empty in runahead"),
+      ADD_STAT(pctRobEmptyInRA, statistics::units::Ratio::get(),
+                "percentage of cycles spent in runahead, when ROB would be empty",
+                100 * cyclesRobEmptyInRA / totalCyclesInRA),
+      ADD_STAT(totalInsertedInRA, statistics::units::Count::get(),
+                "total number of instructions inserted into ROB in runahead"),
+      ADD_STAT(insertedAvgInRA, statistics::units::Ratio::get(),
+                "average number of instructions inserted into ROB in runahead",
+                totalInsertedInRA / enteredRA),
+      ADD_STAT(maxAtRobHead, statistics::units::Count::get(),
+                "maximum number of cycles one instruction spends at the head "
+                "of ROB in runahead")
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -510,8 +529,17 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     // Runahead statistics
     robFull.prereq(robFull);
     robFullInRA.prereq(robFullInRA);
-    numEnteredRA.prereq(numEnteredRA);
+    enteredRA.prereq(enteredRA);
     fetchedInRA.prereq(fetchedInRA);
+
+    totalCyclesInRA.prereq(totalCyclesInRA);
+    cyclesAvgInRA.precision(3);
+    cyclesAvgInRA = totalCyclesInRA / enteredRA;
+    cyclesRobEmptyInRA.prereq(cyclesRobEmptyInRA);
+    pctRobEmptyInRA.precision(3);
+    totalInsertedInRA.prereq(totalInsertedInRA);
+    insertedAvgInRA.precision(3);
+    maxAtRobHead.prereq(maxAtRobHead);
 }
 
 void
@@ -576,6 +604,11 @@ CPU::tick()
         updateThreadPriority();
 
     tryDrain();
+
+    if (isInRunaheadMode()) {
+        ++cpuStats.totalCyclesInRA;
+        if (rob.isEmpty()) ++cpuStats.cyclesRobEmptyInRA;
+    }
 }
 
 void
@@ -1779,15 +1812,17 @@ CPU::htmSendAbortSignal(ThreadID tid, uint64_t htm_uid,
 
 
 void
-CPU::enterRunaheadMode(DynInstPtr inst, ThreadID tid){
-    DPRINTF(RunaheadDebug, "CPU enter runahead mode!: inst: %d, tid: %d\n", inst->seqNum, tid);
-    // DPRINTF(RunaheadDebug, "Current PC state: [sn:%llu]\n", commit.pcState(tid));
+CPU::enterRunaheadMode(DynInstPtr inst, ThreadID tid)
+{
     assert(!_inRunahead);
+    DPRINTF_NO_LOG(RunaheadEnter, "\nEnter runahead mode! addr: %#lx\n", 
+        // inst->seqNum,
+        inst->instAddr());
 
     _inRunahead = true;
     raTriggerInst = inst;
     ra_tid = tid;
-    cpuStats.numEnteredRA++;
+    cpuStats.enteredRA++;
 
     inst->setTriggeredRunahead();
 
@@ -1810,14 +1845,16 @@ CPU::enterRunaheadMode(DynInstPtr inst, ThreadID tid){
 }
 
 bool
-CPU::isInRunaheadMode(){
+CPU::isInRunaheadMode()
+{
     return _inRunahead;
 }
 
 void 
-CPU::exitRunaheadMode(){
-    DPRINTF(RunaheadDebug, "CPU exit runahead mode!\n");
+CPU::exitRunaheadMode()
+{
     assert(_inRunahead);
+    DPRINTF_NO_LOG(RunaheadEnter, "Exit runahead mode!\n\n");
     _inRunahead = false;
 
     // Flush all instructions in the machine.

@@ -16,47 +16,48 @@ if $compile ; then
 fi
 
 # define benchmark variables
-RANDACC='--binary=/home/marta/runahead/benchmarks/cgo2017/program/randacc/bin/x86/randacc-no --binary_args 100'
+BENCH_PATH='/home/marta/runahead/benchmarks/cgo2017/program/randacc/bin/x86/randacc-no'
+ARG=1000000
+RANDACC="--binary=${BENCH_PATH} --binary_args ${ARG}"
 # RANDACC='--binary=/home/marta/runahead/test'
 
 # define paths to configuration files
-TWO_LEVEL='configs/learning_gem5/part1/two_level.py'
 O3_TWO_LEVEL='configs/runahead/o3_2level.py'
 
-GEM_FLAGS='--stats-file=baseline/2level_randacc --dot-config=base_2level_randacc --debug-flags=RunaheadCompare'
-RUN_GEM_FLAGS='--stats-file=runahead/2level_randacc --dot-config=run_2level_randacc --debug-flags=RunaheadDebug,Cache,MSHR'
+# GEM_FLAGS='--stats-file=baseline/2level_randacc --dot-config=base_2level_randacc --debug-flags=RunaheadEnter'
+# RUN_GEM_FLAGS='--stats-file=runahead/2level_randacc --dot-config=run_2level_randacc --debug-flags=RunaheadEnter'
+GEM='build/X86/gem5.opt'
+GEM_FLAGS="--stats-file=base/rand_${ARG} --dot-config=base_randacc"
+RA64_GEM_FLAGS="--stats-file=run/rand_rob64_${ARG} --dot-config=run_randacc_64"
+RA192_GEM_FLAGS="--stats-file=run/rand_rob192_${ARG} --dot-config=run_randacc_192"
+# CACHE,MSHR,RunaheadCommit
+
 
 # RunaheadO3CPU
-OUT='out.txt'
-OUT1='out1.txt'
+RA='ra.txt'
+RA192='ra192.txt'
+BASE='base.txt'
 
 echo_lines() {
   yes '' | sed 3q
 }
 
-print_new_line() {
-  echo_lines
-  echo '' >> $OUT && echo '------------------' >> $OUT && echo '' >> $OUT
-}
+# print_new_line() {
+#   echo_lines
+#   echo '' >> $OUT && echo '------------------' >> $OUT && echo '' >> $OUT
+# }
 
 
 # WARNING: Clears previous statistics outputs
 rm -r m5out/
-mkdir m5out && mkdir m5out/baseline && mkdir m5out/runahead
-rm $OUT
-rm $OUT1
+mkdir m5out && mkdir m5out/base && mkdir m5out/run
+rm $RA $BASE
 
 # run two level of cache setup on randacc benchmark
-# baseline
-build/X86/gem5.opt $GEM_FLAGS $O3_TWO_LEVEL $RANDACC > $OUT1
-print_new_line
-
-# runahead
-build/X86/gem5.opt $RUN_GEM_FLAGS $O3_TWO_LEVEL --mode=runahead $RANDACC >> $OUT
-
+$GEM $GEM_FLAGS $O3_TWO_LEVEL --rob_size=64 $RANDACC > $BASE 
+$GEM $RA64_GEM_FLAGS $O3_TWO_LEVEL --mode=runahead --rob_size=64 $RANDACC >> $RA
+$GEM $RA192_GEM_FLAGS $O3_TWO_LEVEL --mode=runahead --rob_size=192 $RANDACC >> $RA192
 # --l1i_size='32kB' --l1d_size='64kB'
-print_new_line
-
 
 python stats/summarize_stats.py m5out stats/simple.csv
 
@@ -68,5 +69,4 @@ cat stats/simple.csv  |sed 's/,/ ,/g' | column -t -s,
 # run configs/runahead/o3_2level.py --mode=runahead --binary=/home/marta/runahead/benchmarks/cgo2017/program/randacc/bin/x86/randacc-no --binary_args 100
 # run configs/runahead/o3_2level.py --binary=/home/marta/runahead/benchmarks/cgo2017/program/randacc/bin/x86/randacc-no --binary_args 100
 # run configs/runahead/o3_2level.py --mode=runahead --binary=/home/marta/runahead/test
-
 

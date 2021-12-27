@@ -707,8 +707,15 @@ class CPU : public BaseCPU
         // Additional statistics for runahead
         statistics::Scalar robFull;
         statistics::Scalar robFullInRA;
-        statistics::Scalar numEnteredRA;
+        statistics::Scalar enteredRA;
         statistics::Scalar fetchedInRA;
+        statistics::Scalar totalCyclesInRA;
+        statistics::Formula cyclesAvgInRA;
+        statistics::Scalar cyclesRobEmptyInRA;
+        statistics::Formula pctRobEmptyInRA;
+        statistics::Scalar totalInsertedInRA;
+        statistics::Formula insertedAvgInRA;
+        statistics::Scalar maxAtRobHead;
     } cpuStats;
 
     // hardware transactional memory

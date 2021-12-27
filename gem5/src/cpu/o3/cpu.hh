@@ -707,11 +707,16 @@ class CPU : public BaseCPU
         // stats for comparison with runahead performance
         statistics::Scalar totalRobSizeAtEnterRA;
         statistics::Scalar totalRobSizeAtExitRA;
-        statistics::Scalar numEnteredRA;
+        statistics::Scalar enteredRA;
         statistics::Formula avgRobSizeAtEnterRA;
         statistics::Formula avgRobSizeAtExitRA;
         statistics::Scalar numPossiblePrefetchesInRA;
-        statistics::Scalar possibleMissesInL2;
+        statistics::Scalar l2MissInRA;
+        statistics::Scalar fullRobInRA;
+        statistics::Scalar totalCyclesInRA;
+        statistics::Formula cyclesAvgInRA;
+        statistics::Scalar totalInsertedInRA;
+        statistics::Formula insertedAvgInRA;
     } cpuStats;
 
   public:
@@ -725,12 +730,13 @@ class CPU : public BaseCPU
     // in RA at any point of the simulation
     bool wouldBeInRA = false;
     int numRobEntriesWhenEnter;
-    int numInsertedInRA;
 
+    bool fullRobInRA = false;
     int instsAfterLastRA;
-    int numFutureInsts;
 
     int numRobEntries() { return rob.numInstsInROB; }
+    void wouldEnterRA(DynInstPtr inst);
+    void wouldExitRA(DynInstPtr inst);
 };
 
 } // namespace o3

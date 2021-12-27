@@ -342,7 +342,9 @@ class ROB
     } stats;
 
   public:
+    void markAllRunahead(bool set = true);
     void debugPrintROB();
+    int robSize() { return numEntries; }
 };
 
 } // namespace o3

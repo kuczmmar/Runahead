@@ -355,7 +355,6 @@ Fetch::processCacheCompletion(PacketPtr pkt)
     ThreadID tid = cpu->contextToThread(pkt->req->contextId());
 
     DPRINTF(Fetch, "[tid:%i] Waking up from cache miss.\n", tid);
-    DPRINTF_NO_LOG(RunaheadFetch, "[tid:%i] Waking up from cache miss.\n", tid);
     
     assert(!cpu->switchedOut());
 
@@ -528,6 +527,9 @@ Fetch::lookupAndUpdateNextPC(const DynInstPtr &inst, TheISA::PCState &nextPC)
     ThreadID tid = inst->threadNumber;
     predict_taken = branchPred->predict(inst->staticInst, inst->seqNum,
                                         nextPC, tid);
+
+    inst->setBranchPredicted();
+
 
     if (predict_taken) {
         DPRINTF(Fetch, "[tid:%i] [sn:%llu] Branch at PC %#x "
@@ -1068,10 +1070,6 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
             instruction->staticInst->
             disassemble(thisPC.instAddr()));
 
-    DPRINTF_NO_LOG(RunaheadFetch, "Instruction PC %#lx (%d) created [sn:%lu], is %s, st:%d, ld:%d\n", 
-            thisPC.instAddr(), thisPC.microPC(), seq,
-            instruction->staticInst->disassemble(thisPC.instAddr()).c_str(), 
-            instruction->isStore(), instruction->isLoad());
 
 
 #if TRACING_ON
@@ -1163,8 +1161,10 @@ Fetch::fetch(bool &status_change)
 
             fetchCacheLine(fetchAddr, tid, thisPC.instAddr());
 
-            if (fetchStatus[tid] == IcacheWaitResponse)
+            if (fetchStatus[tid] == IcacheWaitResponse){
                 ++fetchStats.icacheStallCycles;
+                DPRINTF(RunaheadFetch, "wait on icache miss\n");
+            }
             else if (fetchStatus[tid] == ItlbWait)
                 ++fetchStats.tlbCycles;
             else

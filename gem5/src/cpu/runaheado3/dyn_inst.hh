@@ -1336,11 +1336,10 @@ class DynInst : public ExecContext, public RefCounted, public DynInstParent
 private:
     bool _triggeredRunahead = false;
     bool _invalid = false;
+    bool _branchPredicted = false;
 
 public:
-    bool isRunaheadInst() { return _runaheadInst; }
-    void setRunaheadInst();
-
+    int cyclesAtHeadInRA = 0;
     bool hasTriggeredRunahead() { return _triggeredRunahead; }
     void setTriggeredRunahead();
 
@@ -1351,6 +1350,11 @@ public:
     void invalidateDestRegs(bool setINV = true);
     void invalidateSrcRegs(bool setINV = true);
 
+    bool wasBranchPredicted() { return _branchPredicted; }
+    void setBranchPredicted() {_branchPredicted = true; }
+
+    void printDestRegs(std::ostream &os);
+    void printSrcRegs(std::ostream &os);
 };
 
 } // namespace runaheado3

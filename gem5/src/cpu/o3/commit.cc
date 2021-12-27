@@ -991,8 +991,6 @@ Commit::commitInsts()
         if (!head_inst){
             break;
         }
-        DPRINTF(RunaheadCompare, "Head inst: ptr:%d, sn:%lu\n", 
-            head_inst, head_inst->seqNum);
 
         /*
         statistics for when Runahead mode would have been entered
@@ -1004,21 +1002,10 @@ Commit::commitInsts()
         (or so) is where RA benefits the most.
         */
         if (!rob->isHeadReady(commit_thread) && head_inst->missedInL2() 
-                && !cpu->wouldBeInRA) {
-                    
-            DPRINTF(RunaheadCompare, "Would enter runahead - sn:%d,"
-                " entries in ROB:%D\n", 
-                head_inst->seqNum, rob->numInstsInROB);
-
-            cpu->wouldBeInRA = true;
-            head_inst->setTriggeredRunahead();
-
-            // update stats
-            cpu->cpuStats.totalRobSizeAtEnterRA += rob->numInstsInROB;
-            cpu->cpuStats.numEnteredRA++;
-
-            cpu->numRobEntriesWhenEnter = rob->numInstsInROB;
-            cpu->numInsertedInRA = 0;
+                && !cpu->wouldBeInRA && !head_inst->isRunaheadInst()
+                && !head_inst->isExecuted() && !head_inst->isSquashed()
+                && !head_inst->readyToCommit()) {
+            cpu->wouldEnterRA(head_inst);
         }  
 
         if (!rob->isHeadReady(commit_thread)) break;
@@ -1381,13 +1368,7 @@ Commit::getInsts()
                     tid, inst->seqNum, inst->pcState());
 
             if (cpu->wouldBeInRA) {
-                ++cpu->numInsertedInRA;
-            } else {
-                // running outside of RA, count instructions which 
-                // might have been fetched during RA
-                if (++cpu->instsAfterLastRA < cpu->numFutureInsts) {
-                    inst->assumePrefetchedInRA = true;
-                }
+                ++cpu->cpuStats.totalInsertedInRA;
             }
             rob->insertInst(inst);
 

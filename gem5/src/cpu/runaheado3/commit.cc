@@ -971,9 +971,10 @@ Commit::commitInsts()
     ////////////////////////////////////
 
     DPRINTF(Commit, "Trying to commit instructions in the ROB.\n");
-    DPRINTF_NO_LOG(RunaheadDebug, "ROB at commit: ");
+    DPRINTF(RunaheadDebug, "ROB at commit: ");
     rob->debugPrintROB();
 
+    bool first_iter = true;
     unsigned num_committed = 0;
 
     DynInstPtr head_inst;
@@ -1001,9 +1002,6 @@ Commit::commitInsts()
             }
         }
 
-        // ThreadID commit_thread = getCommittingThread();
-
-
         if (commit_thread == -1)
             break;
         
@@ -1012,7 +1010,18 @@ Commit::commitInsts()
             break;
         }
 
+        if (cpu->isInRunaheadMode() && first_iter) {
+            first_iter = false;
+            cpu->cpuStats.maxAtRobHead = std::max(
+                ++head_inst->cyclesAtHeadInRA,
+                int(cpu->cpuStats.maxAtRobHead.value()));
+            DPRINTF(RunaheadDebug, "Max at rob head: %d\n", 
+                head_inst->cyclesAtHeadInRA);
 
+            if (head_inst->cyclesAtHeadInRA == 20) {
+                rob->debugPrintRegisters();
+            }
+        }
 
         // enter runahead mode if the head instruction is waiting on a L2 cache miss
         // if the CPU has just returned from runahead mode,
@@ -1020,7 +1029,8 @@ Commit::commitInsts()
         // check if it isn't a runahead instruction
         if (!rob->isHeadReady(commit_thread) && head_inst->missedInL2() 
                 && !head_inst->isRunaheadInst()) {
-            DPRINTF(RunaheadCommit, "Commit: head not ready and missed in L2 - inst: %d\n", head_inst->seqNum);
+            DPRINTF(RunaheadCommit, "Commit: head not ready and missed in L2,"
+                " inst: %d\n", head_inst->seqNum);
             cpu->enterRunaheadMode(head_inst, commit_thread);
             
             break;
@@ -1050,6 +1060,7 @@ Commit::commitInsts()
             // }
 
             if (head_inst->missedInL2() || head_inst->isStore()) {
+                DPRINTF(RunaheadDebug, "Mark sn:%d INV due to miss or is store \n", head_inst->seqNum);
                 head_inst->setInvalid();
             }
 
@@ -1453,6 +1464,7 @@ Commit::getInsts()
 
             if (cpu->isInRunaheadMode()) {
                 inst->setRunaheadInst();
+                ++cpu->cpuStats.totalInsertedInRA;
             }
 
             rob->insertInst(inst);

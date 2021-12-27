@@ -2,6 +2,9 @@
 #define __CPU_DYN_INST_PARENT_HH__
 
 #include "mem/request.hh"
+#include "base/types.hh"
+#include <bitset>
+#include "debug/RunaheadEnter.hh"
 
 namespace gem5
 {
@@ -22,6 +25,7 @@ protected:
   this may result in more requests being created */
   std::vector<RequestPtr> _outstandingReqs;
 
+  // 
   bool _runaheadInst = false;
 
 public:
@@ -32,29 +36,18 @@ public:
   virtual bool isExecuted() const = 0;
   virtual bool isSquashed() const = 0;
   virtual int getSeqNum() = 0;
+  virtual Addr instAddr() const = 0;
+  virtual bool isInROB() const = 0;
 
-  void addReq(RequestPtr req) 
-  {   
-    _outstandingReqs.emplace_back(req);
-    if (_runaheadInst) {
-        req->setGeneratedInRunahead();
-    }
-  }
+  void addReq(RequestPtr req);
 
-  bool numOutstandingRequests() 
-  {
-    return _outstandingReqs.size(); 
-  }
+  bool numOutstandingRequests() { return _outstandingReqs.size(); }
+  void reqCompleted(RequestPtr req);
 
-  void reqCompleted(RequestPtr req) 
-  {
-    // remove the completed request
-    for (int i=0; i<_outstandingReqs.size(); ++i) {
-        if (_outstandingReqs[i].get() == req.get()) {
-            _outstandingReqs.erase(_outstandingReqs.begin() + i);
-        }
-    }
-  }
+  bool isRunaheadInst() { return _runaheadInst; }
+  void setRunaheadInst();
+  // reset does not modify any request associated with this instruction
+  void resetRunaheadInst();
 
 };
 

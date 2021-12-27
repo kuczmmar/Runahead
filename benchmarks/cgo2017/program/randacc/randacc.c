@@ -114,13 +114,8 @@ RandomAccessUpdate(u64Int TableSize, u64Int *Table) {
   for (j=0; j<128; j++)
     ran[j] = HPCC_starts ((NUPDATE/128) * j);
 
-
   for (i=0; i<NUPDATE/128; i++) {
-
     for (j=0; j<128; j++) {
-    
-    
-    
       ran[j] = (ran[j] << 1) ^ ((s64Int) ran[j] < 0 ? POLY : 0);
       Table[ran[j] & (TableSize-1)] ^= ran[j];
     }

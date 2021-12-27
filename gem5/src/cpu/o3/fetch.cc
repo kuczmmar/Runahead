@@ -1067,10 +1067,6 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
             instruction->staticInst->
             disassemble(thisPC.instAddr()));
 
-    DPRINTF_NO_LOG(RunaheadCompare, "Instruction PC %#lx (%d) created [sn:%lu], is %s\n", 
-            thisPC.instAddr(), thisPC.microPC(), seq,
-            instruction->staticInst->disassemble(thisPC.instAddr()).c_str());
-
 #if TRACING_ON
     if (trace) {
         instruction->traceData =
@@ -1095,6 +1091,10 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
 
     // Keep track of if we can take an interrupt at this boundary
     delayedCommit[tid] = instruction->isDelayedCommit();
+
+    if (cpu->wouldBeInRA) {
+        instruction->setRunaheadInst();
+    }
 
     return instruction;
 }

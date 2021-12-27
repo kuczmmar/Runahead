@@ -336,13 +336,10 @@ DynInst::initiateMemAMO(Addr addr, unsigned size, Request::Flags flags,
 void 
 DynInst::setL2Miss()
 { 
+    // make sure this will not get called twice 
+    // in case the instruction has multiple requests
+    if (missedInL2()) return;
     runaheadFlags.set(MissedInL2);
-    if (assumePrefetchedInRA) {
-        ++cpu->cpuStats.possibleMissesInL2;
-        // make sure this will not get called twice 
-        // if instruction has multiple requests
-        assumePrefetchedInRA = false;
-    }
 }
 
 void 

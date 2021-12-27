@@ -1335,14 +1335,8 @@ class DynInst : public ExecContext, public RefCounted, public DynInstParent
 // Runahead comparison
 private:
     bool _wouldTriggerRA = false;
-    bool _runaheadInst = false;
 
 public:
-    // this bool flag indicates whether this instruction was fetched
-    // withing cpu->numFutureInsts after an exit from funahead 
-    // would take place, it is updated when the instruction is added 
-    // to the ROB in Commit::getInsts()
-    bool assumePrefetchedInRA = false;
     void setL2Miss() override;
     bool wouldTriggeredRunahead() { return _wouldTriggerRA; }
     void setTriggeredRunahead();

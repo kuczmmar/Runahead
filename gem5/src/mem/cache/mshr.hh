@@ -60,6 +60,7 @@
 #include "mem/packet.hh"
 #include "mem/request.hh"
 #include "sim/cur_tick.hh"
+#include "cpu/dyn_inst_parent.hh"
 
 namespace gem5
 {
@@ -527,8 +528,13 @@ class MSHR : public QueueEntry, public Printable
      * need to mark all instructions relying on the same block
      * of memory as missed in L2.
     */
+private:
+   bool _missedInL2 = false;
+public:
    void markTargetsMissedInL2();
+   bool hasMissedInL2();
    TargetList* getTargets() { return &targets; }
+   PacketPtr sharedPkt = nullptr;
 };
 
 } // namespace gem5

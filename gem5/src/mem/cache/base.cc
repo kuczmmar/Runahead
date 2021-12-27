@@ -54,6 +54,7 @@
 #include "debug/CacheVerbose.hh"
 #include "debug/HWPrefetch.hh"
 #include "debug/RunaheadDebug.hh"
+#include "debug/RunaheadEnter.hh"
 #include "mem/cache/compressors/base.hh"
 #include "mem/cache/mshr.hh"
 #include "mem/cache/prefetch/base.hh"
@@ -297,14 +298,22 @@ BaseCache::handleTimingReqMiss(PacketPtr pkt, MSHR *mshr, CacheBlk *blk,
                 // delay of the xbar.
                 mshr->allocateTarget(pkt, forward_time, order++,
                                      allocOnFill(pkt->cmd));
-                if (pkt->req->getInst()){
-                    DPRINTF(RunaheadDebug, "Allocated target in MSHR for addr:%#x, "
-                    "in %s\n",
-                        pkt->req->getInst()->instAddr(), this->name());
-                    DPRINTF_NO_LOG(RunaheadDebug, " setting MSHR: %u for req:%u , inst sn:%lu, inst ptr: %u\n", 
-                        mshr, pkt->req, pkt->req->getInst()->seqNum, pkt->req->getInst());
-                }
+
+                // Runahead support when a pkt is added to an existing MSHR
                 pkt->req->setMshr(mshr);
+                if (pkt->req->getInst()){
+                    DPRINTF(RunaheadDebug, "Allocated target in existing MSHR for sn:%#x, "
+                    "in %s\n", pkt->req->getInst()->instAddr(), this->name());
+                    
+                    // if any of the instructions in MSHR is waiting on L2 cache miss
+                    // then so is the instruction associated with this packet!
+                    if (mshr->hasMissedInL2()) {
+                        pkt->req->getInst()->setL2Miss();
+                    } else if (mshr->sharedPkt && mshr->sharedPkt->isPending) {
+                        DPRINTF(RunaheadDebug, " Added [sn:%d] after pkt creation, but before"
+                            " miss or hit\n", pkt->req->getInst());
+                    }
+                }
 
 
                 if (mshr->getNumTargets() == numTarget) {
@@ -356,8 +365,8 @@ BaseCache::handleTimingReqMiss(PacketPtr pkt, MSHR *mshr, CacheBlk *blk,
             MSHR *mshr = allocateMissBuffer(pkt, forward_time);
             pkt->req->setMshr(mshr);
             if (pkt->req->getInst())
-                    DPRINTF_NO_LOG(RunaheadDebug, " setting MSHR: %u for req:%u , inst sn:%lu, inst ptr: %u\n", 
-                        mshr, pkt->req, pkt->req->getInst()->seqNum, pkt->req->getInst());
+                DPRINTF_NO_LOG(RunaheadDebug, " Creating MSHR: for req - inst sn:%lu\n", 
+                    pkt->req->getInst()->getSeqNum());
         }
     }
 }
@@ -392,6 +401,7 @@ BaseCache::recvTimingReq(PacketPtr pkt)
     Tick request_time = clockEdge(lat);
     // Here we reset the timing of the packet.
     pkt->headerDelay = pkt->payloadDelay = 0;
+    pkt->isPending = false;
 
     if (satisfied) {
         // notify before anything else as later handleTimingReqHit might turn
@@ -413,32 +423,23 @@ BaseCache::recvTimingReq(PacketPtr pkt)
         // make sure that the miss is caused by an instruction
         // which hasn't been executed nor squashed yet
         DynInstParent* inst = r->getInst();
-        if (this->name() == "system.l2cache" && r->hasInstSeqNum() && \
-            inst && !inst->isExecuted() && \
-            !inst->isSquashed()){
-
-                runaheado3::DynInst *inst = r->getInst();
-                if (inst) {
-                    DPRINTF(RunaheadDebug, "Setting L2 miss flag in DynInst: %d, req ptr:%d\n",
-                     inst->seqNum, r);
-                    inst->setL2Miss();
-                    MSHR *mshr = r->getMshr();
-                    assert(mshr);
-                    DPRINTF(RunaheadDebug, "Set flags in MSHR ptr:%d: %s", mshr, mshr->print());
-                    mshr->markTargetsMissedInL2();
-                    for (auto origin_inst : pkt->originInstructions) {
-                        printf(" Setting L2 miss in origin inst: %#d\n",
-                             origin_inst->instAddr());
-                        origin_inst->setL2Miss();
-                    }
-                }
-
-                
+        if (this->name() == "system.l2cache" && inst && \
+                !inst->isExecuted() && !inst->isSquashed()) {
+            DPRINTF_NO_LOG(RunaheadDebug, "Inst misses in L2: %#lx\n",
+                inst->instAddr());
+            
+            // this request could have travelled through multiple mshrs
+            // mark all targets on these mshrs as missed in L2;
+            // only one shared req is created for multiple original 
+            // requests, we want to count all towards statistics
+            for (auto mshr : r->getMshrs())
+            {
+                mshr->markTargetsMissedInL2();
                 if (r->isGeneratedInRunahead()) {
-                    // DPRINTF(RunaheadDebug, "Generated in runahead %d\n", inst->seqNum);
-                    stats.l2MissesInRA++;
-                } 
-                stats.l2Misses++;
+                    stats.l2MissInRA += mshr->getNumTargets();
+                }
+                stats.l2Miss += mshr->getNumTargets();
+            }
         }
         
         ppMiss->notify(pkt);
@@ -1842,6 +1843,8 @@ BaseCache::sendMSHRQueuePacket(MSHR* mshr)
 
     // use request from 1st target
     PacketPtr tgt_pkt = mshr->getTarget()->pkt;
+    mshr->sharedPkt = tgt_pkt;
+    tgt_pkt->isPending = true;
 
     DPRINTF(Cache, "%s: MSHR %s\n", __func__, tgt_pkt->print());
 
@@ -1875,13 +1878,6 @@ BaseCache::sendMSHRQueuePacket(MSHR* mshr)
     PacketPtr pkt = createMissPacket(tgt_pkt, blk, mshr->needsWritable(),
                                      mshr->isWholeLineWrite());
 
-    for (auto &t : *(mshr->getTargets())) {
-        for (auto inst : t.pkt->originInstructions){
-            // runaheado3::DynInst* i = dynamic_cast<runaheado3::DynInst*>(inst);
-            printf("  Target inst %#d\n", inst->instAddr());
-            pkt->addOriginInst(inst);
-        }
-    }
 
     mshr->isForward = (pkt == nullptr);
 
@@ -2239,9 +2235,9 @@ BaseCache::CacheStats::CacheStats(BaseCache &c)
     ADD_STAT(dataContractions, statistics::units::Count::get(),
              "number of data contractions"),
     cmd(MemCmd::NUM_MEM_CMDS),
-    ADD_STAT(l2Misses, statistics::units::Count::get(),
+    ADD_STAT(l2Miss, statistics::units::Count::get(),
             "number of times a miss in L2 occurred in normal mode"),
-    ADD_STAT(l2MissesInRA, statistics::units::Count::get(),
+    ADD_STAT(l2MissInRA, statistics::units::Count::get(),
             "number of times a miss in L2 occurred in runahead mode")
 {
     for (int idx = 0; idx < MemCmd::NUM_MEM_CMDS; ++idx)
@@ -2460,8 +2456,8 @@ BaseCache::CacheStats::regStats()
 
     dataExpansions.flags(nozero | nonan);
     dataContractions.flags(nozero | nonan);
-    l2Misses.flags(nozero | nonan);
-    l2MissesInRA.flags(nozero | nonan);
+    l2Miss.flags(nozero | nonan);
+    l2MissInRA.flags(nozero | nonan);
 }
 
 void

@@ -50,6 +50,7 @@
 #include "debug/Activity.hh"
 #include "debug/O3PipeView.hh"
 #include "debug/RunaheadRename.hh"
+#include "debug/RunaheadDebug.hh"
 #include "params/RunaheadO3CPU.hh"
 
 namespace gem5
@@ -1024,7 +1025,9 @@ Rename::renameSrcRegs(const DynInstPtr &inst, ThreadID tid)
 
         renamed_reg = map->lookup(tc->flattenRegId(src_reg));
         // make sure the register is not invalid after previous runahead execution
-        renamed_reg->resetInvBit();
+        if (!cpu->isInRunaheadMode()) {
+            renamed_reg->resetInvBit();
+        }
 
         switch (src_reg.classValue()) {
           case IntRegClass:
@@ -1076,6 +1079,12 @@ Rename::renameSrcRegs(const DynInstPtr &inst, ThreadID tid)
 
         ++stats.lookups;
     }
+    // TODO
+    // // DPRINTF(RunaheadDebug, "Renamed reg:%d \n", renamed_reg, );
+    // if (inst->wasBranchPredicted() && inst->isInvalid()) {
+    //     DPRINTF(RunaheadDebug, "Branch predict based on inst with INV src, inst:%d\n",
+    //         inst->instAddr());
+    // }
 }
 
 void

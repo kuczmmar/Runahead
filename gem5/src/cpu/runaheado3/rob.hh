@@ -345,6 +345,7 @@ class ROB
 public:
   void markAllRunahead();
   void debugPrintROB();
+  void debugPrintRegisters();
   
 };
 

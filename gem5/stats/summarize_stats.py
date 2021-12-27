@@ -8,7 +8,7 @@ import pandas as pd
 def read_single_stat_file( file, config_name ):
     file1 = open(file, 'r')
     lines = file1.readlines()
-    stat_dict = {'configuration': config_name}
+    stat_dict = {'0_config': config_name}
     for line in lines:
         line = line.strip()
         if len(line) < 1:
@@ -33,24 +33,19 @@ def write_to_csv(file, data_dict):
         for key, value in data_dict.items():
             writer.writerow([key, value])
 
+prefixes = ['system.', 'cpu.', 'cpu.mmu.', 'mem_ctrl.dram.',
+        'l2cache.', 'fetch.', 'branchPred.'
+]
+
 def split_name(key):
-    if key.startswith('system.'):
-        key = key.split('system.')[1]
-    if key.startswith('cpu.mmu.'):
-        key = key.split('cpu.mmu.')[1]
-    if key.startswith('mem_ctrl.dram.'):
-        key = key.split('mem_ctrl.dram.')[1]
-    if key.startswith('l2cache.'):
-        key = key.split('l2cache.')[1]
-    if key.startswith('cpu.'):
-        key = key.split('cpu.')[1]
-    if key.startswith('fetch.'):
-        key = key.split('fetch.')[1]
+    for pref in prefixes:
+        if key.startswith(pref):
+            key = key.split(pref)[1]
     return key
 
 def filter_out_stats(original_dict):
     target_stats = read_file_line_by_line()
-    target_stats.append('configuration')
+    target_stats.append('0_config')
     
     filtered_dict = {split_name(k): v for (k, v) in original_dict.items() if k in target_stats}
     return filtered_dict

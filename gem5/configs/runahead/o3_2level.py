@@ -64,7 +64,9 @@ default_binary = os.path.join(thispath, '../../../',
 # Binary to execute
 SimpleOpts.add_option("--binary", nargs='?', default=default_binary, help="Test binary")
 SimpleOpts.add_option("--binary_args", help="Arguments to the test binary")
-SimpleOpts.add_option("--mode", default='baseline', choices=['baseline', 'runahead'])
+SimpleOpts.add_option("--mode", default='baseline', choices=['baseline', 'runahead'], 
+    help="Which implementstion of the o3 CPU should be run")
+SimpleOpts.add_option("--rob_size", help="size of re-order buffer", default=192)
 
 # Finalize the arguments and grab the args so we can pass it on to our objects
 args = SimpleOpts.parse_args()
@@ -90,7 +92,7 @@ else:
     print('----------------runahead----------------\n')
     system.cpu = RunaheadO3CPU()
 
-system.cpu.numROBEntries = ROB_size
+system.cpu.numROBEntries = args.rob_size
 
 # Create an L1 instruction and data cache
 system.cpu.icache = L1ICache(args)

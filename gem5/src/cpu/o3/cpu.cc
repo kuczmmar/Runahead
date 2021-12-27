@@ -56,6 +56,7 @@
 #include "debug/O3CPU.hh"
 #include "debug/Quiesce.hh"
 #include "debug/RunaheadCompare.hh"
+#include "debug/RunaheadEnter.hh"
 #include "enums/MemoryMode.hh"
 #include "sim/cur_tick.hh"
 #include "sim/full_system.hh"
@@ -120,8 +121,7 @@ CPU::CPU(const O3CPUParams &params)
       globalSeqNum(1),
       system(params.system),
       lastRunningCycle(curCycle()),
-      cpuStats(this),
-      numFutureInsts(params.numROBEntries)
+      cpuStats(this)
 {
     fatal_if(FullSystem && params.numThreads > 1,
             "SMT is not supported in O3 in full system mode currently.");
@@ -430,19 +430,32 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                "Sum of number of entries in the ROB when the CPU would enter runahead"),
       ADD_STAT(totalRobSizeAtExitRA, statistics::units::Count::get(),
                "Sum of number of entries in the ROB when the CPU would exit runahead"),
-      ADD_STAT(numEnteredRA, statistics::units::Count::get(),
+      ADD_STAT(enteredRA, statistics::units::Count::get(),
                "number of times the CPU would enter runahead"),
       ADD_STAT(avgRobSizeAtEnterRA, statistics::units::Ratio::get(),
                "Average number of entries in the ROB when the CPU would enter runahead",
-               totalRobSizeAtEnterRA / numEnteredRA),
+               totalRobSizeAtEnterRA / enteredRA),
       ADD_STAT(avgRobSizeAtExitRA, statistics::units::Ratio::get(),
                "Average number of entries in the ROB when the CPU would exit runahead",
-               totalRobSizeAtExitRA / numEnteredRA),
+               totalRobSizeAtExitRA / enteredRA),
       ADD_STAT(numPossiblePrefetchesInRA, statistics::units::Count::get(),
                "number of instructions that could possibly be prefetched in runahead "
                "looking at one rob_size instructions after exit from runahead"),
-      ADD_STAT(possibleMissesInL2, statistics::units::Count::get(),
-               "number of misses in L2 that could be potentially prefetched by runahead")
+      ADD_STAT(l2MissInRA, statistics::units::Count::get(),
+               "number of misses in L2 that occur during runahead in ROB"
+               "(runahead has no improvement over the baseline here)"),
+      ADD_STAT(fullRobInRA, statistics::units::Count::get(),
+                "how many times the ROB becomes full, when CPU would be in runahead"),
+      ADD_STAT(totalCyclesInRA, statistics::units::Cycle::get(),
+                "total number of cycles the CPU would spend in runahead"),
+      ADD_STAT(cyclesAvgInRA, statistics::units::Rate<
+                statistics::units::Cycle, statistics::units::Count>::get(),
+                "average number of cycles the CPU would spend in runahead"),
+      ADD_STAT(totalInsertedInRA, statistics::units::Count::get(),
+                "total number of instructions inserted into ROB when the CPU would be in runahead"),
+      ADD_STAT(insertedAvgInRA, statistics::units::Ratio::get(),
+                "average number of instructions inserted into ROB when the CPU would be in runahead",
+                totalInsertedInRA / enteredRA)
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -522,12 +535,18 @@ CPU::CPUStats::CPUStats(CPU *cpu)
 
     totalRobSizeAtEnterRA.prereq(totalRobSizeAtEnterRA);
     totalRobSizeAtExitRA.prereq(totalRobSizeAtExitRA);
-    numEnteredRA.prereq(numEnteredRA);
+    enteredRA.prereq(enteredRA);
     avgRobSizeAtEnterRA.precision(3);
     avgRobSizeAtExitRA.precision(3);
     numPossiblePrefetchesInRA.prereq(numPossiblePrefetchesInRA);
-    possibleMissesInL2.prereq(possibleMissesInL2);
+    l2MissInRA.prereq(l2MissInRA);
     
+    fullRobInRA.prereq(fullRobInRA);
+    totalCyclesInRA.prereq(totalCyclesInRA);
+    cyclesAvgInRA.precision(3);
+    cyclesAvgInRA = totalCyclesInRA / enteredRA;
+    totalInsertedInRA.prereq(totalInsertedInRA);
+    insertedAvgInRA.precision(3);
 }
 
 void
@@ -590,6 +609,10 @@ CPU::tick()
         updateThreadPriority();
 
     tryDrain();
+
+    if (wouldBeInRA) {
+        ++cpuStats.totalCyclesInRA;
+    }
 }
 
 void
@@ -1789,6 +1812,55 @@ CPU::htmSendAbortSignal(ThreadID tid, uint64_t htm_uid,
     if (!iew.ldstQueue.getDataPort().sendTimingReq(abort_pkt)) {
         panic("HTM abort signal was not sent to the memory subsystem.");
     }
+}
+
+void 
+CPU::wouldEnterRA(DynInstPtr inst)
+{
+    assert(!wouldBeInRA);
+    DPRINTF_NO_LOG(RunaheadEnter, "\nEnter runahead mode! addr: %#lx\n", inst->instAddr());
+    wouldBeInRA = true;
+    inst->setTriggeredRunahead();
+
+    // update stats
+    cpuStats.totalRobSizeAtEnterRA += rob.numInstsInROB;
+    cpuStats.enteredRA++;
+
+    numRobEntriesWhenEnter = rob.numInstsInROB;
+    fullRobInRA = false;
+
+    // mark all current instructions in ROB as runahead instructions
+    // this will make sure that RA is not trigerred by one of the instructions 
+    // which was already in ROB during the current RA execution
+    // all fetched instructions are also marked as RA
+    rob.markAllRunahead();
+}
+
+void
+CPU::wouldExitRA(DynInstPtr inst)
+{
+    assert(wouldBeInRA);
+
+    // DPRINTF(RunaheadEnter, "Would exit runahead mode!\n");
+    DPRINTF_NO_LOG(RunaheadEnter, "Exit runahead mode!\n\n"
+        // " - sn:%d,"
+        // " entries inserted in RA:%d\n\n", 
+        // inst->seqNum, rob.numInstsInROB - numRobEntriesWhenEnter
+        );
+    
+    wouldBeInRA = false;
+    instsAfterLastRA = 0;
+    inst->resetL2Miss();
+    cpuStats.totalRobSizeAtExitRA += numRobEntries();
+
+    if (rob.isFull()) {
+        ++cpuStats.fullRobInRA;
+        fullRobInRA = true;
+    }
+
+    // reset the runahead flag for all current instructions 
+    rob.markAllRunahead(false);
+
 }
 
 } // namespace o3

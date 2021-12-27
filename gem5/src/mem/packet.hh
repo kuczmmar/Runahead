@@ -72,10 +72,6 @@ typedef uint8_t* PacketDataPtr;
 typedef std::list<PacketPtr> PacketList;
 typedef uint64_t PacketId;
 
-namespace runaheado3
-{
-    class DynInst;
-}
 
 class MemCmd
 {
@@ -887,10 +883,6 @@ class Packet : public Printable
             size = req->getSize();
             flags.set(VALID_SIZE);
         }
-        if (req->getInst()) {
-            printf(" Adding origin inst to pkt for req %d\n", req);
-            addOriginInst(req->getInst());
-        }
     }
 
     /**
@@ -915,10 +907,6 @@ class Packet : public Printable
         }
         size = _blkSize;
         flags.set(VALID_SIZE);
-        if (req->getInst()) {
-            printf(" 1Adding origin inst to pkt for req %d\n", req);
-            addOriginInst(req->getInst());
-        }
     }
 
     /**
@@ -970,8 +958,6 @@ class Packet : public Printable
                 allocate();
             }
         }
-        printf(" Copying origin insts for req:%d\n", pkt->req);
-        originInstructions = pkt->originInstructions;
     }
 
     /**
@@ -1511,10 +1497,9 @@ class Packet : public Printable
      */
     HtmCacheFailure getHtmTransactionFailedInCacheRC() const;
 
-    // Runahead support
-    public:
-    std::vector<runaheado3::DynInst*> originInstructions;
-    void addOriginInst(runaheado3::DynInst* inst) {originInstructions.push_back(inst); }
+// Runahead support
+public:
+    bool isPending = false;
 };
 
 } // namespace gem5

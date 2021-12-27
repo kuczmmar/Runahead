@@ -334,21 +334,13 @@ DynInst::initiateMemAMO(Addr addr, unsigned size, Request::Flags flags,
             std::move(amo_op), std::vector<bool>(size, true));
 }
 
-void 
-DynInst::setRunaheadInst() { 
-    _runaheadInst = true;
-    for (auto r : _outstandingReqs) {
-        r->setGeneratedInRunahead(); 
-    }
-}
-
 
 void 
 DynInst::setTriggeredRunahead() 
 { 
     assert(numOutstandingRequests() > 0);
     _triggeredRunahead = true; 
-    this->setRunaheadInst();
+    setRunaheadInst();
 }
 
 bool
@@ -358,8 +350,11 @@ DynInst::isInvalid()
     
     // the instruction is invalid if any of the source registers is invalid
     for (int src=0; src<numSrcRegs(); ++src){
-        if (regs.renamedSrcIdx(src)->isInvalid())
+        if (regs.renamedSrcIdx(src)->isInvalid()) {
+            DPRINTF(RunaheadDebug, "Mark sn:%d INV due to src reg INV\n", seqNum);
+            _invalid = true;
             return true;
+        }
     }
 
     return false;
@@ -377,9 +372,29 @@ DynInst::invalidateDestRegs(bool setINV)
 void
 DynInst::invalidateSrcRegs(bool setINV)
 {
-    for (int s=0; s<numDestRegs(); ++s){
-        PhysRegIdPtr r = regs.renamedDestIdx(s);
+    for (int s=0; s<numSrcRegs(); ++s){
+        PhysRegIdPtr r = regs.renamedSrcIdx(s);
         setINV ? r->setInvBit() : r->resetInvBit();
+    }
+} 
+
+void
+DynInst::printDestRegs(std::ostream &os)
+{
+    ccprintf(os, "Dest:");
+    for (int d=0; d<numDestRegs(); ++d){
+        PhysRegIdPtr r = regs.renamedDestIdx(d);
+        ccprintf(os, " %u i:%d,", r->flatIndex(), r->isInvalid());
+    }
+}
+
+void
+DynInst::printSrcRegs(std::ostream &os)
+{
+    ccprintf(os, "Src:");
+    for (int s=0; s<numSrcRegs(); ++s){
+        PhysRegIdPtr r = regs.renamedSrcIdx(s);
+        ccprintf(os, " %u i:%d,", r->flatIndex(), r->isInvalid());
     }
 } 
 

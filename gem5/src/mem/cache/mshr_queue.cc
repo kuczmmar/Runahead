@@ -77,9 +77,8 @@ MSHRQueue::allocate(Addr blk_addr, unsigned blk_size, PacketPtr pkt,
     mshr->allocIter = allocatedList.insert(allocatedList.end(), mshr);
     mshr->readyIter = addToReadyList(mshr);
     if (pkt->req->getInst())
-        DPRINTF_NO_LOG(MSHR, "   New MSHR for inst sn:%lu\n", pkt->req->getInst()->seqNum);
-
-
+        DPRINTF_NO_LOG(MSHR, "   New MSHR for inst sn:%lu\n", 
+        pkt->req->getInst()->getSeqNum());
 
     allocated += 1;
     return mshr;
