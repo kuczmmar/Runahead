@@ -16,7 +16,7 @@ if $compile ; then
 fi
 
 # define benchmark variables
-BENCH_PATH='/home/marta/runahead/benchmarks/cgo2017/program/randacc/bin/x86/randacc-no'
+BENCH_PATH='../benchmarks/cgo2017/program/randacc/bin/x86/randacc-no'
 ARG=1000000
 RANDACC="--binary=${BENCH_PATH} --binary_args ${ARG}"
 # RANDACC='--binary=/home/marta/runahead/test'

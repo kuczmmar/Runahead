@@ -28,6 +28,6 @@ sed -i.bak '1000,$d' out.txt
 sudo swapoff -a; sudo swapon -a
 
 
-ssh -K mmk64@sofia.cl.cam.ac.uk
 kinit -f mmk64@DC.CL.CAM.AC.UK
 ssh -K mmk64@sofia.cl.cam.ac.uk
+cd /local/scratch/mmk64/ra
