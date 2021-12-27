@@ -30,4 +30,4 @@ sudo swapoff -a; sudo swapon -a
 
 kinit -f mmk64@DC.CL.CAM.AC.UK
 ssh -K mmk64@sofia.cl.cam.ac.uk
-cd /local/scratch/mmk64/ra
+cd /local/scratch/mmk64/Runahead

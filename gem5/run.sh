@@ -17,7 +17,7 @@ fi
 
 # define benchmark variables
 BENCH_PATH='../benchmarks/cgo2017/program/randacc/bin/x86/randacc-no'
-ARG=1000000
+ARG=1000
 RANDACC="--binary=${BENCH_PATH} --binary_args ${ARG}"
 # RANDACC='--binary=/home/marta/runahead/test'
 
@@ -56,7 +56,7 @@ rm $RA $BASE
 # run two level of cache setup on randacc benchmark
 $GEM $GEM_FLAGS $O3_TWO_LEVEL --rob_size=64 $RANDACC > $BASE 
 $GEM $RA64_GEM_FLAGS $O3_TWO_LEVEL --mode=runahead --rob_size=64 $RANDACC >> $RA
-$GEM $RA192_GEM_FLAGS $O3_TWO_LEVEL --mode=runahead --rob_size=192 $RANDACC >> $RA192
+# $GEM $RA192_GEM_FLAGS $O3_TWO_LEVEL --mode=runahead --rob_size=192 $RANDACC >> $RA192
 # --l1i_size='32kB' --l1d_size='64kB'
 
 python stats/summarize_stats.py m5out stats/simple.csv
