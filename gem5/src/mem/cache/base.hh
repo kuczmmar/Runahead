@@ -1138,7 +1138,7 @@ class BaseCache : public ClockedObject
 
         // Additional statistics for runahead
         statistics::Scalar l2Miss;
-        statistics::Scalar l2MissInRA;
+        statistics::Scalar l2MissRA;
     } stats;
 
     /** Registers probes. */

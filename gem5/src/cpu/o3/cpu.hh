@@ -710,13 +710,13 @@ class CPU : public BaseCPU
         statistics::Scalar enteredRA;
         statistics::Formula avgRobSizeAtEnterRA;
         statistics::Formula avgRobSizeAtExitRA;
-        statistics::Scalar numPossiblePrefetchesInRA;
-        statistics::Scalar l2MissInRA;
-        statistics::Scalar fullRobInRA;
-        statistics::Formula cyclesAvgInRA;
-        statistics::Scalar totalCyclesInRA;
-        statistics::Scalar totalInsertedInRA;
-        statistics::Formula insertedAvgInRA;
+        statistics::Scalar numPossiblePrefetchesRA;
+        statistics::Scalar l2MissRA;
+        statistics::Scalar fullRobRA;
+        statistics::Formula cyclesAvgRA;
+        statistics::Scalar totalCyclesRA;
+        statistics::Scalar totalInsertedRA;
+        statistics::Formula insertedAvgRA;
     } cpuStats;
 
   public:

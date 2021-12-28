@@ -436,7 +436,7 @@ BaseCache::recvTimingReq(PacketPtr pkt)
             {
                 mshr->markTargetsMissedInL2();
                 if (r->isGeneratedInRunahead()) {
-                    stats.l2MissInRA += mshr->getNumTargets();
+                    stats.l2MissRA += mshr->getNumTargets();
                 }
                 stats.l2Miss += mshr->getNumTargets();
             }
@@ -2237,7 +2237,7 @@ BaseCache::CacheStats::CacheStats(BaseCache &c)
     cmd(MemCmd::NUM_MEM_CMDS),
     ADD_STAT(l2Miss, statistics::units::Count::get(),
             "number of times a miss in L2 occurred in normal mode"),
-    ADD_STAT(l2MissInRA, statistics::units::Count::get(),
+    ADD_STAT(l2MissRA, statistics::units::Count::get(),
             "number of times a miss in L2 occurred in runahead mode")
 {
     for (int idx = 0; idx < MemCmd::NUM_MEM_CMDS; ++idx)
@@ -2457,7 +2457,7 @@ BaseCache::CacheStats::regStats()
     dataExpansions.flags(nozero | nonan);
     dataContractions.flags(nozero | nonan);
     l2Miss.flags(nozero | nonan);
-    l2MissInRA.flags(nozero | nonan);
+    l2MissRA.flags(nozero | nonan);
 }
 
 void

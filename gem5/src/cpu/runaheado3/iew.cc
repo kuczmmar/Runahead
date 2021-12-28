@@ -238,7 +238,7 @@ IEW::IEWStats::ExecutedInstStats::ExecutedInstStats(CPU *cpu)
     ADD_STAT(numRate, statistics::units::Rate<
                 statistics::units::Count, statistics::units::Cycle>::get(),
              "Inst execution rate", numInsts / cpu->baseStats.numCycles),
-    ADD_STAT(loadsInRA, statistics::units::Count::get(),
+    ADD_STAT(loadsRA, statistics::units::Count::get(),
              "Number of load instructions executed in runahead mode")
 {
     loadInsts
@@ -268,7 +268,7 @@ IEW::IEWStats::ExecutedInstStats::ExecutedInstStats(CPU *cpu)
     numRate
         .flags(statistics::total);
 
-    loadsInRA
+    loadsRA
         .init(cpu->numThreads)
         .flags(statistics::total);
 }
@@ -1609,7 +1609,7 @@ IEW::updateExeInstStats(const DynInstPtr& inst)
 
         if (inst->isLoad()) {
             if (cpu->isInRunaheadMode()){
-                iewStats.executedInstStats.loadsInRA[tid]++;
+                iewStats.executedInstStats.loadsRA[tid]++;
             } else {
                 iewStats.executedInstStats.loadInsts[tid]++;
             }

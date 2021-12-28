@@ -427,27 +427,27 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     // Runahead statictics
       ADD_STAT(robFull, statistics::units::Count::get(),
                "Number of times that the ROB becomes full"),
-      ADD_STAT(robFullInRA, statistics::units::Count::get(),
+      ADD_STAT(robFullRA, statistics::units::Count::get(),
                "Number of times that the ROB becomes full in runahead mode."),
       ADD_STAT(enteredRA, statistics::units::Count::get(),
                 "Number of times the CPU enters runahead"),
-      ADD_STAT(fetchedInRA, statistics::units::Count::get(),
+      ADD_STAT(fetchedRA, statistics::units::Count::get(),
                 "Number of instructions fetched in runahead mode."),
-      ADD_STAT(cyclesAvgInRA, statistics::units::Rate<
+      ADD_STAT(cyclesAvgRA, statistics::units::Rate<
                 statistics::units::Cycle, statistics::units::Count>::get(),
                 "average number of cycles the CPU spends in runahead"),
-      ADD_STAT(totalCyclesInRA, statistics::units::Cycle::get(),
+      ADD_STAT(totalCyclesRA, statistics::units::Cycle::get(),
                 "total number of cycles the CPU spends in runahead"),
-      ADD_STAT(cyclesRobEmptyInRA, statistics::units::Cycle::get(),
+      ADD_STAT(cyclesRobEmptyRA, statistics::units::Cycle::get(),
                 "total number of cycles when ROB would be empty in runahead"),
-      ADD_STAT(pctRobEmptyInRA, statistics::units::Ratio::get(),
+      ADD_STAT(pctRobEmptyRA, statistics::units::Ratio::get(),
                 "percentage of cycles spent in runahead, when ROB would be empty",
-                100 * cyclesRobEmptyInRA / totalCyclesInRA),
-      ADD_STAT(totalInsertedInRA, statistics::units::Count::get(),
+                100 * cyclesRobEmptyRA / totalCyclesRA),
+      ADD_STAT(totalInsertedRA, statistics::units::Count::get(),
                 "total number of instructions inserted into ROB in runahead"),
-      ADD_STAT(insertedAvgInRA, statistics::units::Ratio::get(),
+      ADD_STAT(insertedAvgRA, statistics::units::Ratio::get(),
                 "average number of instructions inserted into ROB in runahead",
-                totalInsertedInRA / enteredRA),
+                totalInsertedRA / enteredRA),
       ADD_STAT(maxAtRobHead, statistics::units::Count::get(),
                 "maximum number of cycles one instruction spends at the head "
                 "of ROB in runahead")
@@ -528,17 +528,17 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     
     // Runahead statistics
     robFull.prereq(robFull);
-    robFullInRA.prereq(robFullInRA);
+    robFullRA.prereq(robFullRA);
     enteredRA.prereq(enteredRA);
-    fetchedInRA.prereq(fetchedInRA);
+    fetchedRA.prereq(fetchedRA);
 
-    totalCyclesInRA.prereq(totalCyclesInRA);
-    cyclesAvgInRA.precision(3);
-    cyclesAvgInRA = totalCyclesInRA / enteredRA;
-    cyclesRobEmptyInRA.prereq(cyclesRobEmptyInRA);
-    pctRobEmptyInRA.precision(3);
-    totalInsertedInRA.prereq(totalInsertedInRA);
-    insertedAvgInRA.precision(3);
+    totalCyclesRA.prereq(totalCyclesRA);
+    cyclesAvgRA.precision(3);
+    cyclesAvgRA = totalCyclesRA / enteredRA;
+    cyclesRobEmptyRA.prereq(cyclesRobEmptyRA);
+    pctRobEmptyRA.precision(3);
+    totalInsertedRA.prereq(totalInsertedRA);
+    insertedAvgRA.precision(3);
     maxAtRobHead.prereq(maxAtRobHead);
 }
 
@@ -596,7 +596,7 @@ CPU::tick()
     if (rob.isFull()) {
         cpuStats.robFull++;
         if (isInRunaheadMode()) {
-            cpuStats.robFullInRA++;
+            cpuStats.robFullRA++;
         }
     }
 
@@ -606,8 +606,8 @@ CPU::tick()
     tryDrain();
 
     if (isInRunaheadMode()) {
-        ++cpuStats.totalCyclesInRA;
-        if (rob.isEmpty()) ++cpuStats.cyclesRobEmptyInRA;
+        ++cpuStats.totalCyclesRA;
+        if (rob.isEmpty()) ++cpuStats.cyclesRobEmptyRA;
     }
 }
 

@@ -438,24 +438,24 @@ CPU::CPUStats::CPUStats(CPU *cpu)
       ADD_STAT(avgRobSizeAtExitRA, statistics::units::Ratio::get(),
                "Average number of entries in the ROB when the CPU would exit runahead",
                totalRobSizeAtExitRA / enteredRA),
-      ADD_STAT(numPossiblePrefetchesInRA, statistics::units::Count::get(),
+      ADD_STAT(numPossiblePrefetchesRA, statistics::units::Count::get(),
                "number of instructions that could possibly be prefetched in runahead "
                "looking at one rob_size instructions after exit from runahead"),
-      ADD_STAT(l2MissInRA, statistics::units::Count::get(),
+      ADD_STAT(l2MissRA, statistics::units::Count::get(),
                "number of misses in L2 that occur during runahead in ROB"
                "(runahead has no improvement over the baseline here)"),
-      ADD_STAT(fullRobInRA, statistics::units::Count::get(),
+      ADD_STAT(fullRobRA, statistics::units::Count::get(),
                 "how many times the ROB becomes full, when CPU would be in runahead"),
-      ADD_STAT(totalCyclesInRA, statistics::units::Cycle::get(),
+      ADD_STAT(totalCyclesRA, statistics::units::Cycle::get(),
                 "total number of cycles the CPU would spend in runahead"),
-      ADD_STAT(cyclesAvgInRA, statistics::units::Rate<
+      ADD_STAT(cyclesAvgRA, statistics::units::Rate<
                 statistics::units::Cycle, statistics::units::Count>::get(),
                 "average number of cycles the CPU would spend in runahead"),
-      ADD_STAT(totalInsertedInRA, statistics::units::Count::get(),
+      ADD_STAT(totalInsertedRA, statistics::units::Count::get(),
                 "total number of instructions inserted into ROB when the CPU would be in runahead"),
-      ADD_STAT(insertedAvgInRA, statistics::units::Ratio::get(),
+      ADD_STAT(insertedAvgRA, statistics::units::Ratio::get(),
                 "average number of instructions inserted into ROB when the CPU would be in runahead",
-                totalInsertedInRA / enteredRA)
+                totalInsertedRA / enteredRA)
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -538,15 +538,15 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     enteredRA.prereq(enteredRA);
     avgRobSizeAtEnterRA.precision(3);
     avgRobSizeAtExitRA.precision(3);
-    numPossiblePrefetchesInRA.prereq(numPossiblePrefetchesInRA);
-    l2MissInRA.prereq(l2MissInRA);
+    numPossiblePrefetchesRA.prereq(numPossiblePrefetchesRA);
+    l2MissRA.prereq(l2MissRA);
     
-    fullRobInRA.prereq(fullRobInRA);
-    totalCyclesInRA.prereq(totalCyclesInRA);
-    cyclesAvgInRA.precision(3);
-    cyclesAvgInRA = totalCyclesInRA / enteredRA;
-    totalInsertedInRA.prereq(totalInsertedInRA);
-    insertedAvgInRA.precision(3);
+    fullRobRA.prereq(fullRobRA);
+    totalCyclesRA.prereq(totalCyclesRA);
+    cyclesAvgRA.precision(3);
+    cyclesAvgRA = totalCyclesRA / enteredRA;
+    totalInsertedRA.prereq(totalInsertedRA);
+    insertedAvgRA.precision(3);
 }
 
 void
@@ -611,7 +611,7 @@ CPU::tick()
     tryDrain();
 
     if (wouldBeInRA) {
-        ++cpuStats.totalCyclesInRA;
+        ++cpuStats.totalCyclesRA;
     }
 }
 
@@ -1854,7 +1854,7 @@ CPU::wouldExitRA(DynInstPtr inst)
     cpuStats.totalRobSizeAtExitRA += numRobEntries();
 
     if (rob.isFull()) {
-        ++cpuStats.fullRobInRA;
+        ++cpuStats.fullRobRA;
         fullRobInRA = true;
     }
 

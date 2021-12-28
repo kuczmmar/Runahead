@@ -1378,7 +1378,7 @@ Commit::getInsts()
 
             if (cpu->isInPreMode()) {
                 inst->setRunaheadInst();
-                ++cpu->cpuStats.totalInsertedInRA;
+                ++cpu->cpuStats.totalInsertedRA;
             }
 
             rob->insertInst(inst);

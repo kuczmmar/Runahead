@@ -1092,7 +1092,7 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
 
     // check if fetched in runahead mode
     if (cpu->isInPreMode()) {
-        cpu->cpuStats.fetchedInRA++;
+        cpu->cpuStats.fetchedRA++;
         instruction->setRunaheadInst();
     }
 

@@ -1,16 +1,15 @@
 simTicks
 system.l2cache.l2Miss
-system.l2cache.l2MissInRA
+system.l2cache.l2MissRA
 system.cpu.cpi
 system.cpu.enteredRA
 system.cpu.loadInsts 
-system.cpu.robFull
-system.cpu.robFullInRA
+system.cpu.robFullRA
 
-system.cpu.l2MissInRA
-system.cpu.cyclesAvgInRA
-system.cpu.insertedAvgInRA
-system.cpu.pctRobEmptyInRA
+system.cpu.l2MissRA
+system.cpu.cyclesAvgRA
+system.cpu.insertedAvgRA
+system.cpu.pctRobEmptyRA
 
 system.cpu.fetch.icacheStallCycles
 system.cpu.maxAtRobHead

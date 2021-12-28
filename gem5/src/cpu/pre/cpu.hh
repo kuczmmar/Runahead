@@ -706,19 +706,18 @@ class CPU : public BaseCPU
 
         // Additional statistics for runahead
         statistics::Scalar robFull;
-        statistics::Scalar robFullInRA;
+        statistics::Scalar robFullRA;
         statistics::Scalar enteredRA;
-        statistics::Scalar fetchedInRA;
-        statistics::Scalar totalCyclesInRA;
-        statistics::Formula cyclesAvgInRA;
-        statistics::Scalar cyclesRobEmptyInRA;
-        statistics::Formula pctRobEmptyInRA;
-        statistics::Scalar totalInsertedInRA;
-        statistics::Formula insertedAvgInRA;
+        statistics::Scalar fetchedRA;
+        statistics::Scalar totalCyclesRA;
+        statistics::Formula cyclesAvgRA;
+        statistics::Scalar cyclesRobEmptyRA;
+        statistics::Formula pctRobEmptyRA;
+        statistics::Scalar totalInsertedRA;
+        statistics::Formula insertedAvgRA;
         statistics::Scalar maxAtRobHead;
     } cpuStats;
 
-  public:
     // hardware transactional memory
     void htmSendAbortSignal(ThreadID tid, uint64_t htm_uid,
                             HtmFailureFaultCause cause);

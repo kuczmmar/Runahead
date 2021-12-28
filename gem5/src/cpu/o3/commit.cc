@@ -1368,7 +1368,7 @@ Commit::getInsts()
                     tid, inst->seqNum, inst->pcState());
 
             if (cpu->wouldBeInRA) {
-                ++cpu->cpuStats.totalInsertedInRA;
+                ++cpu->cpuStats.totalInsertedRA;
             }
             rob->insertInst(inst);
 
