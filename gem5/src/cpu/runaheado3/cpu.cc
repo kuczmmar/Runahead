@@ -429,15 +429,15 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                "Number of times that the ROB becomes full"),
       ADD_STAT(robFullRA, statistics::units::Count::get(),
                "Number of times that the ROB becomes full in runahead mode."),
-      ADD_STAT(enteredRA, statistics::units::Count::get(),
+      ADD_STAT(enterRA, statistics::units::Count::get(),
                 "Number of times the CPU enters runahead"),
       ADD_STAT(fetchedRA, statistics::units::Count::get(),
                 "Number of instructions fetched in runahead mode."),
+      ADD_STAT(totalCyclesRA, statistics::units::Cycle::get(),
+                "total number of cycles the CPU spends in runahead"),
       ADD_STAT(cyclesAvgRA, statistics::units::Rate<
                 statistics::units::Cycle, statistics::units::Count>::get(),
                 "average number of cycles the CPU spends in runahead"),
-      ADD_STAT(totalCyclesRA, statistics::units::Cycle::get(),
-                "total number of cycles the CPU spends in runahead"),
       ADD_STAT(cyclesRobEmptyRA, statistics::units::Cycle::get(),
                 "total number of cycles when ROB would be empty in runahead"),
       ADD_STAT(pctRobEmptyRA, statistics::units::Ratio::get(),
@@ -447,8 +447,8 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                 "total number of instructions inserted into ROB in runahead"),
       ADD_STAT(insertedAvgRA, statistics::units::Ratio::get(),
                 "average number of instructions inserted into ROB in runahead",
-                totalInsertedRA / enteredRA),
-      ADD_STAT(maxAtRobHead, statistics::units::Count::get(),
+                totalInsertedRA / enterRA),
+      ADD_STAT(maxAtRobHd, statistics::units::Count::get(),
                 "maximum number of cycles one instruction spends at the head "
                 "of ROB in runahead")
 {
@@ -529,17 +529,17 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     // Runahead statistics
     robFull.prereq(robFull);
     robFullRA.prereq(robFullRA);
-    enteredRA.prereq(enteredRA);
+    enterRA.prereq(enterRA);
     fetchedRA.prereq(fetchedRA);
 
     totalCyclesRA.prereq(totalCyclesRA);
     cyclesAvgRA.precision(3);
-    cyclesAvgRA = totalCyclesRA / enteredRA;
+    cyclesAvgRA = totalCyclesRA / enterRA;
     cyclesRobEmptyRA.prereq(cyclesRobEmptyRA);
     pctRobEmptyRA.precision(3);
     totalInsertedRA.prereq(totalInsertedRA);
     insertedAvgRA.precision(3);
-    maxAtRobHead.prereq(maxAtRobHead);
+    maxAtRobHd.prereq(maxAtRobHd);
 }
 
 void
@@ -1822,7 +1822,7 @@ CPU::enterRunaheadMode(DynInstPtr inst, ThreadID tid)
     _inRunahead = true;
     raTriggerInst = inst;
     ra_tid = tid;
-    cpuStats.enteredRA++;
+    cpuStats.enterRA++;
 
     inst->setTriggeredRunahead();
 

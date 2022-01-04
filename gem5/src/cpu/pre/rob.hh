@@ -345,7 +345,8 @@ class ROB
 public:
   void markAllPre();
   void debugPrintROB();
-  void debugPrintRegisters();
+  int robSize() { return numEntries; }
+  DynInstPtr getLastInst(ThreadID tid);
   
 };
 

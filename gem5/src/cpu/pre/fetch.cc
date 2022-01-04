@@ -836,6 +836,19 @@ Fetch::squash(const TheISA::PCState &newPC, const InstSeqNum seq_num,
     cpu->removeInstsNotInROB(tid);
 }
 
+
+void
+Fetch::squashAfterPRE(const TheISA::PCState &newPC, const InstSeqNum seq_num,
+        DynInstPtr squashInst, ThreadID tid)
+{
+    DPRINTF(Fetch, "[tid:%i] Squash after PRE.\n", tid);
+
+    doSquash(newPC, squashInst, tid);
+
+    // Tell the CPU to remove any instructions that are not in the ROB.
+    cpu->removeInstsNotInROB(tid);
+}
+
 void
 Fetch::tick()
 {

@@ -838,10 +838,6 @@ Commit::commit()
                     tid,
                     fromIEW->mispredictInst[tid]->instAddr(),
                     fromIEW->squashedSeqNum[tid]);
-            } else if (fromIEW->squashAfterPre[tid]) {
-                DPRINTF(Commit,
-                    "[tid:%i] Squashing due to runahead exit [sn:%llu]\n",
-                    tid, fromIEW->squashedSeqNum[tid]);
             } else {
                 DPRINTF(Commit,
                     "[tid:%i] Squashing due to order violation [sn:%llu]\n",
@@ -964,9 +960,13 @@ Commit::commitInsts()
     DPRINTF(PreDebug, "ROB at commit: ");
     rob->debugPrintROB();
 
-    bool first_iter = true;
-    unsigned num_committed = 0;
+    DPRINTF(PreDebug, "SST at commit: ");
+    for (auto inst : cpu->sst) {
+        DPRINTF_NO_LOG(PreDebug, "Pc: %#lu ", inst);
+    }
+    DPRINTF_NO_LOG(PreDebug, "\n");
 
+    unsigned num_committed = 0;
     DynInstPtr head_inst;
 
     // Commit as many instructions as possible until the commit bandwidth
@@ -1000,34 +1000,37 @@ Commit::commitInsts()
             break;
         }
 
-        if (cpu->isInPreMode() && first_iter) {
-            first_iter = false;
-            cpu->cpuStats.maxAtRobHead = std::max(
-                ++head_inst->cyclesAtHeadInRA,
-                int(cpu->cpuStats.maxAtRobHead.value()));
-            DPRINTF(PreDebug, "Max at rob head: %d\n", 
-                head_inst->cyclesAtHeadInRA);
+        // enter PRE if the head instruction is waiting on a L2 
+        // cache miss and the ROB is full
+        // if the CPU has just returned from runahead mode,
+        // the head instruction may still not be ready - 
+        // don't enter runahead again
+        // TODO: may be good to take into account in flight instructions?
+        if (    rob->isFull()
+            // rob->numInstsInROB >= rob->robSize() - commitWidth 
+                && !rob->isHeadReady(commit_thread) 
+                && head_inst->missedInL2() 
+                && !head_inst->isRunaheadInst()) {
 
-            if (head_inst->cyclesAtHeadInRA == 20) {
-                rob->debugPrintRegisters();
-            }
-        }
+            DPRINTF(PreCommit, "Full window stall - head missed in L2,"
+                " inst: %d\n", head_inst->seqNum);
+            cpu->enterPreMode(head_inst, commit_thread);
+            break;
+        }     
 
         ThreadID tid = head_inst->threadNumber;
 
         assert(tid == commit_thread);
 
-        DPRINTF(Commit,
-                "Trying to commit head instruction, [tid:%i] [sn:%llu]\n",
-                tid, head_inst->seqNum);
+        if (!rob->isHeadReady(commit_thread)) {
+            break;
+        }
 
         // If the head instruction is squashed, it is ready to retire
         // (be removed from the ROB) at any time.
         if (head_inst->isSquashed()) {
-
             DPRINTF(Commit, "Retiring squashed instruction from "
-                    "ROB.\n");
-
+                    "ROB. [sn:%llu]\n", head_inst->seqNum);
             rob->retireHead(commit_thread);
 
             ++stats.commitSquashedInsts;
@@ -1359,6 +1362,11 @@ Commit::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
 void
 Commit::getInsts()
 {
+    if (cpu->isInPreMode()) {
+        DPRINTF(PreDebug, "In PRE - skip inserting into ROB\n");
+        return;
+    }
+
     DPRINTF(Commit, "Getting instructions from Rename stage.\n");
 
     // Read any renamed instructions and place them into the ROB.
@@ -1375,11 +1383,6 @@ Commit::getInsts()
 
             DPRINTF(Commit, "[tid:%i] [sn:%llu] Inserting PC %s into ROB.\n",
                     tid, inst->seqNum, inst->pcState());
-
-            if (cpu->isInPreMode()) {
-                inst->setRunaheadInst();
-                ++cpu->cpuStats.totalInsertedRA;
-            }
 
             rob->insertInst(inst);
 

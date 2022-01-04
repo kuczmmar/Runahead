@@ -49,6 +49,7 @@
 #include "cpu/pre/fu_pool.hh"
 #include "cpu/pre/limits.hh"
 #include "debug/PreIQ.hh"
+#include "debug/PreDebug.hh"
 #include "enums/OpClass.hh"
 #include "params/PreO3CPU.hh"
 #include "sim/core.hh"
@@ -1177,6 +1178,27 @@ InstructionQueue::squash(ThreadID tid)
     memDepUnit[tid].squash(squashedSeqNum[tid], tid);
 }
 
+
+void
+InstructionQueue::squashAfterPRE(ThreadID tid, InstSeqNum squashSeqNum)
+{
+    DPRINTF(PreIQ, "[tid:%i] Starting to squash instructions in "
+            "the IQ after PRE, squash until sn:%llu.\n", 
+            tid, squashSeqNum);
+    DPRINTF(PreDebug, "[tid:%i] Starting to squash instructions in "
+            "the IQ after PRE, squash until sn:%llu.\n", 
+            tid, squashSeqNum);
+
+    // The sequence number of last instruction which was put in ROB
+    squashedSeqNum[tid] = squashSeqNum;
+
+    doSquash(tid);
+
+    // Also tell the memory dependence unit to squash.
+    memDepUnit[tid].squash(squashedSeqNum[tid], tid);
+}
+
+
 void
 InstructionQueue::doSquash(ThreadID tid)
 {
@@ -1214,6 +1236,9 @@ InstructionQueue::doSquash(ThreadID tid)
              !squashed_inst->memOpDone())) {
 
             DPRINTF(PreIQ, "[tid:%i] Instruction [sn:%llu] PC %s squashed.\n",
+                    tid, squashed_inst->seqNum, squashed_inst->pcState());
+
+            DPRINTF(PreDebug, "[tid:%i] Instruction [sn:%llu] PC %s squashed.\n",
                     tid, squashed_inst->seqNum, squashed_inst->pcState());
 
             bool is_acq_rel = squashed_inst->isFullMemBarrier() &&

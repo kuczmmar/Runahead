@@ -707,7 +707,7 @@ class CPU : public BaseCPU
         // Additional statistics for runahead
         statistics::Scalar robFull;
         statistics::Scalar robFullRA;
-        statistics::Scalar enteredRA;
+        statistics::Scalar enterRA;
         statistics::Scalar fetchedRA;
         statistics::Scalar totalCyclesRA;
         statistics::Formula cyclesAvgRA;
@@ -715,12 +715,53 @@ class CPU : public BaseCPU
         statistics::Formula pctRobEmptyRA;
         statistics::Scalar totalInsertedRA;
         statistics::Formula insertedAvgRA;
-        statistics::Scalar maxAtRobHead;
+        statistics::Scalar maxAtRobHd;
+
+        // Statistics used to evaluate PRE
+        statistics::Scalar freeIQWhenEnter;
+        statistics::Formula freeIQAvg;
+        statistics::Scalar freeSQWhenEnter;
+        statistics::Formula freeSQAvg;
+        statistics::Scalar freeLQWhenEnter;
+        statistics::Formula freeLQAvg;
+        statistics::Scalar freeRegsWhenEnter;
+        statistics::Formula freeRegsAvg;
+        statistics::Scalar totalExecutedPRE;
+        statistics::Formula executedPREAvg;
     } cpuStats;
 
     // hardware transactional memory
     void htmSendAbortSignal(ThreadID tid, uint64_t htm_uid,
                             HtmFailureFaultCause cause);
+
+  /** Pre support */ 
+  private:
+    bool _inPre = false;
+    DynInstPtr raTriggerInst;
+    ThreadID ra_tid;
+
+    struct PreCheckpoint
+    {
+      // the PC state of last instruction which was inserted
+      // into ROB, and the one which would be next inserted
+      InstSeqNum lastSeqNum[MaxThreads];
+      TheISA::PCState nextPc[MaxThreads];
+      // Pointers to a copy of the architectural register file
+      // this is a copy of the commitRenameMap
+      std::unique_ptr<UnifiedRenameMap> renameMaps[MaxThreads];
+    } raCheckpt;
+  
+  public:
+    void enterPreMode(DynInstPtr inst, ThreadID tid);
+    bool isInPreMode();
+    void exitPreMode();
+
+    // the stalling slice table
+    std::set<Addr> sst;
+
+    bool isInSST(Addr pc);
+    void addToSST(Addr pc)    { sst.insert(pc); }
+    
 };
 
 } // namespace pre

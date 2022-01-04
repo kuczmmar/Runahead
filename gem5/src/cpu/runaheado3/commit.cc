@@ -1012,9 +1012,9 @@ Commit::commitInsts()
 
         if (cpu->isInRunaheadMode() && first_iter) {
             first_iter = false;
-            cpu->cpuStats.maxAtRobHead = std::max(
+            cpu->cpuStats.maxAtRobHd = std::max(
                 ++head_inst->cyclesAtHeadInRA,
-                int(cpu->cpuStats.maxAtRobHead.value()));
+                int(cpu->cpuStats.maxAtRobHd.value()));
             DPRINTF(RunaheadDebug, "Max at rob head: %d\n", 
                 head_inst->cyclesAtHeadInRA);
 

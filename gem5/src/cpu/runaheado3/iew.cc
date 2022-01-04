@@ -485,6 +485,8 @@ IEW::squashDueToBranch(const DynInstPtr& inst, ThreadID tid)
 void
 IEW::squashDueToRunaheadExit(const DynInstPtr& inst, ThreadID tid)
 {
+    // TODO: this squash should probably be initialised from a different stage
+    // perhaps from commit? but this may intruduce delay at some stages??
     DPRINTF(RunaheadIEW, "[tid:%i] [sn:%llu] Squashing due to runahead mode exit, PC: %s \n", 
             tid, inst->seqNum, inst->pcState() );
 

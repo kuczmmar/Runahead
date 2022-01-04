@@ -1326,6 +1326,10 @@ class DynInst : public ExecContext, public RefCounted, public DynInstParent
         this->cpu->setCCReg(this->regs.renamedDestIdx(idx), val);
         setScalarResult(val);
     }
+
+// PRE support
+public:
+    std::vector<Addr> getInstProducerPCs();
 };
 
 } // namespace pre

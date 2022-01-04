@@ -49,6 +49,7 @@
 #include "debug/Activity.hh"
 #include "debug/Decode.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/PreDebug.hh"
 #include "params/PreO3CPU.hh"
 #include "sim/full_system.hh"
 
@@ -682,6 +683,17 @@ Decode::decodeInsts(ThreadID tid)
         // see if branches were predicted correctly.
         toRename->insts[toRenameIndex] = inst;
 
+        // check if this instruction is in the SST
+        // if hit then add the producers of this instruction as well
+        if (cpu->isInSST(inst->instAddr())) {
+            DPRINTF(PreDebug, "Hit in SST during decode\n");
+            for (auto instructionPc : inst->getInstProducerPCs()) {
+                DPRINTF(PreDebug, "Adding inst %#lu to SST (producer of %#lu)\n",
+                    instructionPc, inst->instAddr());
+                cpu->addToSST(instructionPc);
+            }
+        }
+        
         ++(toRename->size);
         ++toRenameIndex;
         ++stats.decodedInsts;

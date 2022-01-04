@@ -58,6 +58,7 @@ DynInst::DynInst(const StaticInstPtr &static_inst,
         TheISA::PCState pred_pc, InstSeqNum seq_num, CPU *_cpu)
     : staticInst(static_inst)
     , cpu(_cpu), pc(_pc)
+    , regs(staticInst->numSrcRegs(), staticInst->numDestRegs())
     , predPC(pred_pc)
     , macroop(_macroop)
     , DynInstParent(seq_num)
@@ -334,6 +335,26 @@ DynInst::initiateMemAMO(Addr addr, unsigned size, Request::Flags flags,
             dynamic_cast<DynInstPtr::PtrType>(this),
             /* atomic */ false, nullptr, size, addr, flags, nullptr,
             std::move(amo_op), std::vector<bool>(size, true));
+}
+
+
+std::vector<Addr> 
+DynInst::getInstProducerPCs()
+{
+    std::vector<Addr> producers;
+    // todo this inst hasn't been renamed yet
+    // cannot iterate thorough its registers
+    // need to iterate through the registers of the 
+    // instruction with the same PC which is already in SST
+
+    // for (int s=0; s<numSrcRegs(); ++s){
+    //     PhysRegIdPtr r = regs.renamedSrcIdx(s);
+    //     if (r == nullptr)
+    //         continue;
+    //     if (r->lastInstProducer)
+    //         producers.push_back(r->lastInstProducer);
+    // }
+    return producers;
 }
 
 } // namespace pre

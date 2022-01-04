@@ -707,7 +707,7 @@ class CPU : public BaseCPU
         // stats for comparison with runahead performance
         statistics::Scalar totalRobSizeAtEnterRA;
         statistics::Scalar totalRobSizeAtExitRA;
-        statistics::Scalar enteredRA;
+        statistics::Scalar enterRA;
         statistics::Formula avgRobSizeAtEnterRA;
         statistics::Formula avgRobSizeAtExitRA;
         statistics::Scalar numPossiblePrefetchesRA;

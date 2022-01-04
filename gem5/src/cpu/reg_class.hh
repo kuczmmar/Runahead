@@ -51,6 +51,11 @@
 namespace gem5
 {
 
+namespace pre
+{
+    class DynInst;
+}
+
 /** Enumerate the classes of registers. */
 enum RegClass
 {
@@ -310,6 +315,9 @@ class PhysRegId : private RegId
     void setInvBit() { invalid = true; }
     void resetInvBit() { invalid = false; }
     bool isInvalid() const { return invalid; }
+
+    // PRE support
+    Addr lastInstProducer;
 };
 
 using PhysRegIdPtr = PhysRegId*;

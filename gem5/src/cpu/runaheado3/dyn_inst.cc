@@ -58,6 +58,7 @@ DynInst::DynInst(const StaticInstPtr &static_inst,
         TheISA::PCState pred_pc, InstSeqNum seq_num, CPU *_cpu)
     : staticInst(static_inst)
     , cpu(_cpu), pc(_pc)
+    , regs(staticInst->numSrcRegs(), staticInst->numDestRegs())
     , predPC(pred_pc)
     , macroop(_macroop)
     , DynInstParent(seq_num)

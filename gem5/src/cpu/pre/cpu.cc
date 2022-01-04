@@ -423,20 +423,20 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                "number of misc regfile reads"),
       ADD_STAT(miscRegfileWrites, statistics::units::Count::get(),
                "number of misc regfile writes"),
-    // Pre statictics
+    // Runahead statictics
       ADD_STAT(robFull, statistics::units::Count::get(),
                "Number of times that the ROB becomes full"),
       ADD_STAT(robFullRA, statistics::units::Count::get(),
                "Number of times that the ROB becomes full in runahead mode."),
-      ADD_STAT(enteredRA, statistics::units::Count::get(),
+      ADD_STAT(enterRA, statistics::units::Count::get(),
                 "Number of times the CPU enters runahead"),
       ADD_STAT(fetchedRA, statistics::units::Count::get(),
                 "Number of instructions fetched in runahead mode."),
+      ADD_STAT(totalCyclesRA, statistics::units::Cycle::get(),
+                "total number of cycles the CPU spends in runahead"),
       ADD_STAT(cyclesAvgRA, statistics::units::Rate<
                 statistics::units::Cycle, statistics::units::Count>::get(),
                 "average number of cycles the CPU spends in runahead"),
-      ADD_STAT(totalCyclesRA, statistics::units::Cycle::get(),
-                "total number of cycles the CPU spends in runahead"),
       ADD_STAT(cyclesRobEmptyRA, statistics::units::Cycle::get(),
                 "total number of cycles when ROB would be empty in runahead"),
       ADD_STAT(pctRobEmptyRA, statistics::units::Ratio::get(),
@@ -446,10 +446,36 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                 "total number of instructions inserted into ROB in runahead"),
       ADD_STAT(insertedAvgRA, statistics::units::Ratio::get(),
                 "average number of instructions inserted into ROB in runahead",
-                totalInsertedRA / enteredRA),
-      ADD_STAT(maxAtRobHead, statistics::units::Count::get(),
+                totalInsertedRA / enterRA),
+      ADD_STAT(maxAtRobHd, statistics::units::Count::get(),
                 "maximum number of cycles one instruction spends at the head "
-                "of ROB in runahead")
+                "of ROB in runahead"),
+    // PRE statistics
+      ADD_STAT(freeIQWhenEnter, statistics::units::Count::get(),
+                "Total number of free entries in Instruction Queue when entering PRE"),
+      ADD_STAT(freeIQAvg, statistics::units::Ratio::get(),
+                "Average number of free entries in Instruction Queue when entering PRE",
+                freeIQWhenEnter / enterRA),
+      ADD_STAT(freeSQWhenEnter, statistics::units::Count::get(),
+                "Total number of free entries in Store Queue when entering PRE"),
+      ADD_STAT(freeSQAvg, statistics::units::Ratio::get(),
+                "Average number of free entries in Store Queue when entering PRE",
+                freeSQWhenEnter / enterRA),
+      ADD_STAT(freeLQWhenEnter, statistics::units::Count::get(),
+                "Total number of free entries in Load Queue when entering PRE"),
+      ADD_STAT(freeLQAvg, statistics::units::Ratio::get(),
+                "Average number of free entries in Load Queue when entering PRE",
+                freeLQWhenEnter / enterRA),
+      ADD_STAT(freeRegsWhenEnter, statistics::units::Count::get(),
+                "Total number of free integer and floating point registers when entering PRE"),
+      ADD_STAT(freeRegsAvg, statistics::units::Ratio::get(),
+                "Average number of free integer and floating point registers when entering PRE",
+                freeRegsWhenEnter / enterRA),
+      ADD_STAT(totalExecutedPRE, statistics::units::Count::get(),
+                "Number of instructions executed while the CPU is in PRE mode"),
+      ADD_STAT(executedPREAvg, statistics::units::Ratio::get(),
+                "Average number of instructions executed while the CPU is in PRE mode",
+                totalExecutedPRE / enterRA)
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -525,20 +551,33 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     miscRegfileWrites
         .prereq(miscRegfileWrites);
     
-    // Pre statistics
+    // RA statistics
     robFull.prereq(robFull);
     robFullRA.prereq(robFullRA);
-    enteredRA.prereq(enteredRA);
+    enterRA.prereq(enterRA);
     fetchedRA.prereq(fetchedRA);
 
     totalCyclesRA.prereq(totalCyclesRA);
     cyclesAvgRA.precision(3);
-    cyclesAvgRA = totalCyclesRA / enteredRA;
+    cyclesAvgRA = totalCyclesRA / enterRA;
     cyclesRobEmptyRA.prereq(cyclesRobEmptyRA);
     pctRobEmptyRA.precision(3);
     totalInsertedRA.prereq(totalInsertedRA);
     insertedAvgRA.precision(3);
-    maxAtRobHead.prereq(maxAtRobHead);
+    maxAtRobHd.prereq(maxAtRobHd);
+
+    // Pre statistics
+    freeIQWhenEnter.prereq(freeIQWhenEnter);
+    freeIQAvg.precision(3);
+    freeSQWhenEnter.prereq(freeSQWhenEnter);
+    freeSQAvg.precision(3);
+    freeLQWhenEnter.prereq(freeLQWhenEnter);
+    freeLQAvg.precision(3);
+    freeRegsWhenEnter.prereq(freeRegsWhenEnter);
+    freeRegsAvg.precision(3);
+
+    totalExecutedPRE.prereq(totalExecutedPRE);
+    executedPREAvg.precision(3);
 }
 
 void
@@ -1807,6 +1846,91 @@ CPU::htmSendAbortSignal(ThreadID tid, uint64_t htm_uid,
     if (!iew.ldstQueue.getDataPort().sendTimingReq(abort_pkt)) {
         panic("HTM abort signal was not sent to the memory subsystem.");
     }
+}
+
+
+void
+CPU::enterPreMode(DynInstPtr inst, ThreadID tid)
+{
+    assert(!_inPre);
+    DPRINTF_NO_LOG(PreDebug, "\nEnter runahead mode! addr: %#lx\n", 
+        inst->instAddr());
+
+    _inPre = true;
+    raTriggerInst = inst;
+    ra_tid = tid;
+
+    inst->setTriggeredRunahead();
+    // add instruction to the stalling slice table 
+    // for future 
+    addToSST(inst->instAddr());
+
+    // checkpoint the architectural state and PC for the thread
+    raCheckpt.renameMaps[ra_tid] = std::make_unique<UnifiedRenameMap>(commitRenameMap[ra_tid]);
+    raCheckpt.lastSeqNum[ra_tid] = rob.getLastInst(ra_tid)->seqNum;
+    raCheckpt.nextPc[ra_tid] = rob.getLastInst(ra_tid)->readPredTarg();
+
+    // update stats
+    cpuStats.enterRA++;
+    cpuStats.freeIQWhenEnter += iew.instQueue.numFreeEntries();
+    cpuStats.freeLQWhenEnter += iew.ldstQueue.numFreeLoadEntries();
+    cpuStats.freeSQWhenEnter += iew.ldstQueue.numFreeStoreEntries();
+
+    cpuStats.freeRegsWhenEnter += freeList.numFreeIntRegs();
+    cpuStats.freeRegsWhenEnter += freeList.numFreeFloatRegs();
+
+    rob.markAllPre();
+}
+
+bool
+CPU::isInPreMode() { return _inPre; }
+
+void 
+CPU::exitPreMode()
+{
+    assert(_inPre);
+    _inPre = false;
+    DPRINTF_NO_LOG(PreDebug, "Exit runahead mode!\n\n");
+
+    // PRE does not flush the ROB after exiting from RA mode
+
+    // Restore the architectural state: the rename map 
+    // and the PC of the instruction which caused runahead
+    // squash pipeline stages until the last instrucion which 
+    // was inserted into ROB
+    commitRenameMap[ra_tid] = *raCheckpt.renameMaps[ra_tid];
+
+    InstSeqNum seqNum = raCheckpt.lastSeqNum[ra_tid];
+
+    DPRINTF(PreDebug, "Squash pipeline up to sn:%llu\n",seqNum);
+    DPRINTF(PreDebug, "Squash fetch up to sn:%llu\n",seqNum);
+    fetch.squashAfterPRE(raCheckpt.nextPc[ra_tid],
+                        seqNum, nullptr, ra_tid);
+    DPRINTF(PreDebug, "Squash decode up to sn:%llu\n",seqNum);
+    decode.squash(ra_tid);
+    DPRINTF(PreDebug, "Squash rename up to sn:%llu\n",seqNum);
+    rename.squash(seqNum ,ra_tid);
+    DPRINTF(PreDebug, "Squash iew up to sn:%llu\n",seqNum);
+    iew.squashAfterPRE(ra_tid, seqNum);
+
+    // TimeBuffer<TimeStruct>::wire wire = timeBuffer.getWire(0);
+    // // Next PC, used to redirect fetch
+    // wire->commitInfo[ra_tid].pc         = raCheckpt.nextPc[ra_tid];
+    // // Seq Num of the last instruction in ROB, used to squash all younger instructions
+    // wire->commitInfo[ra_tid].doneSeqNum = seqNum];
+    // // tell all stages to squash
+    // wire->commitInfo[ra_tid].squash     = true;
+    // wire->commitInfo[ra_tid].mispredictInst = NULL;
+    // wire->commitInfo[ra_tid].squashInst = NULL;
+
+    // iew.squashAfterPRE(ra_tid, raCheckpt.lastSeqNum[ra_tid]);
+
+}
+
+bool 
+CPU::isInSST(Addr pc)
+{
+    return (sst.find(pc) != sst.end());
 }
 
 } // namespace pre

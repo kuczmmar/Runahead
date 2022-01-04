@@ -560,6 +560,10 @@ class InstructionQueue
         statistics::Scalar fpAluAccesses;
         statistics::Scalar vecAluAccesses;
     } iqIOStats;
+
+    // PRE support
+    // squash all instructions in the IQ up to squashSeqNum
+    void squashAfterPRE(ThreadID tid, InstSeqNum squashSeqNum);
 };
 
 } // namespace pre

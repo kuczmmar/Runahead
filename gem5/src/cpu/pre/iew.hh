@@ -235,16 +235,13 @@ class IEW
     {
         ldstQueue.setLastRetiredHtmUid(tid, htmUid);
     }
-    
-    /** 
-     * Sends proper information to the commit stage 
-     * for a squash due to exiting the runahead mode.
-     */
-    void squashDueToPreExit(const DynInstPtr &inst, ThreadID tid);
 
   private:
     /** Sends commit proper information for a squash due to a branch
      * mispredict.
+     * we don't want to squash rob while in PRE but ROB will
+       only squash younger instructions, so this shouldn't 
+       have any effect on the state of ROB in PRE
      */
     void squashDueToBranch(const DynInstPtr &inst, ThreadID tid);
 
@@ -499,6 +496,9 @@ class IEW
         /** Average number of woken instructions per writeback. */
         statistics::Formula wbFanout;
     } iewStats;
+public:
+  void emptySkidBuffer(ThreadID tid);
+  void squashAfterPRE(ThreadID tid, InstSeqNum seqNum);
 };
 
 } // namespace pre

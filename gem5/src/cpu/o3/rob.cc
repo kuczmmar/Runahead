@@ -570,7 +570,7 @@ ROB::debugPrintROB() {
                 DPRINTF_NO_LOG(RunaheadCompare, "%4ld[%4s] ", inst->seqNum, flags.c_str());
 
             }
-            DPRINTF_NO_LOG(RunaheadCompare, "\n%15s", "");//43
+            DPRINTF_NO_LOG(RunaheadCompare, "\n%43s", "");
             for (auto inst : thread_list) {
                 DPRINTF_NO_LOG(RunaheadCompare, "%#lx   ",  inst->instAddr());
             }

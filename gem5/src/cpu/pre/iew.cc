@@ -423,22 +423,10 @@ IEW::takeOverFrom()
 }
 
 void
-IEW::squash(ThreadID tid)
+IEW::emptySkidBuffer(ThreadID tid)
 {
-    DPRINTF(PreIEW, "[tid:%i] Squashing all instructions.\n", tid);
-
-    // Tell the IQ to start squashing.
-    instQueue.squash(tid);
-
-    // Tell the LDSTQ to start squashing.
-    ldstQueue.squash(fromCommit->commitInfo[tid].doneSeqNum, tid);
-    updatedQueues = true;
-
-    // Clear the skid buffer in case it has any data in it.
-    DPRINTF(PreIEW,
-            "Removing skidbuffer instructions until "
-            "[sn:%llu] [tid:%i]\n",
-            fromCommit->commitInfo[tid].doneSeqNum, tid);
+    DPRINTF(PreIEW, "Removing skidbuffer instructions "
+        "[tid:%i]\n", tid);
 
     while (!skidBuffer[tid].empty()) {
         if (skidBuffer[tid].front()->isLoad()) {
@@ -453,7 +441,42 @@ IEW::squash(ThreadID tid)
 
         skidBuffer[tid].pop();
     }
+}
 
+
+void
+IEW::squash(ThreadID tid)
+{
+    DPRINTF(PreIEW, "[tid:%i] Squashing all instructions until "
+    "[sn:%llu] \n", fromCommit->commitInfo[tid].doneSeqNum, tid);
+
+    // Tell the IQ to start squashing.
+    instQueue.squash(tid);
+
+    // Tell the LDSTQ to start squashing.
+    ldstQueue.squash(fromCommit->commitInfo[tid].doneSeqNum, tid);
+    updatedQueues = true;
+
+    // Clear the skid buffer in case it has any data in it.
+    emptySkidBuffer(tid);
+    emptyRenameInsts(tid);
+}
+
+void
+IEW::squashAfterPRE(ThreadID tid, InstSeqNum seqNum)
+{
+    DPRINTF(PreIEW, "[tid:%i] Squashing all instructions until "
+    "[sn:%llu] \n", fromCommit->commitInfo[tid].doneSeqNum, tid);
+
+    // Tell the IQ to start squashing.
+    instQueue.squashAfterPRE(tid, seqNum);
+
+    // Tell the LDSTQ to start squashing.
+    ldstQueue.squash(seqNum, tid);
+    updatedQueues = true;
+
+    // Clear the skid buffer in case it has any data in it.
+    emptySkidBuffer(tid);
     emptyRenameInsts(tid);
 }
 
@@ -480,23 +503,6 @@ IEW::squashDueToBranch(const DynInstPtr& inst, ThreadID tid)
         wroteToTimeBuffer = true;
     }
 
-}
-
-void
-IEW::squashDueToPreExit(const DynInstPtr& inst, ThreadID tid)
-{
-    DPRINTF(PreIEW, "[tid:%i] [sn:%llu] Squashing due to runahead mode exit, PC: %s \n", 
-            tid, inst->seqNum, inst->pcState() );
-
-    if (!toCommit->squash[tid] ||
-            inst->seqNum < toCommit->squashedSeqNum[tid]) {
-        toCommit->squash[tid] = true;
-        toCommit->squashAfterPre[tid] = true;
-        toCommit->squashedSeqNum[tid] = inst->seqNum;
-        toCommit->includeSquashInst[tid] = true;
-        toCommit->pc[tid] = inst->pcState();
-        wroteToTimeBuffer = true;
-    }
 }
 
 void
@@ -1173,7 +1179,7 @@ IEW::executeInsts()
 
     // Uncomment this if you want to see all available instructions.
     // @todo This doesn't actually work anymore, we should fix it.
-//    printAvailableInsts();
+    //    printAvailableInsts();
 
     // Execute/writeback any instructions that are available.
     int insts_to_execute = fromIssue->size;
@@ -1184,6 +1190,8 @@ IEW::executeInsts()
         DynInstPtr inst = instQueue.getInstToExecute();
 
         DPRINTF(PreIEW, "Execute: Executing instructions from IQ sn:%d.\n", inst->seqNum);
+        DPRINTF(PreDebug, "Execute: Executing instructions from IQ sn:%d.\n", inst->seqNum);
+        cpu->cpuStats.totalExecutedPRE++;
 
         DPRINTF(PreIEW, "Execute: Processing PC %s, [tid:%i] [sn:%llu].\n",
                 inst->pcState(), inst->threadNumber,inst->seqNum);
@@ -1429,6 +1437,9 @@ IEW::writebackInsts()
         // E.g. Strictly ordered loads have not actually executed when they
         // are first sent to commit.  Instead commit must tell the LSQ
         // when it's ready to execute the strictly ordered load.
+
+        // todo:
+        // what happens with strictly ordered loads in PRE????
         if (!inst->isSquashed() && inst->isExecuted() &&
                 inst->getFault() == NoFault) {
             int dependents = instQueue.wakeDependents(inst);

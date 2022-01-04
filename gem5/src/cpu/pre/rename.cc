@@ -540,6 +540,19 @@ Rename::renameInsts(ThreadID tid)
     }
 
     // Check if there's any space left.
+    if (free_rob_entries <=0 && cpu->isInPreMode()) {
+        DPRINTF(PreRename, "No free ROB entries, cpu in PRE mode"
+            " - don't block rename if IQ entries available\n");
+            min_free_entries = free_iq_entries;
+            source = IQ;
+    } 
+    
+    DPRINTF(PreRename,
+                "[tid:%i] "
+                "ROB has %i free entries.\n"
+                "IQ has %i free entries.\n",
+                tid, free_rob_entries, free_iq_entries);
+                
     if (min_free_entries <= 0) {
         DPRINTF(PreRename,
                 "[tid:%i] Blocking due to no free ROB/IQ/ entries.\n"
@@ -601,6 +614,7 @@ Rename::renameInsts(ThreadID tid)
         assert(!insts_to_rename.empty());
 
         DynInstPtr inst = insts_to_rename.front();
+        DPRINTF(PreDebug, "[tid:%i] Sending instructions to IEW sn:%llu\n", tid, inst->seqNum);
 
         //For all kind of instructions, check ROB and IQ first For load
         //instruction, check LQ size and take into account the inflight loads
@@ -1099,6 +1113,9 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
         rename_result = map->rename(flat_dest_regid);
         // make sure the register is not invalid after previous runahead execution
         rename_result.first->resetInvBit();
+        
+        // set this instruction to be the most recent producer of this register
+        rename_result.first->lastInstProducer = inst->instAddr();
 
         inst->regs.flattenedDestIdx(dest_idx, flat_dest_regid);
 
@@ -1217,9 +1234,11 @@ Rename::checkStall(ThreadID tid)
     if (stalls[tid].iew) {
         DPRINTF(PreRename,"[tid:%i] Stall from IEW stage detected.\n", tid);
         ret_val = true;
-    } else if (calcFreeROBEntries(tid) <= 0) {
+    } else if (calcFreeROBEntries(tid) <= 0 && !cpu->isInPreMode()) {
         DPRINTF(PreRename,"[tid:%i] Stall: ROB has 0 free entries.\n", tid);
         ret_val = true;
+    } else if (calcFreeROBEntries(tid) <= 0 && cpu->isInPreMode()) {
+        DPRINTF(PreRename,"[tid:%i] ROB has 0 free entries in PRE mode - don't block rename!\n", tid);
     } else if (calcFreeIQEntries(tid) <= 0) {
         DPRINTF(PreRename,"[tid:%i] Stall: IQ has 0 free entries.\n", tid);
         ret_val = true;

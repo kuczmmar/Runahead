@@ -587,6 +587,10 @@ class Fetch
         /** Number of instruction fetched per cycle. */
         statistics::Formula rate;
     } fetchStats;
+  
+public:
+  void squashAfterPRE(const TheISA::PCState &newPC, const InstSeqNum seq_num,
+        DynInstPtr squashInst, ThreadID tid);
 };
 
 } // namespace pre

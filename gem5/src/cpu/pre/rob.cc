@@ -561,7 +561,6 @@ void
 ROB::debugPrintROB() {
     bool all_empty = true;
     for (auto thread_list :  instList) {
-
         if (!thread_list.empty()) {
             all_empty = false;
             for (auto inst : thread_list) {
@@ -569,7 +568,6 @@ ROB::debugPrintROB() {
                 flags += (inst->isSquashed() ? "s" : "");
                 flags += (inst->isRunaheadInst() ? "r" : "");
                 flags += (inst->readyToCommit() ? "c" : "");
-                flags += (inst->isInvalid() ? "i" : "");
                 flags += (inst->missedInL2() ? "m" : "");
                 DPRINTF_NO_LOG(PreDebug, "%4ld[%4s] ", inst->seqNum, flags.c_str());
             }
@@ -580,35 +578,15 @@ ROB::debugPrintROB() {
             DPRINTF_NO_LOG(PreDebug, "\n");
         }
     }
-    if (all_empty) { 
-        DPRINTF_NO_LOG(PreDebug, "ROB is empty\n");
-    } else if (isFull()) {
-        std::string str = cpu->isInPreMode() ? " in RA" : "";
-        DPRINTF(PreDebug, "ROB is full%s\n", str.c_str());
-    }
+    if (all_empty)
+        DPRINTF_NO_LOG(PreDebug, "\n");
 }
 
-void 
-ROB::debugPrintRegisters() {
-    for (auto thread_list :  instList) {
-        for (auto inst : thread_list) {
-            DPRINTF_NO_LOG(PreDebug, "Inst PC %#lx [sn:%lu], is %s, st:%d, ld:%d"
-                "control:%d, call:%d, ret:%d, dire:%d, indir:%d, cond:%d, uncond:%d, ser:%d\n", 
-                inst->instAddr(), inst->seqNum,
-                inst->staticInst->disassemble(inst->instAddr()).c_str(), 
-                inst->isStore(), inst->isLoad(),
-                inst->isControl(), inst->isCall(), inst->isReturn(), 
-                inst->isDirectCtrl() ,
-                inst->isIndirectCtrl(), inst->isCondCtrl() , inst->isUncondCtrl()  , 
-                inst->isSerializing()
-            );
-            std::ostringstream str;
-            inst->printSrcRegs(str);
-            inst->printDestRegs(str);
-            DPRINTF_NO_LOG(PreDebug, "  %s\n", 
-                str.str().c_str());
-        }
-    }
+
+DynInstPtr 
+ROB::getLastInst(ThreadID tid)
+{
+    return instList[tid].back();
 }
 
 } // namespace pre

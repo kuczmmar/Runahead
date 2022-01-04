@@ -35,7 +35,7 @@ DynInstParent::setRunaheadInst() {
 
 
 void 
-DynInst::setTriggeredRunahead() 
+DynInstParent::setTriggeredRunahead() 
 { 
     assert(numOutstandingRequests() > 0);
     _triggeredRunahead = true; 

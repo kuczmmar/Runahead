@@ -99,7 +99,6 @@ struct IEWStruct
     bool branchMispredict[MaxThreads];
     bool branchTaken[MaxThreads];
     bool includeSquashInst[MaxThreads];
-    bool squashAfterPre[MaxThreads];
 };
 
 struct IssueStruct
@@ -125,7 +124,6 @@ struct TimeStruct
         bool predIncorrect;
         bool branchMispredict;
         bool branchTaken;
-        bool squashAfterPre;
     };
 
     DecodeComm decodeInfo[MaxThreads];
@@ -214,8 +212,6 @@ struct TimeStruct
         /// Hack for now to send back an strictly ordered access to
         /// the IEW stage.
         bool strictlyOrdered; // *I
-
-        bool squashAfterPre;
     };
 
     CommitComm commitInfo[MaxThreads];
