@@ -1190,7 +1190,7 @@ IEW::executeInsts()
         DynInstPtr inst = instQueue.getInstToExecute();
 
         DPRINTF(PreIEW, "Execute: Executing instructions from IQ sn:%d.\n", inst->seqNum);
-        DPRINTF(PreDebug, "Execute: Executing instructions from IQ sn:%d.\n", inst->seqNum);
+        // DPRINTF(PreDebug, "Execute: Executing instructions from IQ sn:%d.\n", inst->seqNum);
         cpu->cpuStats.totalExecutedPRE++;
 
         DPRINTF(PreIEW, "Execute: Processing PC %s, [tid:%i] [sn:%llu].\n",

@@ -18,19 +18,22 @@ fi
 
 # define benchmark variables
 BENCH_PATH='../benchmarks/cgo2017/program/randacc/bin/x86/randacc-no'
-ARG=100000
+ARG=1000000
 RANDACC="--binary=${BENCH_PATH} --binary_args ${ARG}"
 
 # define paths to configuration files
 O3_TWO_LEVEL='configs/runahead/o3_2level.py'
 GEM='build/X86/gem5.opt'
-ARG="${ARG/$1000}k"
+ARG="$((ARG/1000))k"
+
 
 BASE_DEBUG="--debug-flags=Rename,IEW,RunaheadCompare,RunaheadEnter"
+BASE_DEBUG=""
 RA_DEBUG=""
 # RA_DEBUG="CACHE,MSHR,RunaheadCommit"
 # RA_DEBUG="--debug-flags=RunaheadDebug"
-PRE_DEBUG="--debug-flags=PreDebug,PreIEW,RunaheadDebug"
+# PRE_DEBUG="--debug-flags=PreDebug,PreIEW,RunaheadDebug"
+PRE_DEBUG="--debug-flags=PreDebug"
 
 BASE64_GEM_FLAGS="--stats-file=base/rob64_${ARG} --dot-config=base_randacc"
 BASE192_GEM_FLAGS="--stats-file=base/rob192_${ARG} --dot-config=base_randacc ${BASE_DEBUG}"
@@ -53,18 +56,18 @@ echo_lines() {
 echo_lines
 
 # WARNING: Clears previous statistics outputs
-rm -r m5out/
-rm -r out/
+# rm -r m5out/
+# rm -r out/
 mkdir m5out & mkdir out
 mkdir m5out/base & mkdir m5out/run & mkdir m5out/pre
 
 # run two level of cache setup on randacc benchmark with varying rob size
 # $GEM $BASE64_GEM_FLAGS  $O3_TWO_LEVEL --mode=baseline --rob_size=64   $RANDACC > $BASE  &\
-$GEM $BASE192_GEM_FLAGS $O3_TWO_LEVEL --mode=baseline --rob_size=192  $RANDACC > $BASE192  &\
+time $GEM $BASE192_GEM_FLAGS $O3_TWO_LEVEL --mode=baseline --rob_size=192  $RANDACC > $BASE192 &\
 # $GEM $RA64_GEM_FLAGS    $O3_TWO_LEVEL --mode=runahead --rob_size=64   $RANDACC > $RA &\
-$GEM $RA192_GEM_FLAGS   $O3_TWO_LEVEL --mode=runahead --rob_size=192  $RANDACC > $RA192 &\
+time $GEM $RA192_GEM_FLAGS   $O3_TWO_LEVEL --mode=runahead --rob_size=192  $RANDACC > $RA192 &\
 # $GEM $PRE64_GEM_FLAGS   $O3_TWO_LEVEL --mode=pre      --rob_size=64   $RANDACC > $PRE64 &\
-# $GEM $PRE192_GEM_FLAGS  $O3_TWO_LEVEL --mode=pre      --rob_size=192  $RANDACC > $PRE192
+time $GEM $PRE192_GEM_FLAGS  $O3_TWO_LEVEL --mode=pre      --rob_size=192  $RANDACC > $PRE192
 
 # --l1i_size='32kB' --l1d_size='64kB'
 wait
@@ -73,5 +76,3 @@ python3 stats/summarize_stats.py m5out stats/simple.csv
 echo_lines
 cat stats/simple.csv  |sed 's/,/ ,/g' | column -t -s, 
 
-
-# Stall: ROB has 0 free entries\.\n.*\n..*Inserting .*into Rename skidbuffer

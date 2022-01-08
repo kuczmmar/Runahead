@@ -682,6 +682,9 @@ Decode::decodeInsts(ThreadID tid)
         // see if branches were predicted correctly.
         toRename->insts[toRenameIndex] = inst;
 
+        if (cpu->isInRunaheadMode())
+            ++(cpu->cpuStats.totalDecodedRA);
+
         ++(toRename->size);
         ++toRenameIndex;
         ++stats.decodedInsts;

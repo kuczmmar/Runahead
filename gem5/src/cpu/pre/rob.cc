@@ -583,8 +583,8 @@ ROB::debugPrintROB() {
 }
 
 
-DynInstPtr 
-ROB::getLastInst(ThreadID tid)
+const DynInstPtr&
+ROB::readLastInst(ThreadID tid)
 {
     return instList[tid].back();
 }

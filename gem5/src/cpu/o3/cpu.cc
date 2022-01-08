@@ -455,7 +455,12 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                 "total number of instructions inserted into ROB when the CPU would be in runahead"),
       ADD_STAT(insertedAvgRA, statistics::units::Ratio::get(),
                 "average number of instructions inserted into ROB when the CPU would be in runahead",
-                totalInsertedRA / enterRA)
+                totalInsertedRA / enterRA),
+      ADD_STAT(totalDecodedRA, statistics::units::Count::get(),
+                "total number of instructions decoded when the CPU would be in runahead"),
+      ADD_STAT(decodedAvgRA, statistics::units::Ratio::get(),
+                "average number of instructions decoded when the CPU would be in runahead",
+                totalDecodedRA / enterRA)
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -547,6 +552,8 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     cyclesAvgRA = totalCyclesRA / enterRA;
     totalInsertedRA.prereq(totalInsertedRA);
     insertedAvgRA.precision(3);
+    totalDecodedRA.prereq(totalDecodedRA);
+    decodedAvgRA.precision(3);
 }
 
 void

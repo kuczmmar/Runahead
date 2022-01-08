@@ -346,7 +346,12 @@ public:
   void markAllPre();
   void debugPrintROB();
   int robSize() { return numEntries; }
-  DynInstPtr getLastInst(ThreadID tid);
+
+  /** Returns a pointer to the last instruction of a 
+   *  specific thread within the ROB.
+   *  @return Pointer to the DynInst that is at the tail of the ROB.
+   */
+  const DynInstPtr &readLastInst(ThreadID tid);
   
 };
 

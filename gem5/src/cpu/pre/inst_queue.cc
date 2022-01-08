@@ -1185,9 +1185,6 @@ InstructionQueue::squashAfterPRE(ThreadID tid, InstSeqNum squashSeqNum)
     DPRINTF(PreIQ, "[tid:%i] Starting to squash instructions in "
             "the IQ after PRE, squash until sn:%llu.\n", 
             tid, squashSeqNum);
-    DPRINTF(PreDebug, "[tid:%i] Starting to squash instructions in "
-            "the IQ after PRE, squash until sn:%llu.\n", 
-            tid, squashSeqNum);
 
     // The sequence number of last instruction which was put in ROB
     squashedSeqNum[tid] = squashSeqNum;
@@ -1236,9 +1233,6 @@ InstructionQueue::doSquash(ThreadID tid)
              !squashed_inst->memOpDone())) {
 
             DPRINTF(PreIQ, "[tid:%i] Instruction [sn:%llu] PC %s squashed.\n",
-                    tid, squashed_inst->seqNum, squashed_inst->pcState());
-
-            DPRINTF(PreDebug, "[tid:%i] Instruction [sn:%llu] PC %s squashed.\n",
                     tid, squashed_inst->seqNum, squashed_inst->pcState());
 
             bool is_acq_rel = squashed_inst->isFullMemBarrier() &&

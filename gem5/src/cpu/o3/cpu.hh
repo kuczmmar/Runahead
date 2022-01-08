@@ -717,6 +717,8 @@ class CPU : public BaseCPU
         statistics::Scalar totalCyclesRA;
         statistics::Scalar totalInsertedRA;
         statistics::Formula insertedAvgRA;
+        statistics::Scalar totalDecodedRA;
+        statistics::Formula decodedAvgRA;
     } cpuStats;
 
   public:

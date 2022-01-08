@@ -450,7 +450,12 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                 totalInsertedRA / enterRA),
       ADD_STAT(maxAtRobHd, statistics::units::Count::get(),
                 "maximum number of cycles one instruction spends at the head "
-                "of ROB in runahead")
+                "of ROB in runahead"),
+      ADD_STAT(totalDecodedRA, statistics::units::Count::get(),
+                "total number of instructions decoded in runahead"),
+      ADD_STAT(decodedAvgRA, statistics::units::Ratio::get(),
+                "average number of instructions decoded in runahead",
+                totalDecodedRA / enterRA)
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -540,6 +545,8 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     totalInsertedRA.prereq(totalInsertedRA);
     insertedAvgRA.precision(3);
     maxAtRobHd.prereq(maxAtRobHd);
+    totalDecodedRA.prereq(totalDecodedRA);
+    decodedAvgRA.precision(3);
 }
 
 void

@@ -716,6 +716,8 @@ class CPU : public BaseCPU
         statistics::Scalar totalInsertedRA;
         statistics::Formula insertedAvgRA;
         statistics::Scalar maxAtRobHd;
+        statistics::Scalar totalDecodedRA;
+        statistics::Formula decodedAvgRA;
     } cpuStats;
 
     // hardware transactional memory
