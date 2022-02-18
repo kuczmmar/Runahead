@@ -434,6 +434,10 @@ IEW::squash(ThreadID tid)
             fromCommit->commitInfo[tid].doneSeqNum, tid);
 
     while (!skidBuffer[tid].empty()) {
+        // Note:
+        // A younger instruction will never be present in the skidBuffer in the baseline
+        // skidBuffer[tid].front()->seqNum is always > fromCommit->commitInfo[tid].doneSeqNum
+            
         if (skidBuffer[tid].front()->isLoad()) {
             toRename->iewInfo[tid].dispatchedToLQ++;
         }

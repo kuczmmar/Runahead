@@ -223,6 +223,8 @@ class IEW
     /** Returns if the LSQ has any stores to writeback. */
     bool hasStoresToWB(ThreadID tid) { return ldstQueue.hasStoresToWB(tid); }
 
+    void printStoresToWB(ThreadID tid) { ldstQueue.printStoresToWB(tid); }
+
     /** Check misprediction  */
     void checkMisprediction(const DynInstPtr &inst);
 
@@ -498,7 +500,7 @@ class IEW
     } iewStats;
 public:
   void emptySkidBuffer(ThreadID tid);
-  void squashAfterPRE(ThreadID tid, InstSeqNum seqNum);
+  void squashDueToRunaheadExit(const DynInstPtr &inst, ThreadID tid);
 };
 
 } // namespace pre

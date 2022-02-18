@@ -16,63 +16,91 @@ if $compile ; then
   python3 ./bin/scons build/X86/gem5.opt -j33
 fi
 
+date
+
 # define benchmark variables
 BENCH_PATH='../benchmarks/cgo2017/program/randacc/bin/x86/randacc-no'
-ARG=1000000
-RANDACC="--binary=${BENCH_PATH} --binary_args ${ARG}"
-
 # define paths to configuration files
 O3_TWO_LEVEL='configs/runahead/o3_2level.py'
 GEM='build/X86/gem5.opt'
-ARG="$((ARG/1000))k"
 
-
-BASE_DEBUG="--debug-flags=Rename,IEW,RunaheadCompare,RunaheadEnter"
 BASE_DEBUG=""
 RA_DEBUG=""
-# RA_DEBUG="CACHE,MSHR,RunaheadCommit"
-# RA_DEBUG="--debug-flags=RunaheadDebug"
-# PRE_DEBUG="--debug-flags=PreDebug,PreIEW,RunaheadDebug"
-PRE_DEBUG="--debug-flags=PreDebug"
+PRE_DEBUG=""
+# BASE_DEBUG="--debug-flags=Commit,RunaheadCompare,RunaheadEnter,O3CPUAll"
+# RA_DEBUG="--debug-flags=RunaheadDebug,CACHE,MSHR,RunaheadCommit"
+# PRE_DEBUG="--debug-flags=PreEnter"
+# PRE_DEBUG="--debug-flags=PreEnter,Fetch,PreDebug,Commit,PreIQ,PreIEW,PreRename,PreO3CPU"
+# PRE_DEBUG="--debug-flags=PreEnter,PreDebug,Commit,PreIEW,PreO3CPU"
+# PRE_DEBUG="--debug-flags=PreEnter,PreDebug,PreO3CPU"
 
-BASE64_GEM_FLAGS="--stats-file=base/rob64_${ARG} --dot-config=base_randacc"
-BASE192_GEM_FLAGS="--stats-file=base/rob192_${ARG} --dot-config=base_randacc ${BASE_DEBUG}"
-RA64_GEM_FLAGS="--stats-file=run/rob64_${ARG} --dot-config=run_randacc_64"
-RA192_GEM_FLAGS="--stats-file=run/rob192_${ARG} --dot-config=run_randacc_192 ${RA_DEBUG}"
-PRE64_GEM_FLAGS="--stats-file=pre/rob64_${ARG} --dot-config=pre_randacc_64"
-PRE192_GEM_FLAGS="--stats-file=pre/rob192_${ARG} --dot-config=pre_randacc_192 ${PRE_DEBUG}"
-
-BASE='out/base.txt'
-BASE192='out/base192.txt'
-RA='out/ra.txt'
-RA192='out/ra192.txt'
-PRE64='out/pre64.txt'
-PRE192='out/pre192.txt'
 
 echo_lines() {
   yes '' | sed 3q
 }
 
-echo_lines
+run_base() {
+  ARG=$1
+  L2=$2
+  ROB=$3
+  RANDACC="--binary=${BENCH_PATH} --binary_args ${ARG}"
+  ARG="$((ARG/1000))k"
+  BASE_GEM_FLAGS="--stats-file=base/rob${ROB}_${ARG}_${L2} --dot-config=base_randacc_${ROB} --dump-config=base/rob${ROB}_${ARG}_config --json-config=base/rob${ROB}_${ARG}_config.json ${BASE_DEBUG}"
+  OUT="out/base${ROB}_${ARG}_${L2}.txt"
+
+  time $GEM $BASE_GEM_FLAGS $O3_TWO_LEVEL --mode=baseline --rob_size=$ROB --l2_size=$L2  $RANDACC > $OUT
+}
+
+
+run_run() {
+  ARG=$1
+  L2=$2
+  ROB=$3
+  RANDACC="--binary=${BENCH_PATH} --binary_args ${ARG}"
+  ARG="$((ARG/1000))k"
+  RA_GEM_FLAGS="--stats-file=run/rob${ROB}_${ARG}_${L2} --dot-config=run_randacc_${ROB} --dump-config=run/rob${ROB}_${ARG}_${L2}_config ${RUN_DEBUG}"
+  OUT="out/run${ROB}_${ARG}_${L2}.txt"
+
+  time $GEM $RA_GEM_FLAGS  $O3_TWO_LEVEL --mode=runahead   --rob_size=$ROB  --l2_size=$L2  $RANDACC > $OUT
+}
+
+
+run_pre() {
+  ARG=$1
+  L2=$2
+  ROB=$3
+  RANDACC="--binary=${BENCH_PATH} --binary_args ${ARG}"
+  ARG="$((ARG/1000))k"
+  PRE_GEM_FLAGS="--stats-file=pre/rob${ROB}_${ARG}_${L2} --dot-config=pre_randacc_${ROB} --dump-config=pre/rob${ROB}_${ARG}_${L2}_config ${PRE_DEBUG}"
+  OUT="out/pre${ROB}_${ARG}_${L2}.txt"
+
+  time $GEM $PRE_GEM_FLAGS  $O3_TWO_LEVEL --mode=pre      --rob_size=$ROB --l2_size=$L2 $RANDACC > $OUT
+}
+
+run_all() {
+  run_base $1 $2 $3 &\
+  run_run  $1 $2 $3 &\
+  run_pre  $1 $2 $3 &\
+}
+
 
 # WARNING: Clears previous statistics outputs
 # rm -r m5out/
 # rm -r out/
-mkdir m5out & mkdir out
-mkdir m5out/base & mkdir m5out/run & mkdir m5out/pre
+mkdir -p out m5out/base m5out/run m5out/pre
+echo_lines
 
-# run two level of cache setup on randacc benchmark with varying rob size
-# $GEM $BASE64_GEM_FLAGS  $O3_TWO_LEVEL --mode=baseline --rob_size=64   $RANDACC > $BASE  &\
-time $GEM $BASE192_GEM_FLAGS $O3_TWO_LEVEL --mode=baseline --rob_size=192  $RANDACC > $BASE192 &\
-# $GEM $RA64_GEM_FLAGS    $O3_TWO_LEVEL --mode=runahead --rob_size=64   $RANDACC > $RA &\
-time $GEM $RA192_GEM_FLAGS   $O3_TWO_LEVEL --mode=runahead --rob_size=192  $RANDACC > $RA192 &\
-# $GEM $PRE64_GEM_FLAGS   $O3_TWO_LEVEL --mode=pre      --rob_size=64   $RANDACC > $PRE64 &\
-time $GEM $PRE192_GEM_FLAGS  $O3_TWO_LEVEL --mode=pre      --rob_size=192  $RANDACC > $PRE192
+# run_all  500000 '64kB' 192 &\
+run_all  500000 '128kB' 192 &\
+run_all  525000 '256kB' 192 &\
+run_all 1000000 '256kB' 192 
 
-# --l1i_size='32kB' --l1d_size='64kB'
+# --l1i_size='32kB' --l1d_size='64kB' --l2_size='128kB'
 wait
 python3 stats/summarize_stats.py m5out stats/simple.csv
 
 echo_lines
 cat stats/simple.csv  |sed 's/,/ ,/g' | column -t -s, 
 
+
+# grep -hnr -B 2 -A 2 '6072588\|6072575\|runahead' out/pre192_525k.txt > out/grepped.txt

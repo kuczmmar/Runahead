@@ -243,18 +243,7 @@ ROB::retireHead(ThreadID tid)
     DynInstPtr head_inst = std::move(*head_it);
     instList[tid].erase(head_it);
 
-    
-    if (!head_inst->isRunaheadInst()) {
-        DPRINTF(PreROB, "[tid:%i] Retiring head instruction, "
-            "instruction PC %s, [sn:%llu]\n", tid, head_inst->pcState(),
-            head_inst->seqNum);
-        assert(head_inst->readyToCommit());
-    }
-    else {
-        DPRINTF(PreROB, "[tid:%i] Retiring head instruction in runahead, "
-            "instruction PC %s, [sn:%llu]\n", tid, head_inst->pcState(),
-            head_inst->seqNum);
-    }
+    assert(head_inst->readyToCommit());
 
     --numInstsInROB;
     --threadEntries[tid];
@@ -558,7 +547,7 @@ ROB::markAllPre() {
 }
 
 void 
-ROB::debugPrintROB() {
+ROB::debugPrintROB(bool withAddr) {
     bool all_empty = true;
     for (auto thread_list :  instList) {
         if (!thread_list.empty()) {
@@ -571,9 +560,11 @@ ROB::debugPrintROB() {
                 flags += (inst->missedInL2() ? "m" : "");
                 DPRINTF_NO_LOG(PreDebug, "%4ld[%4s] ", inst->seqNum, flags.c_str());
             }
-            DPRINTF_NO_LOG(PreDebug, "\n%43s", "");//43
-            for (auto inst : thread_list) {
-                DPRINTF_NO_LOG(PreDebug, "%#lx   ",  inst->instAddr());
+            if (withAddr) {
+                DPRINTF_NO_LOG(PreDebug, "\n%43s", "");//43
+                for (auto inst : thread_list) {
+                    DPRINTF_NO_LOG(PreDebug, "%#lx   ",  inst->instAddr());
+                }
             }
             DPRINTF_NO_LOG(PreDebug, "\n");
         }

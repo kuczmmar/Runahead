@@ -851,7 +851,12 @@ class DynInst : public ExecContext, public RefCounted, public DynInstParent
     void clearIssued() { status.reset(Issued); }
 
     /** Sets this instruction as executed. */
-    void setExecuted() { status.set(Executed); }
+    void setExecuted() { 
+        status.set(Executed);
+        // PRDQ todo
+        // if (cpu->isInPreMode())
+        //     cpu->markInstExecuted(this);
+    }
 
     /** Returns whether or not this instruction has executed. */
     bool isExecuted() const { return status[Executed]; }
@@ -1330,6 +1335,8 @@ class DynInst : public ExecContext, public RefCounted, public DynInstParent
 // PRE support
 public:
     std::vector<Addr> getInstProducerPCs();
+    void debugPrintStatus();
+    void printSrcRegs();
 };
 
 } // namespace pre

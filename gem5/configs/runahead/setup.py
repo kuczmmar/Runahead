@@ -14,7 +14,7 @@ class L1():
   ra_size = '16kB'
 
 class L2():
-    size = '64kB' # 256
+    size = '256kB' # 256
     assoc = 8
     tag_latency = 20
     data_latency = 20

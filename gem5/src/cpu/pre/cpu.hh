@@ -716,6 +716,8 @@ class CPU : public BaseCPU
         statistics::Scalar totalInsertedRA;
         statistics::Formula insertedAvgRA;
         statistics::Scalar maxAtRobHd;
+        statistics::Scalar totalDecodedRA;
+        statistics::Formula decodedAvgRA;
 
         // Statistics used to evaluate PRE
         statistics::Scalar freeIQWhenEnter;
@@ -737,21 +739,13 @@ class CPU : public BaseCPU
   /** Pre support */ 
   private:
     bool _inPre = false;
-    DynInstPtr raTriggerInst;
     ThreadID ra_tid;
 
-    struct PreCheckpoint
-    {
-      // the PC state of last instruction which was inserted
-      // into ROB, and the one which would be next inserted
-      InstSeqNum lastSeqNum[MaxThreads];
-      TheISA::PCState nextPc[MaxThreads];
-      // Pointers to a copy of the architectural register file
-      // this is a copy of the commitRenameMap
-      std::unique_ptr<UnifiedRenameMap> renameMaps[MaxThreads];
-    } raCheckpt;
+    // the last instruction which was inserted into ROB
+    DynInstPtr lastInstBeforePRE[MaxThreads];
   
   public:
+    DynInstPtr raTriggerInst;
     void enterPreMode(DynInstPtr inst, ThreadID tid);
     bool isInPreMode();
     void exitPreMode();
@@ -761,6 +755,14 @@ class CPU : public BaseCPU
 
     bool isInSST(Addr pc);
     void addToSST(Addr pc)    { sst.insert(pc); }
+    DynInstPtr lastFetched;
+
+    // Initiate the number of cycles after last PRE to something nonzero
+    int cycleAfterPre = 10;
+    InstSeqNum lastNonRaInst;
+
+    // Marks this instruction as executed within PRDQ in Rename
+    void markInstExecuted(const DynInstPtr &inst);
     
 };
 

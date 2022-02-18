@@ -47,14 +47,10 @@
 #include "arch/vecregs.hh"
 #include "base/types.hh"
 #include "config/the_isa.hh"
+#include "cpu/inst_seq.hh"
 
 namespace gem5
 {
-
-namespace pre
-{
-    class DynInst;
-}
 
 /** Enumerate the classes of registers. */
 enum RegClass
@@ -317,7 +313,8 @@ class PhysRegId : private RegId
     bool isInvalid() const { return invalid; }
 
     // PRE support
-    Addr lastInstProducer;
+    Addr lastInstProducerAddr;
+    InstSeqNum lastInstProducerSeqNum;
 };
 
 using PhysRegIdPtr = PhysRegId*;

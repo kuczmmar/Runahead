@@ -588,9 +588,6 @@ class Fetch
         statistics::Formula rate;
     } fetchStats;
   
-public:
-  void squashAfterPRE(const TheISA::PCState &newPC, const InstSeqNum seq_num,
-        DynInstPtr squashInst, ThreadID tid);
 };
 
 } // namespace pre

@@ -344,7 +344,7 @@ class ROB
 // Pre support
 public:
   void markAllPre();
-  void debugPrintROB();
+  void debugPrintROB(bool withAddr = true);
   int robSize() { return numEntries; }
 
   /** Returns a pointer to the last instruction of a 

@@ -56,6 +56,7 @@
 #include "debug/PreO3CPU.hh"
 #include "debug/Quiesce.hh"
 #include "debug/PreDebug.hh"
+#include "debug/PreEnter.hh"
 #include "enums/MemoryMode.hh"
 #include "sim/cur_tick.hh"
 #include "sim/full_system.hh"
@@ -475,7 +476,12 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                 "Number of instructions executed while the CPU is in PRE mode"),
       ADD_STAT(executedPREAvg, statistics::units::Ratio::get(),
                 "Average number of instructions executed while the CPU is in PRE mode",
-                totalExecutedPRE / enterRA)
+                totalExecutedPRE / enterRA),
+      ADD_STAT(totalDecodedRA, statistics::units::Count::get(),
+                "total number of instructions decoded in runahead"),
+      ADD_STAT(decodedAvgRA, statistics::units::Ratio::get(),
+                "average number of instructions decoded in runahead",
+                totalDecodedRA / enterRA)
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -565,6 +571,8 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     totalInsertedRA.prereq(totalInsertedRA);
     insertedAvgRA.precision(3);
     maxAtRobHd.prereq(maxAtRobHd);
+    totalDecodedRA.prereq(totalDecodedRA);
+    decodedAvgRA.precision(3);
 
     // Pre statistics
     freeIQWhenEnter.prereq(freeIQWhenEnter);
@@ -583,14 +591,21 @@ CPU::CPUStats::CPUStats(CPU *cpu)
 void
 CPU::tick()
 {
-    DPRINTF(PreO3CPU, "\n\nPreO3CPU: Ticking main, PreO3CPU.\n");
+    DPRINTF(PreO3CPU, "\n\nPreO3CPU: Ticking main, PreO3CPU. In PRE: %d\n", 
+        isInPreMode());
+
+    if (curTick() % 1000000000 == 0) {
+        std::cout << "Current sim tick: " << curTick()<< "\n";
+    }
     assert(!switchedOut());
     assert(drainState() != DrainState::Drained);
 
     ++baseStats.numCycles;
     updateCycleCounters(BaseCPU::CPU_STATE_ON);
 
-//    activity = false;
+    if (!isInPreMode()) {
+        ++cycleAfterPre;
+    }
 
     //Tick each of the stages
     fetch.tick();
@@ -1849,26 +1864,35 @@ CPU::htmSendAbortSignal(ThreadID tid, uint64_t htm_uid,
 }
 
 
+bool
+CPU::isInPreMode() { return _inPre; }
+
+
 void
 CPU::enterPreMode(DynInstPtr inst, ThreadID tid)
 {
-    assert(!_inPre);
-    DPRINTF_NO_LOG(PreDebug, "\nEnter runahead mode! addr: %#lx\n", 
-        inst->instAddr());
+    if (_inPre) return;
+
+    DPRINTF_NO_LOG(PreEnter, "\nEnter runahead mode!\n");
+    DPRINTF_NO_LOG(PreEnter, "   ROB head sn: %lu, addr: %#lx"
+        "   tail: %lu, addr: %#lx\n", 
+        rob.readHeadInst(tid)->seqNum, rob.readHeadInst(tid)->instAddr(), 
+        rob.readLastInst(tid)->seqNum,  rob.readLastInst(tid)->instAddr());
+    DPRINTF_NO_LOG(PreEnter, "   last fetched: %lu, addr: %#lx, next addr: %#lx\n", 
+        lastFetched->seqNum, lastFetched->instAddr(), lastFetched->readPredTarg());
 
     _inPre = true;
     raTriggerInst = inst;
     ra_tid = tid;
-
     inst->setTriggeredRunahead();
-    // add instruction to the stalling slice table 
-    // for future 
-    addToSST(inst->instAddr());
 
-    // checkpoint the architectural state and PC for the thread
-    raCheckpt.renameMaps[ra_tid] = std::make_unique<UnifiedRenameMap>(commitRenameMap[ra_tid]);
-    raCheckpt.lastSeqNum[ra_tid] = rob.getLastInst(ra_tid)->seqNum;
-    raCheckpt.nextPc[ra_tid] = rob.getLastInst(ra_tid)->readPredTarg();
+    // add instruction to the stalling slice table 
+    // addToSST(inst->instAddr());
+
+    // checkpoint the last instruction in ROB
+    // TODO: may be useful to compare both squashing until the end of rob and squashing all instructions
+    // lastInstBeforePRE[ra_tid] = inst;
+    lastInstBeforePRE[ra_tid] = rob.readLastInst(ra_tid);
 
     // update stats
     cpuStats.enterRA++;
@@ -1882,15 +1906,14 @@ CPU::enterPreMode(DynInstPtr inst, ThreadID tid)
     rob.markAllPre();
 }
 
-bool
-CPU::isInPreMode() { return _inPre; }
 
 void 
 CPU::exitPreMode()
 {
     assert(_inPre);
     _inPre = false;
-    DPRINTF_NO_LOG(PreDebug, "Exit runahead mode!\n\n");
+    DPRINTF(PreEnter, "Exit runahead mode!\n");
+    lastNonRaInst = rob.readLastInst(ra_tid)->seqNum;
 
     // PRE does not flush the ROB after exiting from RA mode
 
@@ -1898,39 +1921,30 @@ CPU::exitPreMode()
     // and the PC of the instruction which caused runahead
     // squash pipeline stages until the last instrucion which 
     // was inserted into ROB
-    commitRenameMap[ra_tid] = *raCheckpt.renameMaps[ra_tid];
 
-    InstSeqNum seqNum = raCheckpt.lastSeqNum[ra_tid];
+    InstSeqNum seqNum = lastInstBeforePRE[ra_tid]->seqNum;
+    DPRINTF_NO_LOG(PreEnter, "   ROB head sn: %lu, addr: %#lx"
+        "   tail: %lu, addr: %#lx\n", 
+        rob.readHeadInst(ra_tid)->seqNum, rob.readHeadInst(ra_tid)->instAddr(), 
+        rob.readLastInst(ra_tid)->seqNum,  rob.readLastInst(ra_tid)->instAddr());
+    DPRINTF_NO_LOG(PreEnter, "   last fetched sn was: %lu, addr: %#lx, squash till %lu\n\n", 
+        lastFetched->seqNum, lastFetched->instAddr(), seqNum);
+    DPRINTF_NO_LOG(PreEnter, "\n");
 
-    DPRINTF(PreDebug, "Squash pipeline up to sn:%llu\n",seqNum);
-    DPRINTF(PreDebug, "Squash fetch up to sn:%llu\n",seqNum);
-    fetch.squashAfterPRE(raCheckpt.nextPc[ra_tid],
-                        seqNum, nullptr, ra_tid);
-    DPRINTF(PreDebug, "Squash decode up to sn:%llu\n",seqNum);
-    decode.squash(ra_tid);
-    DPRINTF(PreDebug, "Squash rename up to sn:%llu\n",seqNum);
-    rename.squash(seqNum ,ra_tid);
-    DPRINTF(PreDebug, "Squash iew up to sn:%llu\n",seqNum);
-    iew.squashAfterPRE(ra_tid, seqNum);
-
-    // TimeBuffer<TimeStruct>::wire wire = timeBuffer.getWire(0);
-    // // Next PC, used to redirect fetch
-    // wire->commitInfo[ra_tid].pc         = raCheckpt.nextPc[ra_tid];
-    // // Seq Num of the last instruction in ROB, used to squash all younger instructions
-    // wire->commitInfo[ra_tid].doneSeqNum = seqNum];
-    // // tell all stages to squash
-    // wire->commitInfo[ra_tid].squash     = true;
-    // wire->commitInfo[ra_tid].mispredictInst = NULL;
-    // wire->commitInfo[ra_tid].squashInst = NULL;
-
-    // iew.squashAfterPRE(ra_tid, raCheckpt.lastSeqNum[ra_tid]);
-
+    iew.squashDueToRunaheadExit(lastInstBeforePRE[ra_tid], ra_tid);
+    cycleAfterPre = 0;
 }
 
 bool 
 CPU::isInSST(Addr pc)
 {
     return (sst.find(pc) != sst.end());
+}
+
+void 
+CPU::markInstExecuted(const DynInstPtr &inst)
+{
+    rename.prdqMarkInstExecuted(inst);
 }
 
 } // namespace pre

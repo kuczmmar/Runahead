@@ -685,13 +685,21 @@ Decode::decodeInsts(ThreadID tid)
 
         // check if this instruction is in the SST
         // if hit then add the producers of this instruction as well
-        if (cpu->isInSST(inst->instAddr())) {
-            DPRINTF(PreDebug, "Hit in SST during decode\n");
-            for (auto instructionPc : inst->getInstProducerPCs()) {
-                DPRINTF(PreDebug, "Adding inst %#lu to SST (producer of %#lu)\n",
-                    instructionPc, inst->instAddr());
-                cpu->addToSST(instructionPc);
-            }
+
+        // TODO SST
+        // if (cpu->isInPreMode() && cpu->isInSST(inst->instAddr())) {
+        //     // DPRINTF(PreDebug, "Hit in SST during decode\n");
+            
+        //     for (auto instructionPc : inst->getInstProducerPCs()) {
+        //         // DPRINTF(PreDebug, "Adding inst %#lu to SST (producer of %#lu)\n",
+        //             // instructionPc, inst->instAddr());
+        //         cpu->addToSST(instructionPc);
+        //     }
+        // }
+
+        if (cpu->isInPreMode()) {
+            ++(cpu->cpuStats.totalDecodedRA);
+            inst->setRunaheadInst();
         }
         
         ++(toRename->size);

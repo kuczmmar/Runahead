@@ -65,7 +65,7 @@ for dir in subdirectories:
     # for f in [f for f in os.listdir(path) if isfile(join(path, f))]:
     for f in os.listdir(path):
         file_path = join(path, f)
-        if isfile(file_path):
+        if isfile(file_path) and "_config" not in f:
             stats = filter_out_stats(read_single_stat_file(file_path, dir +"_"+f))
             df = df.append(stats, ignore_index=True)
 

@@ -737,6 +737,13 @@ LSQ::hasStoresToWB(ThreadID tid)
     return thread.at(tid).hasStoresToWB();
 }
 
+void
+LSQ::printStoresToWB(ThreadID tid)
+{
+    thread.at(tid).printStoresToWB();
+}
+
+
 int
 LSQ::numStoresToWB(ThreadID tid)
 {

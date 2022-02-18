@@ -66,6 +66,7 @@ Rename::Rename(CPU *_cpu, const PreO3CPUParams &params)
       commitToRenameDelay(params.commitToRenameDelay),
       renameWidth(params.renameWidth),
       numThreads(params.numThreads),
+      prdqMaxSize(params.prdqEntries),
       stats(_cpu)
 {
     if (renameWidth > MaxWidth)
@@ -447,6 +448,11 @@ Rename::tick()
         assert(instsInProgress[tid] >=0);
     }
 
+    // Remove entries from PRDQ in program order
+    // TODO can we remove as many as possible?
+    // or should there be a limit?
+    // PRDQ todo
+    // while (prdqRetireEntry()) ;
 }
 
 void
@@ -540,7 +546,8 @@ Rename::renameInsts(ThreadID tid)
     }
 
     // Check if there's any space left.
-    if (free_rob_entries <=0 && cpu->isInPreMode()) {
+    if (free_rob_entries <=0 && cpu->isInPreMode() &&
+            free_iq_entries > 0) {
         DPRINTF(PreRename, "No free ROB entries, cpu in PRE mode"
             " - don't block rename if IQ entries available\n");
             min_free_entries = free_iq_entries;
@@ -552,7 +559,7 @@ Rename::renameInsts(ThreadID tid)
                 "ROB has %i free entries.\n"
                 "IQ has %i free entries.\n",
                 tid, free_rob_entries, free_iq_entries);
-                
+
     if (min_free_entries <= 0) {
         DPRINTF(PreRename,
                 "[tid:%i] Blocking due to no free ROB/IQ/ entries.\n"
@@ -614,7 +621,10 @@ Rename::renameInsts(ThreadID tid)
         assert(!insts_to_rename.empty());
 
         DynInstPtr inst = insts_to_rename.front();
-        DPRINTF(PreDebug, "[tid:%i] Sending instructions to IEW sn:%llu\n", tid, inst->seqNum);
+        if (cpu->isInPreMode()){
+            inst->setRunaheadInst();
+            DPRINTF(PreRename, "[tid:%i] Sending instruction sn:%i in PRE mode\n", tid, inst->seqNum);
+        }
 
         //For all kind of instructions, check ROB and IQ first For load
         //instruction, check LQ size and take into account the inflight loads
@@ -742,7 +752,12 @@ Rename::renameInsts(ThreadID tid)
         // this instruction have been renamed.
         ppRename->notify(inst);
 
+        if (cpu->isInPreMode())
+            inst->setRunaheadInst();
+
         // Put instruction in rename queue.
+        DPRINTF(PreRename, "Inst [sn:%lli] put into renameQueue, in PRE?:%d\n", 
+            inst->seqNum, inst->isRunaheadInst());
         toIEW->insts[toIEWIndex] = inst;
         ++(toIEW->size);
 
@@ -1038,10 +1053,6 @@ Rename::renameSrcRegs(const DynInstPtr &inst, ThreadID tid)
         PhysRegIdPtr renamed_reg;
 
         renamed_reg = map->lookup(tc->flattenRegId(src_reg));
-        // make sure the register is not invalid after previous runahead execution
-        if (!cpu->isInPreMode()) {
-            renamed_reg->resetInvBit();
-        }
 
         switch (src_reg.classValue()) {
           case IntRegClass:
@@ -1086,9 +1097,9 @@ Rename::renameSrcRegs(const DynInstPtr &inst, ThreadID tid)
         } else {
             DPRINTF(PreRename,
                     "[tid:%i] "
-                    "Register %d (flat: %d) (%s) is not ready.\n",
+                    "Register %d (flat: %d) (%s) is not ready. [sn:%lli]\n",
                     tid, renamed_reg->index(), renamed_reg->flatIndex(),
-                    renamed_reg->className());
+                    renamed_reg->className(), inst->seqNum);
         }
 
         ++stats.lookups;
@@ -1111,11 +1122,15 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
         flat_dest_regid.setNumPinnedWrites(dest_reg.getNumPinnedWrites());
 
         rename_result = map->rename(flat_dest_regid);
-        // make sure the register is not invalid after previous runahead execution
-        rename_result.first->resetInvBit();
+        // first -> new physical reg
+        // second ->old phys reg
+        // PRDQ todo
+        // if (cpu->isInPreMode())
+        //     prdqAddEntry(inst, rename_result.second);
         
         // set this instruction to be the most recent producer of this register
-        rename_result.first->lastInstProducer = inst->instAddr();
+        rename_result.first->lastInstProducerAddr = inst->instAddr();
+        rename_result.first->lastInstProducerSeqNum = inst->seqNum;
 
         inst->regs.flattenedDestIdx(dest_idx, flat_dest_regid);
 
@@ -1159,8 +1174,6 @@ Rename::calcFreeROBEntries(ThreadID tid)
     int num_free = freeEntries[tid].robEntries -
                   (instsInProgress[tid] - fromIEW->iewInfo[tid].dispatched);
 
-    //DPRINTF(PreRename,"[tid:%i] %i rob free\n",tid,num_free);
-
     return num_free;
 }
 
@@ -1170,7 +1183,6 @@ Rename::calcFreeIQEntries(ThreadID tid)
     int num_free = freeEntries[tid].iqEntries -
                   (instsInProgress[tid] - fromIEW->iewInfo[tid].dispatched);
 
-    //DPRINTF(PreRename,"[tid:%i] %i iq free\n",tid,num_free);
 
     return num_free;
 }
@@ -1235,7 +1247,7 @@ Rename::checkStall(ThreadID tid)
         DPRINTF(PreRename,"[tid:%i] Stall from IEW stage detected.\n", tid);
         ret_val = true;
     } else if (calcFreeROBEntries(tid) <= 0 && !cpu->isInPreMode()) {
-        DPRINTF(PreRename,"[tid:%i] Stall: ROB has 0 free entries.\n", tid);
+        DPRINTF(PreRename,"[tid:%i] Stall: ROB has <= 0 free entries.\n", tid);
         ret_val = true;
     } else if (calcFreeROBEntries(tid) <= 0 && cpu->isInPreMode()) {
         DPRINTF(PreRename,"[tid:%i] ROB has 0 free entries in PRE mode - don't block rename!\n", tid);
@@ -1451,6 +1463,55 @@ Rename::dumpHistory()
             buf_it++;
         }
     }
+}
+
+
+int16_t 
+Rename::prdqGetInstId(const DynInstPtr &inst)
+{
+    InstSeqNum diff = inst->seqNum - cpu->raTriggerInst->seqNum;
+    if (diff >= (1<<16)) {
+        std::cout << "More than 1<<16 instrutions decoded in one RA interval!!!";
+        diff %= (1<<16); 
+    }
+
+    return (int16_t)diff;
+}
+
+
+void
+Rename::prdqMarkInstExecuted(const DynInstPtr &inst)
+{
+    int16_t id = prdqGetInstId(inst);
+    for (auto entry : prdq) {
+        if (id == entry.instId) {
+            entry.executed = true;
+            return;
+        }
+    }
+}
+
+bool 
+Rename::prdqRetireEntry()
+{
+    prdqEntry first = prdq.front();
+    if (first.executed) {
+        // free the physical register
+        freeList->addReg(first.physRegToFree);
+        prdq.pop_front();
+    }
+}
+
+void
+Rename::prdqAddEntry(const DynInstPtr &inst, const PhysRegIdPtr &old_reg)
+{   
+    // panic_if(prdq.size() > prdqMaxSize, "PRDQ size exceeded");
+    prdqEntry entry;
+    entry.physRegToFree = old_reg;
+    entry.instId = prdqGetInstId(inst);
+    entry.executed = false;
+
+    prdq.push_back(entry);
 }
 
 } // namespace pre

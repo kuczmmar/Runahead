@@ -50,6 +50,7 @@
 #include "debug/Activity.hh"
 #include "debug/O3PipeView.hh"
 #include "debug/Rename.hh"
+#include "debug/RunaheadCompare.hh"
 #include "params/O3CPU.hh"
 
 namespace gem5
@@ -618,8 +619,8 @@ Rename::renameInsts(ThreadID tid)
 
         if (inst->isStore() || inst->isAtomic()) {
             if (calcFreeSQEntries(tid) <= 0) {
-                DPRINTF(Rename, "[tid:%i] Cannot rename due to no free SQ\n",
-                        tid);
+                DPRINTF(RunaheadCompare, "[tid:%i] Cannot rename due to no free SQ #%d\n",
+                        tid, stats.SQFullEvents.value());
                 source = SQ;
                 incrFullStat(source);
                 break;

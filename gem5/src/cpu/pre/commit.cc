@@ -69,6 +69,7 @@
 #include "params/PreO3CPU.hh"
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
+#include "sim/cur_tick.hh"
 
 namespace gem5
 {
@@ -630,6 +631,9 @@ Commit::squashAfter(ThreadID tid, const DynInstPtr &head_inst)
 void
 Commit::tick()
 {
+    if (cpu->cycleAfterPre <= 10) {
+        DPRINTF(PreDebug, "cycles after PRE: %d\n", cpu->cycleAfterPre);
+    }
     wroteToTimeBuffer = false;
     _nextStatus = Inactive;
 
@@ -824,12 +828,29 @@ Commit::commit()
             squashFromSquashAfter(tid);
         }
 
+        InstSeqNum squashed_inst = fromIEW->squashedSeqNum[tid];
+        bool change_pc = false;
+        TheISA::PCState new_pc;
+
+        // In a case when we need to exit PRE and the youngest valid (i.e. not squashed) 
+        // instruction in ROB is smaller than the squashSeqNum, then we want to squash until
+        // the youngest valid instruction to make sure that the squash signal will get 
+        // propagated to all earlier stages of pipeline
+        if (fromIEW->squashAfterPRE[tid] && (squashed_inst > youngestSeqNum[tid])) {
+            DPRINTF(PreDebug, "Changing squash seq num after PRE sn:%i\n",
+                fromIEW->squashedSeqNum[tid]);
+            
+            squashed_inst = youngestSeqNum[tid];
+            change_pc = true;
+            new_pc = rob->findInst(tid, squashed_inst)->pcState();
+        }
+
         // Squashed sequence number must be older than youngest valid
         // instruction in the ROB. This prevents squashes from younger
         // instructions overriding squashes from older instructions.
         if (fromIEW->squash[tid] &&
             commitStatus[tid] != TrapPending &&
-            fromIEW->squashedSeqNum[tid] <= youngestSeqNum[tid]) {
+            squashed_inst <= youngestSeqNum[tid]) {
 
             if (fromIEW->mispredictInst[tid]) {
                 DPRINTF(Commit,
@@ -837,22 +858,23 @@ Commit::commit()
                     "PC:%#x [sn:%llu]\n",
                     tid,
                     fromIEW->mispredictInst[tid]->instAddr(),
-                    fromIEW->squashedSeqNum[tid]);
+                    squashed_inst);
+            } else if (fromIEW->squashAfterPRE[tid]) {
+                DPRINTF(Commit, "Squashing after PRE, till sn:%i\n",
+                    squashed_inst);
             } else {
                 DPRINTF(Commit,
                     "[tid:%i] Squashing due to order violation [sn:%llu]\n",
-                    tid, fromIEW->squashedSeqNum[tid]);
+                    squashed_inst);
             }
 
             DPRINTF(Commit, "[tid:%i] Redirecting to PC %#x\n",
-                    tid,
-                    fromIEW->pc[tid].nextInstAddr());
+                    tid, change_pc ? new_pc : fromIEW->pc[tid]);
 
             commitStatus[tid] = ROBSquashing;
 
             // If we want to include the squashing instruction in the squash,
             // then use one older sequence number.
-            InstSeqNum squashed_inst = fromIEW->squashedSeqNum[tid];
 
             if (fromIEW->includeSquashInst[tid]) {
                 squashed_inst--;
@@ -886,7 +908,13 @@ Commit::commit()
                 ++stats.branchMispredicts;
             }
 
-            toIEW->commitInfo[tid].pc = fromIEW->pc[tid];
+            toIEW->commitInfo[tid].pc = change_pc ? new_pc : fromIEW->pc[tid];
+
+        } else if (fromIEW->squash[tid]) {
+            DPRINTF(Commit, "Cannot begin Squashing: squash:%d, trap pending:%d, squash seqNum:%i, "
+                "youngest:%i\n", fromIEW->squash[tid] ,
+                commitStatus[tid] == TrapPending ,
+                squashed_inst, youngestSeqNum[tid]);
         }
 
         if (commitStatus[tid] == ROBSquashing) {
@@ -960,14 +988,16 @@ Commit::commitInsts()
     DPRINTF(PreDebug, "ROB at commit: ");
     rob->debugPrintROB();
 
-    DPRINTF(PreDebug, "SST at commit: ");
-    for (auto inst : cpu->sst) {
-        DPRINTF_NO_LOG(PreDebug, "Pc: %#lu ", inst);
-    }
-    DPRINTF_NO_LOG(PreDebug, "\n");
+
+    // DPRINTF(PreDebug, "SST at commit: ");
+    // for (auto inst : cpu->sst) {
+    //     DPRINTF_NO_LOG(PreDebug, "Pc: %#lu ", inst);
+    // }
+    // DPRINTF_NO_LOG(PreDebug, "\n");
 
     unsigned num_committed = 0;
     DynInstPtr head_inst;
+    bool first_iter = true;
 
     // Commit as many instructions as possible until the commit bandwidth
     // limit is reached, or it becomes impossible to commit any more.
@@ -999,6 +1029,25 @@ Commit::commitInsts()
         if (!head_inst){
             break;
         }
+        if (first_iter) {
+            first_iter = false;
+            cpu->cpuStats.maxAtRobHd = std::max(
+                ++head_inst->cyclesAtHeadInRA,
+                int(cpu->cpuStats.maxAtRobHd.value()));
+                        
+            if (head_inst->cyclesAtHeadInRA > 700 && !head_inst->missedInL2() &&
+                !(head_inst->readyToCommit())) {
+                DPRINTF(PreDebug, "[ad:%#lx] Max at rob head: %d\n", 
+                    head_inst->instAddr(), head_inst->cyclesAtHeadInRA);
+            }
+
+            if (head_inst->cyclesAtHeadInRA >= 900) {
+                DPRINTF(PreDebug, "Head inst: %s\n", rob->readHeadInst(0)->seqNum);
+                rob->readHeadInst(0)->debugPrintStatus();
+                rob->readHeadInst(0)->printSrcRegs();
+                panic("At head for too long");
+            }
+        }
 
         // enter PRE if the head instruction is waiting on a L2 
         // cache miss and the ROB is full
@@ -1006,17 +1055,12 @@ Commit::commitInsts()
         // the head instruction may still not be ready - 
         // don't enter runahead again
         // TODO: may be good to take into account in flight instructions?
-        if (    rob->isFull()
-            // rob->numInstsInROB >= rob->robSize() - commitWidth 
+        if (rob->isFull()
                 && !rob->isHeadReady(commit_thread) 
-                && head_inst->missedInL2() 
-                && !head_inst->isRunaheadInst()) {
-
-            DPRINTF(PreCommit, "Full window stall - head missed in L2,"
-                " inst: %d\n", head_inst->seqNum);
+                && head_inst->missedInL2()) {
             cpu->enterPreMode(head_inst, commit_thread);
             break;
-        }     
+        }
 
         ThreadID tid = head_inst->threadNumber;
 
@@ -1176,10 +1220,6 @@ Commit::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
 
     ThreadID tid = head_inst->threadNumber;
 
-    if (head_inst->isRunaheadInst()) {
-        DPRINTF(PreCommit, "Trying to commit head in Pre!\n");
-    }
-
     // If the instruction is not executed yet, then it will need extra
     // handling.  Signal backwards that it should be executed.
     if (!head_inst->isExecuted()) {
@@ -1249,14 +1289,14 @@ Commit::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
     }
 
     if (inst_fault != NoFault) {
-        DPRINTF(Commit, "Inst [tid:%i] [sn:%llu] PC %s has a fault\n",
-                tid, head_inst->seqNum, head_inst->pcState());
+        DPRINTF(Commit, "Inst [tid:%i] [sn:%llu] PC %s has a fault: [%s]\n",
+                tid, head_inst->seqNum, head_inst->pcState(), inst_fault->name());
 
         if (iewStage->hasStoresToWB(tid) || inst_num > 0) {
             DPRINTF(Commit,
-                    "[tid:%i] [sn:%llu] "
+                    "[tid:%i] [sn:%llu] [addr:%#lx] "
                     "Stores outstanding, fault must wait.\n",
-                    tid, head_inst->seqNum);
+                    tid, head_inst->seqNum, head_inst->instAddr());
             return false;
         }
 
@@ -1378,7 +1418,8 @@ Commit::getInsts()
 
         if (!inst->isSquashed() &&
             commitStatus[tid] != ROBSquashing &&
-            commitStatus[tid] != TrapPending) {
+            commitStatus[tid] != TrapPending 
+            && !inst->isRunaheadInst()) {
             changedROBNumEntries[tid] = true;
 
             DPRINTF(Commit, "[tid:%i] [sn:%llu] Inserting PC %s into ROB.\n",
@@ -1389,9 +1430,14 @@ Commit::getInsts()
             assert(rob->getThreadEntries(tid) <= rob->getMaxEntries(tid));
 
             youngestSeqNum[tid] = inst->seqNum;
-        } else {
+            DPRINTF(PreDebug, "Inserting youngestSeqNum to %i\n", youngestSeqNum[tid]);
+        } else if (inst->isSquashed()) {
             DPRINTF(Commit, "[tid:%i] [sn:%llu] "
-                    "Instruction PC %s was squashed, skipping.\n",
+                    "Instruction PC %s was squashed, skip inserting to ROB.\n",
+                    tid, inst->seqNum, inst->pcState());
+        } else if (inst->isRunaheadInst()) {
+            DPRINTF(Commit, "[tid:%i] [sn:%llu] "
+                    "Instruction PC %s is runahead inst but not squashed, skip inserting to ROB.\n",
                     tid, inst->seqNum, inst->pcState());
         }
     }

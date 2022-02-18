@@ -64,6 +64,7 @@
 #include "debug/PreO3CPU.hh"
 #include "mem/packet.hh"
 #include "params/PreO3CPU.hh"
+#include "debug/PreEnter.hh"
 #include "sim/byteswap.hh"
 #include "sim/core.hh"
 #include "sim/eventq.hh"
@@ -838,18 +839,6 @@ Fetch::squash(const TheISA::PCState &newPC, const InstSeqNum seq_num,
 
 
 void
-Fetch::squashAfterPRE(const TheISA::PCState &newPC, const InstSeqNum seq_num,
-        DynInstPtr squashInst, ThreadID tid)
-{
-    DPRINTF(Fetch, "[tid:%i] Squash after PRE.\n", tid);
-
-    doSquash(newPC, squashInst, tid);
-
-    // Tell the CPU to remove any instructions that are not in the ROB.
-    cpu->removeInstsNotInROB(tid);
-}
-
-void
 Fetch::tick()
 {
     std::list<ThreadID>::iterator threads = activeThreads->begin();
@@ -1071,8 +1060,8 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
     instruction->setThreadState(cpu->thread[tid]);
 
     DPRINTF(Fetch, "[tid:%i] Instruction PC %#x (%d) created "
-            "[sn:%lli].\n", tid, thisPC.instAddr(),
-            thisPC.microPC(), seq);
+            "[sn:%lli], in PRE? %d.\n", tid, thisPC.instAddr(),
+            thisPC.microPC(), seq, cpu->isInPreMode());
 
     DPRINTF(Fetch, "[tid:%i] Instruction is: %s\n", tid,
             instruction->staticInst->
@@ -1107,6 +1096,9 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
     if (cpu->isInPreMode()) {
         cpu->cpuStats.fetchedRA++;
         instruction->setRunaheadInst();
+
+        DPRINTF(PreDebug, "Fetched inst [sn:%d] addr:%#lx in PRE mode\n", 
+            instruction->seqNum, instruction->instAddr());
     }
 
     return instruction;
@@ -1291,6 +1283,8 @@ Fetch::fetch(bool &status_change)
 
             DynInstPtr instruction =
                 buildInst(tid, staticInst, curMacroop, thisPC, nextPC, true);
+            
+            cpu->lastFetched = instruction;
 
             ppFetch->notify(instruction);
             numInst++;

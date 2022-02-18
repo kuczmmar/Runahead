@@ -533,6 +533,26 @@ class Rename
         /** Number of instructions inserted into skid buffers. */
         statistics::Scalar skidInsts;
     } stats;
+
+  // PRE support
+  // Runahead Register Reclamation mechanism
+  private:
+    int prdqMaxSize;
+    struct prdqEntry {
+      PhysRegIdPtr physRegToFree;
+      int16_t instId;
+      bool executed;
+    };
+
+    // precise register deallocation queue
+    std::deque<prdqEntry> prdq;
+
+  public:
+    int16_t prdqGetInstId(const DynInstPtr &inst);
+    void prdqMarkInstExecuted(const DynInstPtr &inst);
+    bool prdqRetireEntry();
+    void prdqAddEntry(const DynInstPtr &inst, const PhysRegIdPtr &old_reg);
+
 };
 
 } // namespace pre

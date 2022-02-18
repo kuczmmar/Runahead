@@ -569,8 +569,8 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
     // Make sure the instruction is valid
     assert(new_inst);
 
-    DPRINTF(PreIQ, "Adding instruction [sn:%llu] PC %s to the IQ.\n",
-            new_inst->seqNum, new_inst->pcState());
+    DPRINTF(PreIQ, "Inserting instruction [sn:%llu] PC %s to the IQ. [isRA:%d]\n",
+            new_inst->seqNum, new_inst->pcState(), new_inst->isRunaheadInst());
 
     assert(freeEntries != 0);
 
@@ -975,7 +975,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
     completed_inst->lastWakeDependents = curTick();
 
-    DPRINTF(PreIQ, "Waking dependents of completed instruction.\n");
+    DPRINTF(PreIQ, "Waking dependents of completed instruction. [sn:%llu]\n", completed_inst->seqNum);
 
     assert(!completed_inst->isSquashed());
 
@@ -1033,8 +1033,10 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
         DynInstPtr dep_inst = dependGraph.pop(dest_reg->flatIndex());
 
         while (dep_inst) {
-            DPRINTF(PreIQ, "Waking up a dependent instruction, [sn:%llu] "
-                    "PC %s.\n", dep_inst->seqNum, dep_inst->pcState());
+            DPRINTF(PreIQ, "Waking up a dependent instruction, [sn:%llu]  on register %i (%s)"
+                    "PC %s.\n", dep_inst->seqNum, dep_inst->pcState(),
+                    dest_reg->index(),
+                    dest_reg->className());
 
             // Might want to give more information to the instruction
             // so that it knows which of its source registers is
@@ -1180,23 +1182,6 @@ InstructionQueue::squash(ThreadID tid)
 
 
 void
-InstructionQueue::squashAfterPRE(ThreadID tid, InstSeqNum squashSeqNum)
-{
-    DPRINTF(PreIQ, "[tid:%i] Starting to squash instructions in "
-            "the IQ after PRE, squash until sn:%llu.\n", 
-            tid, squashSeqNum);
-
-    // The sequence number of last instruction which was put in ROB
-    squashedSeqNum[tid] = squashSeqNum;
-
-    doSquash(tid);
-
-    // Also tell the memory dependence unit to squash.
-    memDepUnit[tid].squash(squashedSeqNum[tid], tid);
-}
-
-
-void
 InstructionQueue::doSquash(ThreadID tid)
 {
     // Start at the tail.
@@ -1266,6 +1251,9 @@ InstructionQueue::doSquash(ThreadID tid)
 
                     if (!squashed_inst->regs.readySrcIdx(src_reg_idx) &&
                         !src_reg->isFixedMapping()) {
+                            DPRINTF(PreDebug, "IQ removing dependancy graph entries "
+                                "for a squashed inst sn:%i reg id:%d, flat od:%d\n", 
+                                squashed_inst->seqNum, src_reg->index() ,src_reg->flatIndex());
                         dependGraph.remove(src_reg->flatIndex(),
                                            squashed_inst);
                     }
@@ -1327,6 +1315,10 @@ InstructionQueue::doSquash(ThreadID tid)
         {
             PhysRegIdPtr dest_reg =
                 squashed_inst->regs.renamedDestIdx(dest_reg_idx);
+                
+            DPRINTF(PreIQ, "Clear deptGraph [sn:%i], reg: %d\n",
+                squashed_inst->seqNum, dest_reg->index());
+            
             if (dest_reg->isFixedMapping()){
                 continue;
             }
@@ -1368,10 +1360,11 @@ InstructionQueue::addToDependents(const DynInstPtr &new_inst)
             if (src_reg->isFixedMapping()) {
                 continue;
             } else if (!regScoreboard[src_reg->flatIndex()]) {
-                DPRINTF(PreIQ, "Instruction PC %s has src reg %i (%s) that "
-                        "is being added to the dependency chain.\n",
-                        new_inst->pcState(), src_reg->index(),
-                        src_reg->className());
+                DPRINTF(PreIQ, "Instruction PC %s [sn:%lli] has src reg %i (%s) that "
+                        "is being added to the dependency chain. Prev producer of reg: %i\n",
+                        new_inst->pcState(), new_inst->seqNum, src_reg->index(),
+                        src_reg->className(),
+                        src_reg->lastInstProducerSeqNum);
 
                 dependGraph.insert(src_reg->flatIndex(), new_inst);
 
@@ -1596,6 +1589,30 @@ InstructionQueue::dumpInsts()
         inst_list_it++;
         ++num;
     }
+}
+
+void 
+InstructionQueue::printInstsToExecute()
+{
+    int count = 0;
+    DPRINTF_NO_LOG(PreIQ, "Insts in IQ ready to execute:");
+    for (auto inst : instsToExecute) {
+        if ((count++)%3==0) DPRINTF_NO_LOG(PreIQ, "\n\t");
+
+        DPRINTF_NO_LOG(PreIQ, "PC: %#llx, TN: %d, SN: %i, RA: %d | ",
+            inst->pcState(), 
+            inst->threadNumber, 
+            inst->seqNum, 
+            inst->isRunaheadInst()
+        );
+    }
+    DPRINTF_NO_LOG(PreIQ, "\n");
+}
+
+void 
+InstructionQueue::print_dep_graph()
+{   
+    dependGraph.dump();   
 }
 
 } // namespace pre

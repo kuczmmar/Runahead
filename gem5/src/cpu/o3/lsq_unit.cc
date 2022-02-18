@@ -711,6 +711,7 @@ LSQUnit::executeStore(const DynInstPtr &store_inst)
         storeQueue[store_idx].canWB() = true;
 
         ++storesToWB;
+        storesToWBSet.insert(store_inst->seqNum);
     }
 
     return checkViolations(loadIt, store_inst);
@@ -775,6 +776,7 @@ LSQUnit::commitStores(InstSeqNum &youngest_inst)
             x.canWB() = true;
 
             ++storesToWB;
+            storesToWBSet.insert(x.instruction()->seqNum);
         }
     }
 }
@@ -1166,6 +1168,7 @@ LSQUnit::completeStore(typename StoreQueue::iterator store_idx)
     /* We 'need' a copy here because we may clear the entry from the
      * store queue. */
     DynInstPtr store_inst = store_idx->instruction();
+    storesToWBSet.erase(store_inst->seqNum);
     if (store_idx == storeQueue.begin()) {
         do {
             storeQueue.front().clear();

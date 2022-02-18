@@ -444,7 +444,7 @@ CPU::CPUStats::CPUStats(CPU *cpu)
       ADD_STAT(l2MissRA, statistics::units::Count::get(),
                "number of misses in L2 that occur during runahead in ROB"
                "(runahead has no improvement over the baseline here)"),
-      ADD_STAT(fullRobRA, statistics::units::Count::get(),
+      ADD_STAT(robFullRA, statistics::units::Count::get(),
                 "how many times the ROB becomes full, when CPU would be in runahead"),
       ADD_STAT(totalCyclesRA, statistics::units::Cycle::get(),
                 "total number of cycles the CPU would spend in runahead"),
@@ -460,7 +460,9 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                 "total number of instructions decoded when the CPU would be in runahead"),
       ADD_STAT(decodedAvgRA, statistics::units::Ratio::get(),
                 "average number of instructions decoded when the CPU would be in runahead",
-                totalDecodedRA / enterRA)
+                totalDecodedRA / enterRA),
+      ADD_STAT(maxAtRobHd, statistics::units::Count::get(),
+                "maximum number of cycles one instruction spends at the head of ROB")
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -546,7 +548,7 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     numPossiblePrefetchesRA.prereq(numPossiblePrefetchesRA);
     l2MissRA.prereq(l2MissRA);
     
-    fullRobRA.prereq(fullRobRA);
+    robFullRA.prereq(robFullRA);
     totalCyclesRA.prereq(totalCyclesRA);
     cyclesAvgRA.precision(3);
     cyclesAvgRA = totalCyclesRA / enterRA;
@@ -554,6 +556,7 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     insertedAvgRA.precision(3);
     totalDecodedRA.prereq(totalDecodedRA);
     decodedAvgRA.precision(3);
+    maxAtRobHd.prereq(maxAtRobHd);
 }
 
 void
@@ -1861,7 +1864,7 @@ CPU::wouldExitRA(DynInstPtr inst)
     cpuStats.totalRobSizeAtExitRA += numRobEntries();
 
     if (rob.isFull()) {
-        ++cpuStats.fullRobRA;
+        ++cpuStats.robFullRA;
         fullRobInRA = true;
     }
 

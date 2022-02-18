@@ -175,6 +175,8 @@ class PreO3CPU(BaseCPU):
                                        "Branch Predictor")
     needsTSO = Param.Bool(buildEnv['TARGET_ISA'] == 'x86',
                           "Enable TSO Memory model")
+    
+    prdqEntries = Param.Int(192, "Size of the Precise Register Deallocation Queue")
 
     def addCheckerCpu(self):
         if buildEnv['TARGET_ISA'] in ['arm']:

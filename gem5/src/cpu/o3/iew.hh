@@ -223,6 +223,8 @@ class IEW
     /** Returns if the LSQ has any stores to writeback. */
     bool hasStoresToWB(ThreadID tid) { return ldstQueue.hasStoresToWB(tid); }
 
+    void printStoresToWB(ThreadID tid) { ldstQueue.printStoresToWB(tid); }
+    
     /** Check misprediction  */
     void checkMisprediction(const DynInstPtr &inst);
 

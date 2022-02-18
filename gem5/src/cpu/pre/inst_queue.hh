@@ -276,6 +276,9 @@ class InstructionQueue
     /** Debug function to print all instructions. */
     void printInsts();
 
+    /** Debug print all instrusctions that are ready to be executed */
+    void printInstsToExecute();
+
   private:
     /** Does the actual squashing. */
     void doSquash(ThreadID tid);
@@ -563,7 +566,7 @@ class InstructionQueue
 
     // PRE support
     // squash all instructions in the IQ up to squashSeqNum
-    void squashAfterPRE(ThreadID tid, InstSeqNum squashSeqNum);
+    void print_dep_graph();
 };
 
 } // namespace pre

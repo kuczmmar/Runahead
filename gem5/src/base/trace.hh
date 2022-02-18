@@ -177,6 +177,9 @@ struct StringWrap
  * @{
  */
 
+#define GOOD_TICK(x) (true)    
+// #define GOOD_TICK(x)       (x >= 675155000 && x <= 676980000)
+
 #define DDUMP(x, data, count) do {               \
     if (GEM5_UNLIKELY(TRACING_ON && ::gem5::debug::x))     \
         ::gem5::Trace::getDebugLogger()->dump(           \
@@ -184,14 +187,14 @@ struct StringWrap
 } while (0)
 
 #define DPRINTF(x, ...) do {                     \
-    if (GEM5_UNLIKELY(TRACING_ON && ::gem5::debug::x)) {   \
+    if (GOOD_TICK(::gem5::curTick()) && GEM5_UNLIKELY(TRACING_ON && ::gem5::debug::x)) {   \
         ::gem5::Trace::getDebugLogger()->dprintf_flag(   \
             ::gem5::curTick(), name(), #x, __VA_ARGS__); \
     }                                            \
 } while (0)
 
 #define DPRINTF_NO_LOG(x, ...) do {                     \
-    if (GEM5_UNLIKELY(TRACING_ON && ::gem5::debug::x)) {   \
+    if (GOOD_TICK(::gem5::curTick()) && GEM5_UNLIKELY(TRACING_ON && ::gem5::debug::x)) {   \
         printf(__VA_ARGS__); \
     }                                            \
 } while (0)

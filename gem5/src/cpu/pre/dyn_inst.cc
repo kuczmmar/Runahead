@@ -351,10 +351,77 @@ DynInst::getInstProducerPCs()
     //     PhysRegIdPtr r = regs.renamedSrcIdx(s);
     //     if (r == nullptr)
     //         continue;
-    //     if (r->lastInstProducer)
-    //         producers.push_back(r->lastInstProducer);
+    //     if (r->lastInstProducerAddr)
+    //         producers.push_back(r->lastInstProducerAddr);
     // }
     return producers;
+}
+
+void
+DynInst::printSrcRegs()
+{
+    DPRINTF(PreDebug, "Src regs of sn:%i:\n", seqNum);
+    for (int s=0; s<numSrcRegs(); ++s){
+        PhysRegIdPtr r = regs.renamedSrcIdx(s);
+        if (r == nullptr)
+            continue;
+        DPRINTF_NO_LOG(PreDebug, "  [sn:%i] reg: %d, ready: %d, lastInstProducer:%i\n", 
+            seqNum, r, regs.readySrcIdx(s), r->lastInstProducerSeqNum);
+    }
+}
+
+void
+DynInst::debugPrintStatus()
+{
+    std::string s = "";
+    
+    s += status[IqEntry] ? "IqEntry " : "";
+    s += status[RobEntry] ? "RobEntry " : "";
+    s += status[LsqEntry] ? "LsqEntry " : "";
+    s += status[Completed] ? "Completed " : "";
+    s += status[ResultReady] ? "ResultReady " : "";
+    s += status[CanIssue] ? "CanIssue " : "";
+    s += status[Issued] ? "Issued " : "";
+    s += status[Executed] ? "Executed " : "";
+    s += status[CanCommit] ? "CanCommit " : "";
+    s += status[AtCommit] ? "AtCommit " : "";
+    s += status[Committed] ? "Committed " : "";
+    s += "\n";
+    s += status[Squashed] ? "Squashed " : "";
+    s += status[SquashedInIQ] ? "SquashedInIQ " : "";
+    s += status[SquashedInLSQ] ? "SquashedInLSQ " : "";
+    s += status[SquashedInROB] ? "SquashedInROB " : "";
+    s += status[PinnedRegsRenamed] ? "PinnedRegsRenamed " : "";
+    s += status[PinnedRegsWritten] ? "PinnedRegsWritten " : "";
+    s += status[PinnedRegsSquashDone] ? "PinnedRegsSquashDone " : "";
+    s += status[RecoverInst] ? "RecoverInst " : "";
+    s += status[BlockingInst] ? "BlockingInst " : "";
+    s += status[ThreadsyncWait] ? "ThreadsyncWait " : "";
+    s += status[SerializeBefore] ? "SerializeBefore " : "";
+    s += status[SerializeAfter] ? "SerializeAfter " : "";
+    s += status[SerializeHandled] ? "SerializeHandled " : "";
+    s += "\n";
+    s +=  isSquashAfter() ? "isSquashAfter " :  "";
+    s +=  isFullMemBarrier()   ? "isFullMemBarrier " :  "";
+    s +=  isReadBarrier() ? "isReadBarrier " :  "";
+    s +=  isWriteBarrier() ? "isWriteBarrier " :  "";
+    s +=  isNonSpeculative() ? "isNonSpeculative " :  "";
+    s +=  isQuiesce() ? "isQuiesce " :  "";
+    s +=  isUnverifiable() ? "isUnverifiable " :  "";
+    s +=  isSyscall() ? "isSyscall " :  "";
+    s +=  isMacroop() ? "isMacroop " :  "";
+    s +=  isMicroop() ? "isMicroop " :  "";
+    s +=  isDelayedCommit() ? "isDelayedCommit " :  "";
+    s +=  isLastMicroop() ? "isLastMicroop " :  "";
+    s +=  isFirstMicroop() ? "isFirstMicroop " :  "";
+    s +=  isHtmStart() ? "isHtmStart " :  "";
+    s +=  isHtmStop() ? "isHtmStop " :  "";
+    s +=  isHtmCancel() ? "isHtmCancel " :  "";
+    s +=  isHtmCmd() ? "isHtmCmd " :  "";
+    s += "\n";
+
+    DPRINTF(PreDebug, "%s", s);
+    
 }
 
 } // namespace pre

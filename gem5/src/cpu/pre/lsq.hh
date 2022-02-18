@@ -946,6 +946,8 @@ class LSQ
      */
     bool hasStoresToWB(ThreadID tid);
 
+    void printStoresToWB(ThreadID tid);
+
     /** Returns the number of stores a specific thread has to write back. */
     int numStoresToWB(ThreadID tid);
 

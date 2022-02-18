@@ -62,6 +62,7 @@
 #include "cpu/timebuf.hh"
 #include "debug/HtmCpu.hh"
 #include "debug/PreLSQUnit.hh"
+#include "debug/PreDebug.hh"
 #include "mem/packet.hh"
 #include "mem/port.hh"
 
@@ -503,6 +504,18 @@ class LSQUnit
     /** The number of store instructions in the SQ waiting to writeback. */
     int storesToWB;
 
+    std::set<InstSeqNum> storesToWBSet;
+    
+  public:
+    void printStoresToWB() {
+      std::stringstream s;
+      for (auto sn : storesToWBSet) {
+        s << " [sn:" << sn << "]";
+      }
+      DPRINTF_NO_LOG(PreDebug, "Stores to WB:\n %s\n", s.get());
+    }
+
+  private:
     // hardware transactional memory
     // nesting depth
     int htmStarts;

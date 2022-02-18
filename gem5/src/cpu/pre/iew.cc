@@ -56,6 +56,7 @@
 #include "debug/Activity.hh"
 #include "debug/Drain.hh"
 #include "debug/PreIEW.hh"
+#include "debug/PreEnter.hh"
 #include "debug/O3PipeView.hh"
 #include "debug/PreDebug.hh"
 #include "params/PreO3CPU.hh"
@@ -429,6 +430,18 @@ IEW::emptySkidBuffer(ThreadID tid)
         "[tid:%i]\n", tid);
 
     while (!skidBuffer[tid].empty()) {
+        // TODO
+        if (!(skidBuffer[tid].front()->seqNum > fromCommit->commitInfo[tid].doneSeqNum)) {
+            std::cout << "skidBuffer[tid].front()->seqNum: " << skidBuffer[tid].front()->seqNum << \
+                "fromCommit->commitInfo[tid].doneSeqNum: " << fromCommit->commitInfo[tid].doneSeqNum << "\n";
+        }
+        assert(skidBuffer[tid].front()->seqNum >= fromCommit->commitInfo[tid].doneSeqNum);
+        if (skidBuffer[tid].front()->seqNum == fromCommit->commitInfo[tid].doneSeqNum) {
+            DPRINTF(PreIEW, "seq num in skidBuffer: %i, done seq num: %i\n", 
+                skidBuffer[tid].front()->seqNum, fromCommit->commitInfo[tid].doneSeqNum);
+            break;
+        }
+        
         if (skidBuffer[tid].front()->isLoad()) {
             toRename->iewInfo[tid].dispatchedToLQ++;
         }
@@ -448,7 +461,7 @@ void
 IEW::squash(ThreadID tid)
 {
     DPRINTF(PreIEW, "[tid:%i] Squashing all instructions until "
-    "[sn:%llu] \n", fromCommit->commitInfo[tid].doneSeqNum, tid);
+    "[sn:%llu] \n", tid, fromCommit->commitInfo[tid].doneSeqNum);
 
     // Tell the IQ to start squashing.
     instQueue.squash(tid);
@@ -462,22 +475,26 @@ IEW::squash(ThreadID tid)
     emptyRenameInsts(tid);
 }
 
+
 void
-IEW::squashAfterPRE(ThreadID tid, InstSeqNum seqNum)
+IEW::squashDueToRunaheadExit(const DynInstPtr& inst, ThreadID tid)
 {
-    DPRINTF(PreIEW, "[tid:%i] Squashing all instructions until "
-    "[sn:%llu] \n", fromCommit->commitInfo[tid].doneSeqNum, tid);
+    DPRINTF(PreEnter, "[tid:%i] Squashing due to runahead mode exit, [sn:%llu] PC: %s \n", 
+            tid, inst->seqNum, inst->pcState() );
 
-    // Tell the IQ to start squashing.
-    instQueue.squashAfterPRE(tid, seqNum);
+    if (!toCommit->squash[tid] ||
+            inst->seqNum < toCommit->squashedSeqNum[tid]) {
+        toCommit->squash[tid] = true;
+        toCommit->squashedSeqNum[tid] = inst->seqNum;
+        toCommit->includeSquashInst[tid] = true;
 
-    // Tell the LDSTQ to start squashing.
-    ldstQueue.squash(seqNum, tid);
-    updatedQueues = true;
+        TheISA::PCState pc = inst->pcState();
+        // inst->staticInst->advancePC(pc);
 
-    // Clear the skid buffer in case it has any data in it.
-    emptySkidBuffer(tid);
-    emptyRenameInsts(tid);
+        toCommit->pc[tid] = pc;
+        toCommit->squashAfterPRE[tid] = true;
+        wroteToTimeBuffer = true;
+    } 
 }
 
 void
@@ -619,6 +636,12 @@ IEW::instToCommit(const DynInstPtr& inst)
     DPRINTF(PreIEW, "Current wb cycle: %i, width: %i, numInst: %i\nwbActual:%i\n",
             wbCycle, wbWidth, wbNumInst, wbCycle * wbWidth + wbNumInst);
     // Add finished instruction to queue to commit.
+
+    if (cpu->isInPreMode()) {
+        DPRINTF(PreIEW, "Sending inst sn:%i to commit in PRE\n", inst->seqNum);
+        inst->setRunaheadInst();
+    }
+
     (*iewQueue)[wbCycle].insts[wbNumInst] = inst;
     (*iewQueue)[wbCycle].size++;
 }
@@ -718,6 +741,17 @@ IEW::updateStatus()
     }
 }
 
+void print_queue(std::queue<gem5::pre::DynInstPtr> q)
+{
+    DPRINTF(PreIEW, "Skid buffer: ");    
+    while (!q.empty())
+    {
+        DPRINTF_NO_LOG(PreIEW, " %i,", q.front()->seqNum);    
+        q.pop();
+    }
+    DPRINTF_NO_LOG(PreIEW, "\n");    
+}
+
 bool
 IEW::checkStall(ThreadID tid)
 {
@@ -727,7 +761,8 @@ IEW::checkStall(ThreadID tid)
         DPRINTF(PreIEW,"[tid:%i] Stall from Commit stage detected.\n",tid);
         ret_val = true;
     } else if (instQueue.isFull(tid)) {
-        DPRINTF(PreIEW,"[tid:%i] Stall: IQ  is full.\n",tid);
+        DPRINTF(PreIEW,"[tid:%i] Stall: IQ is full.\n",tid);
+        print_queue(skidBuffer[tid]);
         ret_val = true;
     }
 
@@ -937,8 +972,8 @@ IEW::dispatchInsts(ThreadID tid)
         assert(inst);
 
         DPRINTF(PreIEW, "[tid:%i] Issue: Adding PC %s [sn:%lli] [tid:%i] to "
-                "IQ.\n",
-                tid, inst->pcState(), inst->seqNum, inst->threadNumber);
+                "IQ. [isRA:%d]\n",
+                tid, inst->pcState(), inst->seqNum, inst->threadNumber, inst->isRunaheadInst());
 
         // Be sure to mark these instructions as ready so that the
         // commit stage can go ahead and execute them, and mark
@@ -970,6 +1005,11 @@ IEW::dispatchInsts(ThreadID tid)
         if (instQueue.isFull(tid)) {
             DPRINTF(PreIEW, "[tid:%i] Issue: IQ has become full.\n", tid);
 
+            if (dispatchStatus[tid] == Unblocking){
+                DPRINTF(PreIEW, "Dispatch unblocking! IQ Full, sn:%i,"
+                " size of skidBuffer: %d\n", inst->seqNum, skidBuffer->size());
+                print_queue(skidBuffer[tid]);
+            }
             // Call function to start blocking.
             block(tid);
 
@@ -1146,21 +1186,24 @@ IEW::printAvailableInsts()
 {
     int inst = 0;
 
-    std::cout << "Available Instructions: ";
+    DPRINTF_NO_LOG(PreIEW, "Available Instructions in IQ: ");
 
     while (fromIssue->insts[inst]) {
 
-        if (inst%3==0) std::cout << "\n\t";
+        if (inst%3==0) DPRINTF_NO_LOG(PreIEW, "\n\t");
 
-        std::cout << "PC: " << fromIssue->insts[inst]->pcState()
-             << " TN: " << fromIssue->insts[inst]->threadNumber
-             << " SN: " << fromIssue->insts[inst]->seqNum << " | ";
+        DPRINTF_NO_LOG(PreIEW, "PC: %#llx, TN: %d, SN: %i, RA: %d | ",
+            fromIssue->insts[inst]->pcState(), 
+            fromIssue->insts[inst]->threadNumber, 
+            fromIssue->insts[inst]->seqNum, 
+            fromIssue->insts[inst]->isRunaheadInst()
+        );
 
         inst++;
 
     }
 
-    std::cout << "\n";
+    DPRINTF_NO_LOG(PreIEW, "\n");
 }
 
 void
@@ -1179,7 +1222,9 @@ IEW::executeInsts()
 
     // Uncomment this if you want to see all available instructions.
     // @todo This doesn't actually work anymore, we should fix it.
-    //    printAvailableInsts();
+    // printAvailableInsts();
+
+    instQueue.printInstsToExecute();
 
     // Execute/writeback any instructions that are available.
     int insts_to_execute = fromIssue->size;
@@ -1189,8 +1234,12 @@ IEW::executeInsts()
 
         DynInstPtr inst = instQueue.getInstToExecute();
 
+        if (cpu->isInPreMode()) {
+            DPRINTF(PreIEW, "Executing inst sn:%i in PRE\n", inst->seqNum);
+            inst->setRunaheadInst();
+        }
+
         DPRINTF(PreIEW, "Execute: Executing instructions from IQ sn:%d.\n", inst->seqNum);
-        // DPRINTF(PreDebug, "Execute: Executing instructions from IQ sn:%d.\n", inst->seqNum);
         cpu->cpuStats.totalExecutedPRE++;
 
         DPRINTF(PreIEW, "Execute: Processing PC %s, [tid:%i] [sn:%llu].\n",

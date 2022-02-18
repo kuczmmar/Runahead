@@ -238,6 +238,9 @@ void
 LSQ::insertStore(const DynInstPtr &store_inst)
 {
     ThreadID tid = store_inst->threadNumber;
+    if (cpu->isInPreMode())
+        DPRINTF(PreDebug, "Insert Store Instruction to SQ in PRE mode [sn:%llu]\n",
+            store_inst->seqNum);
 
     thread[tid].insertStore(store_inst);
 }
@@ -740,6 +743,12 @@ bool
 LSQ::hasStoresToWB(ThreadID tid)
 {
     return thread.at(tid).hasStoresToWB();
+}
+
+void
+LSQ::printStoresToWB(ThreadID tid)
+{
+    thread.at(tid).printStoresToWB();
 }
 
 int
