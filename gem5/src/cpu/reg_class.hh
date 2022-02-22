@@ -313,7 +313,6 @@ class PhysRegId : private RegId
     bool isInvalid() const { return invalid; }
 
     // PRE support
-    Addr lastInstProducerAddr;
     InstSeqNum lastInstProducerSeqNum;
 };
 

@@ -730,6 +730,7 @@ class CPU : public BaseCPU
         statistics::Formula freeRegsAvg;
         statistics::Scalar totalExecutedPRE;
         statistics::Formula executedPREAvg;
+        statistics::Scalar sstHitsPRE;
     } cpuStats;
 
     // hardware transactional memory
@@ -751,8 +752,9 @@ class CPU : public BaseCPU
     void exitPreMode();
 
     // the stalling slice table
+    bool usingSST = true;
     std::set<Addr> sst;
-
+    std::unordered_map<RegIndex, Addr> reg_to_last_producer;
     bool isInSST(Addr pc);
     void addToSST(Addr pc)    { sst.insert(pc); }
     DynInstPtr lastFetched;

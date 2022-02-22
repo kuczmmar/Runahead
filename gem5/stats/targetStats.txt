@@ -18,3 +18,7 @@ system.cpu.fetch.icacheStallCycles
 system.cpu.fetch.fetchedRA
 system.cpu.maxAtRobHd
 system.cpu.freeRegsAvg
+system.cpu.sstHitsPRE
+system.cpu.rename.fullRegistersEvents
+system.cpu.totalExecutedPRE
+system.cpu.totalDecodedRA

@@ -481,7 +481,9 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                 "total number of instructions decoded in runahead"),
       ADD_STAT(decodedAvgRA, statistics::units::Ratio::get(),
                 "average number of instructions decoded in runahead",
-                totalDecodedRA / enterRA)
+                totalDecodedRA / enterRA),
+      ADD_STAT(sstHitsPRE, statistics::units::Count::get(),
+               "Number of hits in stalling slice table during PRE")
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -586,6 +588,7 @@ CPU::CPUStats::CPUStats(CPU *cpu)
 
     totalExecutedPRE.prereq(totalExecutedPRE);
     executedPREAvg.precision(3);
+    sstHitsPRE.prereq(sstHitsPRE);
 }
 
 void
@@ -1887,7 +1890,7 @@ CPU::enterPreMode(DynInstPtr inst, ThreadID tid)
     inst->setTriggeredRunahead();
 
     // add instruction to the stalling slice table 
-    // addToSST(inst->instAddr());
+    addToSST(inst->instAddr());
 
     // checkpoint the last instruction in ROB
     // TODO: may be useful to compare both squashing until the end of rob and squashing all instructions

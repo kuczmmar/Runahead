@@ -985,8 +985,8 @@ Commit::commitInsts()
     ////////////////////////////////////
 
     DPRINTF(Commit, "Trying to commit instructions in the ROB.\n");
-    DPRINTF(PreDebug, "ROB at commit: ");
-    rob->debugPrintROB();
+    // DPRINTF(PreDebug, "ROB at commit: ");
+    // rob->debugPrintROB();
 
 
     // DPRINTF(PreDebug, "SST at commit: ");
@@ -1403,7 +1403,7 @@ void
 Commit::getInsts()
 {
     if (cpu->isInPreMode()) {
-        DPRINTF(PreDebug, "In PRE - skip inserting into ROB\n");
+        DPRINTF(Commit, "In PRE - skip inserting into ROB\n");
         return;
     }
 
@@ -1430,7 +1430,6 @@ Commit::getInsts()
             assert(rob->getThreadEntries(tid) <= rob->getMaxEntries(tid));
 
             youngestSeqNum[tid] = inst->seqNum;
-            DPRINTF(PreDebug, "Inserting youngestSeqNum to %i\n", youngestSeqNum[tid]);
         } else if (inst->isSquashed()) {
             DPRINTF(Commit, "[tid:%i] [sn:%llu] "
                     "Instruction PC %s was squashed, skip inserting to ROB.\n",

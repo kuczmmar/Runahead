@@ -338,23 +338,17 @@ DynInst::initiateMemAMO(Addr addr, unsigned size, Request::Flags flags,
 }
 
 
-std::vector<Addr> 
-DynInst::getInstProducerPCs()
+std::vector<RegIndex> 
+DynInst::getArchSrcRegIndicies()
 {
-    std::vector<Addr> producers;
-    // todo this inst hasn't been renamed yet
-    // cannot iterate thorough its registers
-    // need to iterate through the registers of the 
-    // instruction with the same PC which is already in SST
+    std::vector<RegIndex> sources;
 
-    // for (int s=0; s<numSrcRegs(); ++s){
-    //     PhysRegIdPtr r = regs.renamedSrcIdx(s);
-    //     if (r == nullptr)
-    //         continue;
-    //     if (r->lastInstProducerAddr)
-    //         producers.push_back(r->lastInstProducerAddr);
-    // }
-    return producers;
+    for (int src_idx = 0; src_idx < numSrcRegs(); src_idx++) {
+        const RegId& src_reg = srcRegIdx(src_idx);
+        sources.push_back(src_reg.index());
+    }
+
+    return sources;
 }
 
 void

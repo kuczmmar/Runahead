@@ -1129,8 +1129,9 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
         //     prdqAddEntry(inst, rename_result.second);
         
         // set this instruction to be the most recent producer of this register
-        rename_result.first->lastInstProducerAddr = inst->instAddr();
         rename_result.first->lastInstProducerSeqNum = inst->seqNum;
+
+        cpu->reg_to_last_producer[dest_reg.index()] = inst->instAddr();
 
         inst->regs.flattenedDestIdx(dest_idx, flat_dest_regid);
 

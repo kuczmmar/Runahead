@@ -430,7 +430,7 @@ IEW::emptySkidBuffer(ThreadID tid)
         "[tid:%i]\n", tid);
 
     while (!skidBuffer[tid].empty()) {
-        // TODO
+        // TODO why does this work?
         if (!(skidBuffer[tid].front()->seqNum > fromCommit->commitInfo[tid].doneSeqNum)) {
             std::cout << "skidBuffer[tid].front()->seqNum: " << skidBuffer[tid].front()->seqNum << \
                 "fromCommit->commitInfo[tid].doneSeqNum: " << fromCommit->commitInfo[tid].doneSeqNum << "\n";
@@ -1237,10 +1237,10 @@ IEW::executeInsts()
         if (cpu->isInPreMode()) {
             DPRINTF(PreIEW, "Executing inst sn:%i in PRE\n", inst->seqNum);
             inst->setRunaheadInst();
+            cpu->cpuStats.totalExecutedPRE++;
         }
 
-        DPRINTF(PreIEW, "Execute: Executing instructions from IQ sn:%d.\n", inst->seqNum);
-        cpu->cpuStats.totalExecutedPRE++;
+        DPRINTF(PreIEW, "Execute: Executing instructions from IQ sn:%d.\n", inst->seqNum); 
 
         DPRINTF(PreIEW, "Execute: Processing PC %s, [tid:%i] [sn:%llu].\n",
                 inst->pcState(), inst->threadNumber,inst->seqNum);

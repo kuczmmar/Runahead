@@ -49,7 +49,6 @@
 #include "cpu/pre/fu_pool.hh"
 #include "cpu/pre/limits.hh"
 #include "debug/PreIQ.hh"
-#include "debug/PreDebug.hh"
 #include "enums/OpClass.hh"
 #include "params/PreO3CPU.hh"
 #include "sim/core.hh"
@@ -1251,7 +1250,7 @@ InstructionQueue::doSquash(ThreadID tid)
 
                     if (!squashed_inst->regs.readySrcIdx(src_reg_idx) &&
                         !src_reg->isFixedMapping()) {
-                            DPRINTF(PreDebug, "IQ removing dependancy graph entries "
+                            DPRINTF(PreIQ, "IQ removing dependancy graph entries "
                                 "for a squashed inst sn:%i reg id:%d, flat od:%d\n", 
                                 squashed_inst->seqNum, src_reg->index() ,src_reg->flatIndex());
                         dependGraph.remove(src_reg->flatIndex(),

@@ -678,29 +678,44 @@ Decode::decodeInsts(ThreadID tid)
             inst->setCanIssue();
         }
 
+        // check if this instruction is in the SST
+        // if hit then add the producers of this instruction as well
+        if (cpu->isInPreMode()) {
+            ++(cpu->cpuStats.totalDecodedRA);
+            inst->setRunaheadInst();
+
+            if (cpu->usingSST) {
+                if (cpu->isInSST(inst->instAddr())) {
+                    DPRINTF(PreDebug, "Hit in SST during decode, inst PC: %#x, pcState: %#x\n",
+                        inst->instAddr(), inst->pcState());
+                    
+                    ++cpu->cpuStats.sstHitsPRE;
+                    std::vector<RegIndex> sources = inst->getArchSrcRegIndicies();
+
+                    for (auto reg_idx : sources) {
+                        if (cpu->reg_to_last_producer.find(reg_idx) != cpu->reg_to_last_producer.end()) {
+                            DPRINTF(PreDebug, " Adding inst with addr:%#x to SST - "
+                                "producer of arch register: %d\n", 
+                                cpu->reg_to_last_producer[reg_idx], reg_idx);
+                    
+                            cpu->addToSST(cpu->reg_to_last_producer[reg_idx]);
+                        }
+                    }
+                } else {
+                    // The CPU is in PRE mode, but the instruction address does not hit in SST
+                    // don't send this instruction to rename
+                    ++stats.squashedInsts;
+                    --insts_available;
+                    continue;
+                }
+            }
+        }
+
+
         // This current instruction is valid, so add it into the decode
         // queue.  The next instruction may not be valid, so check to
         // see if branches were predicted correctly.
         toRename->insts[toRenameIndex] = inst;
-
-        // check if this instruction is in the SST
-        // if hit then add the producers of this instruction as well
-
-        // TODO SST
-        // if (cpu->isInPreMode() && cpu->isInSST(inst->instAddr())) {
-        //     // DPRINTF(PreDebug, "Hit in SST during decode\n");
-            
-        //     for (auto instructionPc : inst->getInstProducerPCs()) {
-        //         // DPRINTF(PreDebug, "Adding inst %#lu to SST (producer of %#lu)\n",
-        //             // instructionPc, inst->instAddr());
-        //         cpu->addToSST(instructionPc);
-        //     }
-        // }
-
-        if (cpu->isInPreMode()) {
-            ++(cpu->cpuStats.totalDecodedRA);
-            inst->setRunaheadInst();
-        }
         
         ++(toRename->size);
         ++toRenameIndex;

@@ -1334,7 +1334,7 @@ class DynInst : public ExecContext, public RefCounted, public DynInstParent
 
 // PRE support
 public:
-    std::vector<Addr> getInstProducerPCs();
+    std::vector<RegIndex> getArchSrcRegIndicies();
     void debugPrintStatus();
     void printSrcRegs();
 };

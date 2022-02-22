@@ -34,7 +34,7 @@ def write_to_csv(file, data_dict):
             writer.writerow([key, value])
 
 prefixes = ['system.', 'cpu.', 'cpu.mmu.', 'mem_ctrl.dram.',
-        'l2cache.', 'fetch.', 'branchPred.'
+        'l2cache.', 'fetch.', 'branchPred.', 'decode.', 'rename.'
 ]
 
 def split_name(key):

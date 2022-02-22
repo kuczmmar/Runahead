@@ -56,7 +56,6 @@
 #include "debug/HtmCpu.hh"
 #include "debug/PreLSQ.hh"
 #include "debug/PreWriteback.hh"
-#include "debug/PreDebug.hh"
 #include "params/PreO3CPU.hh"
 
 namespace gem5
@@ -239,7 +238,7 @@ LSQ::insertStore(const DynInstPtr &store_inst)
 {
     ThreadID tid = store_inst->threadNumber;
     if (cpu->isInPreMode())
-        DPRINTF(PreDebug, "Insert Store Instruction to SQ in PRE mode [sn:%llu]\n",
+        DPRINTF(PreLSQ, "Insert Store Instruction to SQ in PRE mode [sn:%llu]\n",
             store_inst->seqNum);
 
     thread[tid].insertStore(store_inst);
