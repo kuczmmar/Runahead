@@ -10,3 +10,5 @@ gem5/stats/simple.csv
 /gem5/lib
 /gem5/bin
 gem5/parsetab.py
+*.o
+benchmarks/**/a.out

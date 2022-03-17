@@ -1,0 +1,34 @@
+Begin parsing!
+czw, 17 lut 2022, 12:15:31 GMT
+Parsing stats from file ../m5out_copy/base/rob192_1k
+
+czw, 17 lut 2022, 12:15:31 GMT
+Parsing stats from file ../m5out_copy/base/rob192_1000k
+
+czw, 17 lut 2022, 12:15:31 GMT
+Parsing stats from file ../m5out_copy/base/rob192_100k
+
+[1mgem5-mcpat-parser 2017
+[config.ini]: finished parsing!
+[stats.txt]: finished parsing!
+Parsing template...
+[1mfinish filling![0m
+[32mParsing was successful!
+[0m[1mgem5-mcpat-parser 2017
+[config.ini]: finished parsing!
+[stats.txt]: finished parsing!
+Parsing template...
+[1mgem5-mcpat-parser 2017
+[config.ini]: finished parsing!
+[stats.txt]: finished parsing!
+Parsing template...
+[1mfinish filling![0m
+[1mfinish filling![0m
+[32mParsing was successful!
+[0m[32mParsing was successful!
+[0mComputing power with McPAT (storing in ../mcpat_data/base_rob192_1000k/mcpat_out.txt)
+Computing power with McPAT (storing in ../mcpat_data/base_rob192_1k/mcpat_out.txt)
+Computing power with McPAT (storing in ../mcpat_data/base_rob192_100k/mcpat_out.txt)
+./compute ../m5out_copy/base/rob192_1k ../m5out_copy/base/rob192_1k_config template.xml ../mcpat_data/base_rob192_1k/conf.xml gem5-mcpat-parser ../mcpat/mcpat 5 ../mcpat_data/base_rob192_1k/mcpat_out.txt
+./compute ../m5out_copy/base/rob192_1000k ../m5out_copy/base/rob192_1000k_config template.xml ../mcpat_data/base_rob192_1000k/conf.xml gem5-mcpat-parser ../mcpat/mcpat 5 ../mcpat_data/base_rob192_1000k/mcpat_out.txt
+./compute ../m5out_copy/base/rob192_100k ../m5out_copy/base/rob192_100k_config template.xml ../mcpat_data/base_rob192_100k/conf.xml gem5-mcpat-parser ../mcpat/mcpat 5 ../mcpat_data/base_rob192_100k/mcpat_out.txt

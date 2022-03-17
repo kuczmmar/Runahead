@@ -2,6 +2,7 @@
 
 #Optimization flags
 export CCC_OPTS=-O3
+export CCC_OPTS_ADD=-static
 
 COMPILER=gcc
 if [ ! -z $1 ] ; then
@@ -20,15 +21,18 @@ do
 
 if [ -d "$i" ] 
 then
+ echo $i
+ echo
  tmp=$PWD
  cd $i
- if [ -d "src_work" ] 
+ if [ -d "src" ] 
  then
   # *** process directory ***
   echo "**********************************************************"
   echo $i
-  cd src_work
-  __compile $COMPILER
+  cd src
+  echo $PWD
+  ./__compile $COMPILER
   echo ""
   ls -l a.out 
   echo ""
