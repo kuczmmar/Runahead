@@ -30,8 +30,7 @@ PRE_DEBUG=""
 # BASE_DEBUG="--debug-flags=Commit,RunaheadCompare,RunaheadEnter,O3CPUAll"
 # RA_DEBUG="--debug-flags=RunaheadDebug,CACHE,MSHR,RunaheadCommit"
 # PRE_DEBUG="--debug-flags=PreEnter,Fetch,PreDebug,Commit,PreIQ,PreIEW,PreRename,PreO3CPU"
-# PRE_DEBUG="--debug-flags=PreEnter,PreDebug,Commit,PreIEW,PreO3CPU"
-PRE_DEBUG="--debug-flags=PreEnter,PreDebug"
+# PRE_DEBUG="--debug-flags=PreEnter,PreDebug,Commit,PreIEW,PreO3CPU,PreRename,PreIQ"
 
 
 echo_lines() {
@@ -82,26 +81,45 @@ run_pre() {
 run_all() {
   run_base $1 $2 $3 &\
   run_run  $1 $2 $3 &\
-  run_pre  $1 $2 $3 &\
+  run_pre  $1 $2 $3 
 }
 
 
 # WARNING: Clears previous statistics outputs
 # rm -r m5out/
-rm -r out/
+# rm -r out/
 mkdir -p out m5out/base m5out/run m5out/pre
 echo_lines
 
-run_all  500000 '64kB' 192 &\
-run_all  10000 '128kB' 192 &\
-run_all  525000 '256kB' 192
-# run_all 1000000 '256kB' 192 
+run_all  100000 '64kB' 128  &
+run_pre  525000 '256kB' 128  &  # crash
+run_pre  525000 '256kB' 64   &  # crash
+run_all  525000 '128kB' 192  &   # crash
+run_all  1000000 '256kB' 192 &
+run_pre  525000 '128kB' 192   &   # runs
+run_pre  525000 '256kB' 192  & # runs
+run_all  525000 '256kB' 192 &
+run_all  500000 '256kB' 192 &
+run_all  500000 '128kB' 192 &
+
+
+# runs fine:
+run_all  100000 '128kB' 128 &
+run_all  100000 '128kB' 128 &
+run_all  100000 '128kB' 64
+# run_pre  100000 '64kB' 64 &
+# run_all  50000 '128kB' 128 & 
+# run_pre  50000 '64kB' 128 & 
+# run_all  60000 '128kB' 128 &
+# run_pre  60000 '64kB' 128
 
 # --l1i_size='32kB' --l1d_size='64kB' --l2_size='128kB'
+wait
+wait
 wait
 python3 stats/summarize_stats.py m5out stats/simple.csv
 
 echo_lines
 cat stats/simple.csv  |sed 's/,/ ,/g' | column -t -s, 
 
-# grep -hnr -B 2 -A 2 '6072588\|6072575\|runahead' out/pre192_525k.txt > out/grepped.txt
+# grep -hnr -B 4 -A 4 '2676394\|2676393' out/pre_rob64_525k_256kB.txt > out/grepped.txt

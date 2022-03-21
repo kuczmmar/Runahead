@@ -430,15 +430,18 @@ IEW::emptySkidBuffer(ThreadID tid)
         "[tid:%i]\n", tid);
 
     while (!skidBuffer[tid].empty()) {
-        // TODO why does this work?
-        if (!(skidBuffer[tid].front()->seqNum > fromCommit->commitInfo[tid].doneSeqNum)) {
-            std::cout << "skidBuffer[tid].front()->seqNum: " << skidBuffer[tid].front()->seqNum << \
-                "fromCommit->commitInfo[tid].doneSeqNum: " << fromCommit->commitInfo[tid].doneSeqNum << "\n";
-        }
-        assert(skidBuffer[tid].front()->seqNum >= fromCommit->commitInfo[tid].doneSeqNum);
-        if (skidBuffer[tid].front()->seqNum == fromCommit->commitInfo[tid].doneSeqNum) {
-            DPRINTF(PreIEW, "seq num in skidBuffer: %i, done seq num: %i\n", 
-                skidBuffer[tid].front()->seqNum, fromCommit->commitInfo[tid].doneSeqNum);
+        /*  If there is any younger instruction than the squash number 
+            then stop emptying - this instruction may be already in the 
+            ROB if this is a squash after PRE. Otherwise it will be
+            marked as squashed and ignored when the dispatch stage
+            takes instructions from the skidBuffer.
+        */
+        if (skidBuffer[tid].front()->seqNum <= 
+            fromCommit->commitInfo[tid].doneSeqNum) {
+            DPRINTF(PreDebug, "skidBuffer[tid].front()->seqNum: %i, "
+                "fromCommit->commitInfo[tid].doneSeqNum: %i\n",
+                skidBuffer[tid].front()->seqNum, 
+                fromCommit->commitInfo[tid].doneSeqNum);
             break;
         }
         
@@ -570,7 +573,8 @@ void
 IEW::unblock(ThreadID tid)
 {
     DPRINTF(PreIEW, "[tid:%i] Reading instructions out of the skid "
-            "buffer %u.\n",tid, tid);
+            "buffer.\n",tid);
+    print_queue(skidBuffer[tid]);
 
     // If the skid bufffer is empty, signal back to previous stages to unblock.
     // Also switch status to running.
@@ -741,17 +745,6 @@ IEW::updateStatus()
     }
 }
 
-void print_queue(std::queue<gem5::pre::DynInstPtr> q)
-{
-    DPRINTF(PreIEW, "Skid buffer: ");    
-    while (!q.empty())
-    {
-        DPRINTF_NO_LOG(PreIEW, " %i,", q.front()->seqNum);    
-        q.pop();
-    }
-    DPRINTF_NO_LOG(PreIEW, "\n");    
-}
-
 bool
 IEW::checkStall(ThreadID tid)
 {
@@ -762,7 +755,6 @@ IEW::checkStall(ThreadID tid)
         ret_val = true;
     } else if (instQueue.isFull(tid)) {
         DPRINTF(PreIEW,"[tid:%i] Stall: IQ is full.\n",tid);
-        print_queue(skidBuffer[tid]);
         ret_val = true;
     }
 
@@ -823,10 +815,22 @@ IEW::checkSignalsAndUpdate(ThreadID tid)
     if (dispatchStatus[tid] == Squashing) {
         // Switch status to running if rename isn't being told to block or
         // squash this cycle.
-        DPRINTF(PreIEW, "[tid:%i] Done squashing, switching to running.\n",
-                tid);
-
-        dispatchStatus[tid] = Running;
+        if (skidBuffer->empty()){
+            DPRINTF(PreIEW, "[tid:%i] Done squashing, switching to running.\n",
+                    tid);
+            dispatchStatus[tid] = Running;
+        } else {
+            // This can happen after exiting PRE, 
+            // when the skidBuffer has some instructions younger than the
+            // squash sequence number, this means we want to keep them around
+            // until they are inserted into IQ and executed properly.
+            // Switch the status to unblocking so that dispatch will
+            // take instructions from skidBuffer in the next cycle. 
+            DPRINTF(PreIEW, "[tid:%i] Done squashing, skidBuffer still has "
+                "instructions switching to running.\n", tid);
+            block(tid);
+            dispatchStatus[tid] = Blocked;
+        }
 
         return;
     }
@@ -966,6 +970,7 @@ IEW::dispatchInsts(ThreadID tid)
         if (dispatchStatus[tid] == Unblocking) {
             DPRINTF(PreIEW, "[tid:%i] Issue: Examining instruction from skid "
                     "buffer\n", tid);
+            print_queue(skidBuffer[tid]);
         }
 
         // Make sure there's a valid instruction there.
@@ -1008,7 +1013,6 @@ IEW::dispatchInsts(ThreadID tid)
             if (dispatchStatus[tid] == Unblocking){
                 DPRINTF(PreIEW, "Dispatch unblocking! IQ Full, sn:%i,"
                 " size of skidBuffer: %d\n", inst->seqNum, skidBuffer->size());
-                print_queue(skidBuffer[tid]);
             }
             // Call function to start blocking.
             block(tid);
@@ -1712,6 +1716,18 @@ IEW::checkMisprediction(const DynInstPtr& inst)
             }
         }
     }
+}
+
+void 
+IEW::print_queue(std::queue<gem5::pre::DynInstPtr> q)
+{
+    DPRINTF(PreIEW, "Skid buffer: ");    
+    while (!q.empty())
+    {
+        DPRINTF_NO_LOG(PreIEW, " %i,", q.front()->seqNum);    
+        q.pop();
+    }
+    DPRINTF_NO_LOG(PreIEW, "\n");    
 }
 
 } // namespace pre

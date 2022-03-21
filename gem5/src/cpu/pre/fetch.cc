@@ -1097,7 +1097,7 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
         cpu->cpuStats.fetchedRA++;
         instruction->setRunaheadInst();
 
-        DPRINTF(PreDebug, "Fetched inst [sn:%d] addr:%#lx in PRE mode\n", 
+        DPRINTF(Fetch, "Fetched inst [sn:%d] addr:%#lx in PRE mode\n", 
             instruction->seqNum, instruction->instAddr());
     }
 

@@ -1885,6 +1885,7 @@ CPU::enterPreMode(DynInstPtr inst, ThreadID tid)
         lastFetched->seqNum, lastFetched->instAddr(), lastFetched->readPredTarg());
 
     _inPre = true;
+    // trace_in_RA = true;
     raTriggerInst = inst;
     ra_tid = tid;
     inst->setTriggeredRunahead();
@@ -1915,6 +1916,7 @@ CPU::exitPreMode()
 {
     assert(_inPre);
     _inPre = false;
+    // trace_in_RA = false;
     DPRINTF(PreEnter, "Exit runahead mode!\n");
     lastNonRaInst = rob.readLastInst(ra_tid)->seqNum;
 

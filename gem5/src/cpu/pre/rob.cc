@@ -529,7 +529,9 @@ ROB::ROBStats::ROBStats(statistics::Group *parent)
 DynInstPtr
 ROB::findInst(ThreadID tid, InstSeqNum squash_inst)
 {
+    DPRINTF(PreDebug, "ROB findInst sn:%llu \n", squash_inst);
     for (InstIt it = instList[tid].begin(); it != instList[tid].end(); it++) {
+        DPRINTF_NO_LOG(PreDebug, "%llu, ", (*it)->seqNum);
         if ((*it)->seqNum == squash_inst) {
             return *it;
         }
@@ -578,6 +580,20 @@ const DynInstPtr&
 ROB::readLastInst(ThreadID tid)
 {
     return instList[tid].back();
+}
+
+DynInstPtr
+ROB::findFirstNotOlderInst(ThreadID tid, InstSeqNum sn)
+{
+    DPRINTF(PreDebug, "ROB find inst not older than sn:%llu \n", sn);
+    std::list<DynInstPtr>::reverse_iterator rit;
+    for (rit = instList[tid].rbegin(); rit != instList[tid].rend(); ++rit) {
+        DPRINTF_NO_LOG(PreDebug, "%llu, ", (*rit)->seqNum);
+        if ((*rit)->seqNum <= sn) {
+            return *rit;
+        }
+    }
+    panic("No younger valid instruction found");
 }
 
 } // namespace pre

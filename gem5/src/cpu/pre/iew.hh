@@ -501,6 +501,7 @@ class IEW
 public:
   void emptySkidBuffer(ThreadID tid);
   void squashDueToRunaheadExit(const DynInstPtr &inst, ThreadID tid);
+  void print_queue(std::queue<gem5::pre::DynInstPtr> q);
 };
 
 } // namespace pre

@@ -352,7 +352,15 @@ public:
    *  @return Pointer to the DynInst that is at the tail of the ROB.
    */
   const DynInstPtr &readLastInst(ThreadID tid);
-  
+
+  /**
+   * @brief Finds and returns the youngest instruction in ROB
+   *        that is not older than a given sequance number sn
+   * @param tid 
+   * @param sn 
+   * @return DynInstPtr 
+   */
+  DynInstPtr findFirstNotOlderInst(ThreadID tid, InstSeqNum sn);
 };
 
 } // namespace pre

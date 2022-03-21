@@ -546,6 +546,7 @@ Commit::squashAll(ThreadID tid)
     // number as the youngest instruction in the ROB (0 in this case.
     // Hopefully nothing breaks.)
     youngestSeqNum[tid] = lastCommitedSeqNum[tid];
+    DPRINTF(PreDebug, "Setting youngestSeqNum = %i\n", youngestSeqNum[tid]);
 
     rob->squash(squashed_inst, tid);
     changedROBNumEntries[tid] = true;
@@ -829,25 +830,31 @@ Commit::commit()
         }
 
         InstSeqNum squashed_inst = fromIEW->squashedSeqNum[tid];
-        bool change_pc = false;
-        TheISA::PCState new_pc;
+        TheISA::PCState pc = fromIEW->pc[tid];
 
-        // In a case when we need to exit PRE and the youngest valid (i.e. not squashed) 
-        // instruction in ROB is smaller than the squashSeqNum, then we want to squash until
-        // the youngest valid instruction to make sure that the squash signal will get 
-        // propagated to all earlier stages of pipeline
+        /*
+            In a case when we need to exit PRE and if the youngest valid (i.e. not squashed) 
+            instruction in ROB is smaller than the squashSeqNum, then we want to squash until
+            the youngest valid instruction to make sure that the squash signal will get 
+            propagated to all earlier stages of pipeline.
+            Sometimes the youngestSeqNum stores a seq_num which is not present in ROB,
+            in such a case the youngest instruction which is not older than youngestSeqNum 
+            is found and its PC used as the target PC to redirect the fetch stage
+        */
         if (fromIEW->squashAfterPRE[tid] && (squashed_inst > youngestSeqNum[tid])) {
-            DPRINTF(PreDebug, "Changing squash seq num after PRE sn:%i\n",
-                fromIEW->squashedSeqNum[tid]);
+            DynInstPtr new_squashed_inst = 
+                rob->findFirstNotOlderInst(tid, youngestSeqNum[tid]);
+            pc = new_squashed_inst->pcState();
+            squashed_inst = new_squashed_inst->seqNum;
             
-            squashed_inst = youngestSeqNum[tid];
-            change_pc = true;
-            new_pc = rob->findInst(tid, squashed_inst)->pcState();
+            DPRINTF(PreDebug, "Changing squash seq num after PRE from sn:%i to sn:%i\n",
+                fromIEW->squashedSeqNum[tid], squashed_inst);
         }
 
-        // Squashed sequence number must be older than youngest valid
-        // instruction in the ROB. This prevents squashes from younger
-        // instructions overriding squashes from older instructions.
+        /* Squashed sequence number must be older than youngest valid
+           instruction in the ROB. This prevents squashes from younger
+           instructions overriding squashes from older instructions.
+        */
         if (fromIEW->squash[tid] &&
             commitStatus[tid] != TrapPending &&
             squashed_inst <= youngestSeqNum[tid]) {
@@ -868,8 +875,8 @@ Commit::commit()
                     squashed_inst);
             }
 
-            DPRINTF(Commit, "[tid:%i] Redirecting to PC %#x\n",
-                    tid, change_pc ? new_pc : fromIEW->pc[tid]);
+            DPRINTF(Commit, "[tid:%i] Redirecting to PC %#x, from sn%i\n",
+                    tid, pc, squashed_inst);
 
             commitStatus[tid] = ROBSquashing;
 
@@ -908,7 +915,7 @@ Commit::commit()
                 ++stats.branchMispredicts;
             }
 
-            toIEW->commitInfo[tid].pc = change_pc ? new_pc : fromIEW->pc[tid];
+            toIEW->commitInfo[tid].pc = pc;
 
         } else if (fromIEW->squash[tid]) {
             DPRINTF(Commit, "Cannot begin Squashing: squash:%d, trap pending:%d, squash seqNum:%i, "
@@ -985,8 +992,8 @@ Commit::commitInsts()
     ////////////////////////////////////
 
     DPRINTF(Commit, "Trying to commit instructions in the ROB.\n");
-    // DPRINTF(PreDebug, "ROB at commit: ");
-    // rob->debugPrintROB();
+    DPRINTF(PreDebug, "ROB at commit: ");
+    rob->debugPrintROB(false);
 
 
     // DPRINTF(PreDebug, "SST at commit: ");

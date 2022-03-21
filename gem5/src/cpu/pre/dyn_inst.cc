@@ -359,8 +359,8 @@ DynInst::printSrcRegs()
         PhysRegIdPtr r = regs.renamedSrcIdx(s);
         if (r == nullptr)
             continue;
-        DPRINTF_NO_LOG(PreDebug, "  [sn:%i] reg: %d, ready: %d, lastInstProducer:%i\n", 
-            seqNum, r, regs.readySrcIdx(s), r->lastInstProducerSeqNum);
+        DPRINTF_NO_LOG(PreDebug, "  [sn:%i] reg: %u, ready: %d, lastInstProducer:%i\n", 
+            seqNum, r->index(), regs.readySrcIdx(s), r->lastInstProducerSeqNum);
     }
 }
 

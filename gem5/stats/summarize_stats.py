@@ -23,7 +23,9 @@ def read_file_line_by_line():
     lines = file1.readlines()
     item_list = []
     for line in lines:
-        item_list.append(line.strip())
+        l = line.strip()
+        if l and l[0] != '#':
+            item_list.append(l)
     file1.close()
     return item_list
 
