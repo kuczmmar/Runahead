@@ -13,6 +13,7 @@ gem5/parsetab.py
 *.o
 benchmarks/**/a.out
 parsing_data/mcpat/mcpat
+
 parsing_data/mcpat_out/*
 /benchmarks/cbench/automotive_susan_c/src/_finfo_dataset
 /benchmarks/cbench/automotive_susan_c/src/ftmp_out
@@ -26,3 +27,4 @@ parsing_data/mcpat_out/*
 /benchmarks/cbench/consumer_lame/src/_finfo_dataset
 /benchmarks/cbench/consumer_lame/src/ftmp_out
 /benchmarks/cbench/consumer_lame/src/tmp_bat
+

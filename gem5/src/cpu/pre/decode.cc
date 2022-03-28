@@ -704,11 +704,13 @@ Decode::decodeInsts(ThreadID tid)
                 } else {
                     // The CPU is in PRE mode, but the instruction address does not hit in SST
                     // don't send this instruction to rename
+                    DPRINTF(PreDebug, "Inst sn:%i did not hit in SST\n",
+                        inst->seqNum);
                     ++stats.squashedInsts;
                     --insts_available;
                     continue;
                 }
-            }
+            } 
         }
 
 

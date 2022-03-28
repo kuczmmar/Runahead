@@ -1099,6 +1099,10 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
 
         DPRINTF(Fetch, "Fetched inst [sn:%d] addr:%#lx in PRE mode\n", 
             instruction->seqNum, instruction->instAddr());
+        
+        // TODO remove
+        DPRINTF(PreDebug, "Fetched inst [sn:%d] addr:%#lx in PRE mode\n", 
+            instruction->seqNum, instruction->instAddr());
     }
 
     return instruction;

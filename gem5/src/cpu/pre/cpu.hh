@@ -731,6 +731,8 @@ class CPU : public BaseCPU
         statistics::Scalar totalExecutedPRE;
         statistics::Formula executedPREAvg;
         statistics::Scalar sstHitsPRE;
+        statistics::Scalar iqFullRa;
+        statistics::Scalar prdqEntriesRecycled;
     } cpuStats;
 
     // hardware transactional memory

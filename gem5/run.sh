@@ -42,7 +42,7 @@ PRE_DEBUG=""
 # RA_DEBUG="--debug-flags=RunaheadDebug,CACHE,MSHR,RunaheadCommit"
 # PRE_DEBUG="--debug-flags=PreEnter,Fetch,PreDebug,Commit,PreIQ,PreIEW,PreRename,PreO3CPU"
 # PRE_DEBUG="--debug-flags=PreEnter,PreDebug,Commit,PreIEW,PreO3CPU,PreRename,PreIQ"
-
+PRE_DEBUG="--debug-flags=PreEnter,PreDebug,Commit,PreO3CPU,PreRename,O3CPUAll"
 
 echo_lines() {
   yes '' | sed 3q
@@ -113,8 +113,8 @@ run_all_randacc() {
 
 
 # WARNING: Clears previous statistics outputs
-# rm -r m5out/
-# rm -r out/
+rm -r m5out/
+rm -r out/
 mkdir -p out m5out/base m5out/run m5out/pre
 echo_lines
 
@@ -136,6 +136,7 @@ echo_lines
 # run_all           $SUSAN_ARG  '128kB' 128 "susan" $SUSAN &
 # run_all_randacc   500000      '256kB' 192 &
 # run_all_randacc   600000      '256kB' 192 &
+
 run_all           $SUSAN_ARG  '256kB' 192 "susan" $SUSAN
 # run_base           $BZIP2D_ARG  '256kB' 192 "bzip2d" $BZIP2D
 # runs fine:
@@ -143,12 +144,13 @@ run_all           $SUSAN_ARG  '256kB' 192 "susan" $SUSAN
 # run_all  100000 '128kB' 128 &
 # run_all  100000 '128kB' 64
 
+run_pre  500000 '128kB' 192
+
 # run_pre  100000 '64kB' 64 &
 # run_all  50000 '128kB' 128 & 
 # run_pre  50000 '64kB' 128 & 
 # run_all  60000 '128kB' 128 &
 # run_pre  60000 '64kB' 128
-
 # run_all_randacc 60000 '64kB' 128
 
 
@@ -160,4 +162,5 @@ python3 stats/summarize_stats.py m5out stats/simple.csv
 echo_lines
 cat stats/simple.csv  |sed 's/,/ ,/g' | column -t -s, 
 
-# grep -hnr -B 4 -A 4 '2676394\|2676393' out/pre_rob64_525k_256kB.txt > out/grepped.txt
+grep -hnr -B 4 -A 4 'PRDQ\|SST\|runahead\|14738\|PRE' out/pre_rob192_500k_128kB.txt > out/grepped.txt
+# head -n 100000 out/grepped.txt > out/grepped.txt

@@ -23,3 +23,5 @@ system.cpu.rename.fullRegistersEvents
 system.cpu.iqFullEvents 
 system.cpu.totalExecutedPRE
 system.cpu.totalDecodedRA
+system.cpu.iqFullRa
+system.cpu.prdqEntriesRecycled

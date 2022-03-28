@@ -543,15 +543,18 @@ class Rename
       int16_t instId;
       bool executed;
     };
+    typedef std::shared_ptr<prdqEntry> prdqEntryPtr;
 
     // precise register deallocation queue
-    std::deque<prdqEntry> prdq;
+    std::deque<prdqEntryPtr> prdq;
 
   public:
     int16_t prdqGetInstId(const DynInstPtr &inst);
     void prdqMarkInstExecuted(const DynInstPtr &inst);
     bool prdqRetireEntry();
     void prdqAddEntry(const DynInstPtr &inst, const PhysRegIdPtr &old_reg);
+    void debugPrintPRDQ();
+    void emptyPRDQ();
 
 };
 

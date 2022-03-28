@@ -546,7 +546,6 @@ Commit::squashAll(ThreadID tid)
     // number as the youngest instruction in the ROB (0 in this case.
     // Hopefully nothing breaks.)
     youngestSeqNum[tid] = lastCommitedSeqNum[tid];
-    DPRINTF(PreDebug, "Setting youngestSeqNum = %i\n", youngestSeqNum[tid]);
 
     rob->squash(squashed_inst, tid);
     changedROBNumEntries[tid] = true;

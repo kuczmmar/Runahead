@@ -571,6 +571,10 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
     DPRINTF(PreIQ, "Inserting instruction [sn:%llu] PC %s to the IQ. [isRA:%d]\n",
             new_inst->seqNum, new_inst->pcState(), new_inst->isRunaheadInst());
 
+    if (cpu->isInPreMode()) {
+        DPRINTF(PreDebug, "Inserting instruction [sn:%llu] to the IQ in PRE [isRA:%d]\n",
+                new_inst->seqNum, new_inst->isRunaheadInst());
+    }
     assert(freeEntries != 0);
 
     instList[new_inst->threadNumber].push_back(new_inst);

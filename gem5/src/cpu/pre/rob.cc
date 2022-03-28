@@ -529,9 +529,7 @@ ROB::ROBStats::ROBStats(statistics::Group *parent)
 DynInstPtr
 ROB::findInst(ThreadID tid, InstSeqNum squash_inst)
 {
-    DPRINTF(PreDebug, "ROB findInst sn:%llu \n", squash_inst);
     for (InstIt it = instList[tid].begin(); it != instList[tid].end(); it++) {
-        DPRINTF_NO_LOG(PreDebug, "%llu, ", (*it)->seqNum);
         if ((*it)->seqNum == squash_inst) {
             return *it;
         }

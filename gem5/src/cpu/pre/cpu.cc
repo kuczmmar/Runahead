@@ -483,7 +483,11 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                 "average number of instructions decoded in runahead",
                 totalDecodedRA / enterRA),
       ADD_STAT(sstHitsPRE, statistics::units::Count::get(),
-               "Number of hits in stalling slice table during PRE")
+               "Number of hits in stalling slice table during PRE"),
+      ADD_STAT(iqFullRa, statistics::units::Count::get(), 
+                "Number of IQ full events during RA"),
+      ADD_STAT(prdqEntriesRecycled, statistics::units::Count::get(),
+                "Number of registers recycled by RRR in PRE.")
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -589,6 +593,8 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     totalExecutedPRE.prereq(totalExecutedPRE);
     executedPREAvg.precision(3);
     sstHitsPRE.prereq(sstHitsPRE);
+    iqFullRa.prereq(iqFullRa);
+    prdqEntriesRecycled.prereq(prdqEntriesRecycled);
 }
 
 void
@@ -1885,7 +1891,6 @@ CPU::enterPreMode(DynInstPtr inst, ThreadID tid)
         lastFetched->seqNum, lastFetched->instAddr(), lastFetched->readPredTarg());
 
     _inPre = true;
-    // trace_in_RA = true;
     raTriggerInst = inst;
     ra_tid = tid;
     inst->setTriggeredRunahead();
@@ -1916,7 +1921,6 @@ CPU::exitPreMode()
 {
     assert(_inPre);
     _inPre = false;
-    // trace_in_RA = false;
     DPRINTF(PreEnter, "Exit runahead mode!\n");
     lastNonRaInst = rob.readLastInst(ra_tid)->seqNum;
 
@@ -1937,6 +1941,7 @@ CPU::exitPreMode()
     DPRINTF_NO_LOG(PreEnter, "\n");
 
     iew.squashDueToRunaheadExit(lastInstBeforePRE[ra_tid], ra_tid);
+    rename.emptyPRDQ();
     cycleAfterPre = 0;
 }
 

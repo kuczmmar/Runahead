@@ -1023,6 +1023,8 @@ IEW::dispatchInsts(ThreadID tid)
             toRename->iewUnblock[tid] = false;
 
             ++iewStats.iqFullEvents;
+            ++cpu->cpuStats.iqFullRa;
+            
             break;
         }
 
@@ -1240,11 +1242,21 @@ IEW::executeInsts()
 
         if (cpu->isInPreMode()) {
             DPRINTF(PreIEW, "Executing inst sn:%i in PRE\n", inst->seqNum);
+            // TODO remove
+            DPRINTF(PreDebug, "Executing inst sn:%i in PRE\n", inst->seqNum);
+            if (!inst->isInROB()){
+                DPRINTF(PreDebug, "PRE inst not in ROB! sn:%i\n", inst->seqNum);
+            }
             inst->setRunaheadInst();
             cpu->cpuStats.totalExecutedPRE++;
         }
 
         DPRINTF(PreIEW, "Execute: Executing instructions from IQ sn:%d.\n", inst->seqNum); 
+
+        if (cpu->isInPreMode()){
+            DPRINTF(PreDebug, "Execute in PRE: Executing instructions from IQ sn:%d.\n", 
+                inst->seqNum); 
+        }
 
         DPRINTF(PreIEW, "Execute: Processing PC %s, [tid:%i] [sn:%llu].\n",
                 inst->pcState(), inst->threadNumber,inst->seqNum);
