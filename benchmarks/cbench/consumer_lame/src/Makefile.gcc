@@ -20,7 +20,7 @@ endif
 # Actions
 all:		
 	$(ZCC) $(CCC_OPTS) $(CCC_OPTS_ADD) -c -DLAMESNDFILE -DHAVEMPGLIB -DLAMEPARSE *.c
-	$(LDCC) $(LD_OPTS) $(CCC_OPTS_ADD) -lm *.o
+	$(LDCC) $(LD_OPTS) $(CCC_OPTS_ADD) *.o -lm
 
 clean:
 	rm -f a.out *.o *.a *.s *.i *.I

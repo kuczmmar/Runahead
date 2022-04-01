@@ -3,6 +3,7 @@
 #Optimization flags
 export CCC_OPTS=-O3
 export CCC_OPTS_ADD=-static
+export CCC_OPTS_ADD='-static -lstdc++'
 
 COMPILER=gcc
 if [ ! -z $1 ] ; then
