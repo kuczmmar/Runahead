@@ -63,7 +63,7 @@ default_binary = os.path.join(thispath, '../../../',
 
 # Binary to execute
 SimpleOpts.add_option("--binary", nargs='?', default=default_binary, help="Test binary")
-SimpleOpts.add_option("--binary_args", help="Arguments to the test binary")
+SimpleOpts.add_option("--binary_args", help="Arguments to the test binary", type=str)
 SimpleOpts.add_option("--mode", default='baseline', choices=['baseline', 'runahead', 'pre'], 
     help="Which implementstion of the o3 CPU should be run")
 SimpleOpts.add_option("--rob_size", help="size of re-order buffer", default=192)
@@ -154,7 +154,10 @@ process = Process()
 # Set the command
 # cmd is a list which begins with the executable (like argv)
 if args.binary_args:
-    process.cmd = [args.binary, args.binary_args]
+    cmd = [args.binary]
+    cmd.extend(args.binary_args.split(','))
+    print('cmd:', cmd)
+    process.cmd = cmd
 else:
     process.cmd = [args.binary]
 # Set the cpu to use the process as its workload and create thread contexts

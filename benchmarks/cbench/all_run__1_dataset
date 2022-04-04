@@ -18,17 +18,17 @@ if [ -d "$i" ]
 then
  tmp=$PWD
  cd $i
- if [ -d "src_work" ] 
+ if [ -d "src" ] 
  then
   # *** process directory ***
   echo "**********************************************************"
   echo $i
-  cd src_work
+  cd src
    for j in `seq 1 1`;
    do
     echo "##########################################################"
     echo "Dataset: $j"
-    __run $j
+    ./__run $j
    done
   # *************************
  fi

@@ -22,10 +22,14 @@ date
 RANDACC='../benchmarks/cgo2017/program/randacc/bin/x86/randacc-no'
 
 SUSAN='../benchmarks/cbench/automotive_susan_c/src/a.out'
-SUSAN_ARG="../benchmarks/cbench/automotive_susan_data/1.pgm,output_large.corners.pgm,-c"
+SUSAN_ARG='../benchmarks/cbench/automotive_susan_data/1.pgm,out/output_susan.pgm,-c'
 
+BZIP2D='./../benchmarks/cbench/bzip2d/src/a.out'
+BZIP2D_ARG='../benchmarks/cbench/bzip2_data/1.bz2,-d,-k,-f'
 
-
+# consumer_lame
+# "../../consumer_data/1.wav output_large.mp3 2> ftmp_out"
+ 
 
 # define paths to configuration files
 O3_TWO_LEVEL='configs/runahead/o3_2level.py'
@@ -124,16 +128,16 @@ echo_lines
 # run_all  525000 '256kB' 192 &
 # run_all  500000 '256kB' 192 &
 
-run_all_randacc   500000      '64kB' 128 &
-run_all_randacc   600000      '64kB' 128 &
-run_all           $SUSAN_ARG  '64kB' 128 "susan" $SUSAN &
-run_all_randacc   500000      '128kB' 128 &
-run_all_randacc   600000      '128kB' 128 &
-run_all           $SUSAN_ARG  '128kB' 128 "susan" $SUSAN &
-run_all_randacc   500000      '256kB' 192 &
-run_all_randacc   600000      '256kB' 192 &
+# run_all_randacc   500000      '64kB' 128 &
+# run_all_randacc   600000      '64kB' 128 &
+# run_all           $SUSAN_ARG  '64kB' 128 "susan" $SUSAN &
+# run_all_randacc   500000      '128kB' 128 &
+# run_all_randacc   600000      '128kB' 128 &
+# run_all           $SUSAN_ARG  '128kB' 128 "susan" $SUSAN &
+# run_all_randacc   500000      '256kB' 192 &
+# run_all_randacc   600000      '256kB' 192 &
 run_all           $SUSAN_ARG  '256kB' 192 "susan" $SUSAN
-
+# run_base           $BZIP2D_ARG  '256kB' 192 "bzip2d" $BZIP2D
 # runs fine:
 # run_all  100000 '128kB' 128 &
 # run_all  100000 '128kB' 128 &
