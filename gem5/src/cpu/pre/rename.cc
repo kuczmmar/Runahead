@@ -51,6 +51,7 @@
 #include "debug/O3PipeView.hh"
 #include "debug/PreRename.hh"
 #include "debug/PreDebug.hh"
+#include "debug/PrePRDQ.hh"
 #include "params/PreO3CPU.hh"
 
 namespace gem5
@@ -623,7 +624,7 @@ Rename::renameInsts(ThreadID tid)
         DynInstPtr inst = insts_to_rename.front();
         if (cpu->isInPreMode()){
             inst->setRunaheadInst();
-            DPRINTF(PreRename, "[tid:%i] Sending instruction sn:%i in PRE mode\n", tid, inst->seqNum);
+            DPRINTF(PreRename, "[tid:%i] Sending instruction sn:%llu in PRE mode\n", tid, inst->seqNum);
         }
 
         //For all kind of instructions, check ROB and IQ first For load
@@ -693,6 +694,12 @@ Rename::renameInsts(ThreadID tid)
             blockThisCycle = true;
             insts_to_rename.push_front(inst);
             ++stats.fullRegistersEvents;
+            if (cpu->isInPreMode() && !prdq.empty()) {
+                DPRINTF(PreDebug, 
+                    "Regs full event, can retire entry: %d\n", prdq.front()->executed);
+            } else if (!cpu->isInPreMode()) {
+                DPRINTF(PreDebug, "Regs full event not in PRE!\n");
+            }
 
             break;
         }
@@ -1097,7 +1104,7 @@ Rename::renameSrcRegs(const DynInstPtr &inst, ThreadID tid)
         } else {
             DPRINTF(PreRename,
                     "[tid:%i] "
-                    "Register %d (flat: %d) (%s) is not ready. [sn:%lli]last producer: %i\n",
+                    "Register %d (flat: %d) (%s) is not ready. [sn:%llu]last producer: %i\n",
                     tid, renamed_reg->index(), renamed_reg->flatIndex(),
                     renamed_reg->className(), inst->seqNum, 
                     renamed_reg->lastInstProducerSeqNum);
@@ -1141,14 +1148,6 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
 
 
         DPRINTF(PreRename,
-                "[tid:%i] "
-                "Renaming arch reg %i (%s) to physical reg %i (%i).\n",
-                cpu->isInPreMode(),
-                tid, dest_reg.index(), dest_reg.className(),
-                rename_result.first->index(),
-                rename_result.first->flatIndex());
-
-        DPRINTF(PreDebug,
                 "[tid:%i] "
                 "PRE:%d - Renaming arch reg %i (%s) to physical reg %i (%i).\n",
                 cpu->isInPreMode(),
@@ -1479,31 +1478,17 @@ Rename::dumpHistory()
 }
 
 
-int16_t 
-Rename::prdqGetInstId(const DynInstPtr &inst)
-{
-    return inst->seqNum;
-    // InstSeqNum diff = inst->seqNum - cpu->raTriggerInst->seqNum;
-    // if (diff >= (1<<16)) {
-    //     std::cout << "More than 1<<16 instrutions decoded in one RA interval!!!";
-    //     diff %= (1<<16); 
-    // }
-
-    // return (int16_t)diff;
-}
-
-
 void
 Rename::prdqMarkInstExecuted(const DynInstPtr &inst)
 {
-    int16_t id = prdqGetInstId(inst);
-    DPRINTF(PreDebug, "Mark sn: %i executed in PRDQ\n", inst->seqNum);
+    InstSeqNum id = inst->seqNum;
+    DPRINTF(PrePRDQ, "Mark sn: %llu executed in PRDQ\n", inst->seqNum);
 
     std::deque<prdqEntryPtr>::iterator it;
+    // there may be multiple entries per instruction
     for (it = prdq.begin(); it<prdq.end(); ++it){
         if (id == (*it)->instId) {
             (*it)->executed = true;
-            return;
         }
     }
     debugPrintPRDQ();
@@ -1513,49 +1498,86 @@ bool
 Rename::prdqRetireEntry()
 {
     // cannot retire any item if the queue is empty
-    if (prdq.empty()) { return false; }
+    if (prdq.empty() || !prdq.front()->executed) { 
+        DPRINTF(PrePRDQ, "Retire PRDQ called, empty or not executed!\n");
+        return false; 
+    }
 
-    prdqEntryPtr first = prdq.front();
-    if (first->executed) {
-        debugPrintPRDQ();
-        // free the physical register
-        freeList->addReg(first->physRegToFree);
-        DPRINTF(PreDebug, "Remove PRDQ entry reg:%i\n", 
-            first->physRegToFree->index());
+    InstSeqNum first_sn = prdq.front()->instId;
+    int retired = 0;
 
+    while ( prdq.front()->executed && 
+            prdq.front()->instId == first_sn) {    
+        DPRINTF(PrePRDQ, "Remove PRDQ entry reg:%llu\n", 
+                prdq.front()->physRegToFree->index());
         cpu->cpuStats.prdqEntriesRecycled++;
+        ++retired;
         prdq.pop_front();
+    }
+    if (retired) {
+        int freed = 0;
+
+        // free all physical registers associated with the retired
+        // entrie's instSeqNum
+        // try the same mechanism as in removeFromHistory()
+        int tid = 0;
+        auto hb_it = historyBuffer[tid].end();
+        --hb_it;
+        // while (!historyBuffer[tid].empty() &&
+        //     hb_it != historyBuffer[tid].end() &&
+        //     hb_it->instSeqNum <= first_sn) {
+            
+        //     if (first_sn == hb_it->instSeqNum) {
+        //         DPRINTF(PreDebug, "[tid:%i] Freeing up older rename of reg %i (%s), "
+        //                 "[sn:%llu].\n", tid, hb_it->prevPhysReg->index(),
+        //                 hb_it->prevPhysReg->className(), hb_it->instSeqNum);
+
+        //         // Don't free special phys regs like misc and zero regs, which
+        //         // can be recognized because the new mapping is the same as
+        //         // the old one.
+        //         if (hb_it->newPhysReg != hb_it->prevPhysReg) {
+        //             freeList->addReg(hb_it->prevPhysReg);
+                        // 
+        //         }
+        //         ++freed;
+        //         historyBuffer[tid].erase(hb_it--);
+        //     } else {
+        //         DPRINTF(PreDebug, "--hb ptr, current sn %llu\n", 
+        //             hb_it->instSeqNum);
+        //         --hb_it;
+        //     }
+        // }
+        // debugPrintPRDQ();
+
+        // panic_if(freed != retired, 
+        //     "Retired %d PRDQ entries but freed %d registers!",
+        //     retired, freed);
         return true;
     }
-    DPRINTF(PreDebug, "Retire PRDQ called, not empty but not executed!\n");
-    debugPrintPRDQ();
-    return false;
 }
 
 void
 Rename::prdqAddEntry(const DynInstPtr &inst, const PhysRegIdPtr &old_reg)
 {   
     // panic_if(prdq.size() > prdqMaxSize, "PRDQ size exceeded");
-    DPRINTF(PreDebug, "Add PRDQ entry sn:%i\n", inst->seqNum);
-
-    // todo is this safe? or should the struct be heap allocated?
+    DPRINTF(PrePRDQ, "Add PRDQ entry sn:%llu\n", inst->seqNum);
     prdqEntryPtr entry(new prdqEntry);
     entry->physRegToFree = old_reg;
-    entry->instId = prdqGetInstId(inst);
+    entry->instId = inst->seqNum;
     entry->executed = false;
 
     prdq.push_back(entry);
-    DPRINTF(PreDebug, "prdq size:%d\n", prdq.size());
+    DPRINTF(PrePRDQ, "prdq size:%d\n", prdq.size());
 }
 
 void 
 Rename::debugPrintPRDQ()
 {
-    DPRINTF(PreDebug, "PRDQ: \n %-8s, %-6s, %-2s\n", 
+    DPRINTF(PrePRDQ, "PRDQ: \n %-8s, %-6s, %-2s\n", 
         "register", "sn", "ex");
     std::deque<prdqEntryPtr>::iterator it;
     for (it = prdq.begin(); it<prdq.end(); ++it){
-        DPRINTF_NO_LOG(PreDebug, " %8d, %6i, %2d\n", 
+        DPRINTF_NO_LOG(PrePRDQ, " %8d, %6llu, %2d\n", 
             (*it)->physRegToFree->index(), (*it)->instId, 
             (*it)->executed);
     }

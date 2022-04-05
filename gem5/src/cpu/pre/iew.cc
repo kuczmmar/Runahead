@@ -1254,8 +1254,8 @@ IEW::executeInsts()
         DPRINTF(PreIEW, "Execute: Executing instructions from IQ sn:%d.\n", inst->seqNum); 
 
         if (cpu->isInPreMode()){
-            DPRINTF(PreDebug, "Execute in PRE: Executing instructions from IQ sn:%d.\n", 
-                inst->seqNum); 
+            DPRINTF(PreDebug, "PRE: Executing instructions from IQ sn:%d, inROB:%d.\n", 
+                inst->seqNum, inst->isInROB()); 
         }
 
         DPRINTF(PreIEW, "Execute: Processing PC %s, [tid:%i] [sn:%llu].\n",

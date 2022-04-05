@@ -60,6 +60,7 @@
 #include "debug/Activity.hh"
 #include "debug/Drain.hh"
 #include "debug/Fetch.hh"
+#include "debug/PreFetch.hh"
 #include "debug/O3PipeView.hh"
 #include "debug/PreO3CPU.hh"
 #include "mem/packet.hh"
@@ -1101,7 +1102,7 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
             instruction->seqNum, instruction->instAddr());
         
         // TODO remove
-        DPRINTF(PreDebug, "Fetched inst [sn:%d] addr:%#lx in PRE mode\n", 
+        DPRINTF(PreFetch, "Fetched inst [sn:%d] addr:%#lx in PRE mode\n", 
             instruction->seqNum, instruction->instAddr());
     }
 

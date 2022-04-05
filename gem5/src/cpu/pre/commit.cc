@@ -991,7 +991,7 @@ Commit::commitInsts()
     ////////////////////////////////////
 
     DPRINTF(Commit, "Trying to commit instructions in the ROB.\n");
-    DPRINTF(PreDebug, "ROB at commit: ");
+    DPRINTF(Commit, "ROB at commit: ");
     rob->debugPrintROB(false);
 
 
