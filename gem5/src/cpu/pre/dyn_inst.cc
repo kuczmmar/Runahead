@@ -191,9 +191,6 @@ DynInst::markSrcRegReady()
     DPRINTF(PreIQ, "[sn:%lli] has %d ready out of %d sources. RTI %d)\n",
             seqNum, readyRegs+1, numSrcRegs(), readyToIssue());
 
-    // TODO remove:
-    DPRINTF(PreDebug, "[sn:%lli] has %d ready out of %d sources. RTI %d)\n",
-            seqNum, readyRegs+1, numSrcRegs(), readyToIssue());
     if (++readyRegs == numSrcRegs()) {
         setCanIssue();
     }

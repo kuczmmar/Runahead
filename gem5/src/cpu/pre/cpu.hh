@@ -733,6 +733,7 @@ class CPU : public BaseCPU
         statistics::Scalar sstHitsPRE;
         statistics::Scalar iqFullRa;
         statistics::Scalar prdqEntriesRecycled;
+        statistics::Scalar preRegsFreed;
     } cpuStats;
 
     // hardware transactional memory
@@ -749,6 +750,10 @@ class CPU : public BaseCPU
   
   public:
     DynInstPtr raTriggerInst;
+    bool useSST;
+    bool useRRR;
+    bool exitPreWhenSquash;
+
     void enterPreMode(DynInstPtr inst, ThreadID tid);
     bool isInPreMode();
     void exitPreMode();
@@ -766,7 +771,11 @@ class CPU : public BaseCPU
     InstSeqNum lastNonRaInst;
 
     // Marks this instruction as executed within PRDQ in Rename
-    void markInstExecuted(const DynInstPtr &inst);
+    void markInstExecutedInPrdq(const DynInstPtr &inst);
+
+    void printPipeline();
+
+    void printIntRenameMap() { rename.printIntRenameMap(0); }
     
 };
 

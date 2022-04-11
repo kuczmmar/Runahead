@@ -65,7 +65,7 @@
 #include "debug/HtmCpu.hh"
 #include "debug/O3PipeView.hh"
 #include "debug/PreDebug.hh"
-#include "debug/PreCommit.hh"
+#include "debug/PrePipelineDebug.hh"
 #include "params/PreO3CPU.hh"
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
@@ -631,7 +631,7 @@ Commit::squashAfter(ThreadID tid, const DynInstPtr &head_inst)
 void
 Commit::tick()
 {
-    if (cpu->cycleAfterPre <= 10) {
+    if (cpu->cycleAfterPre <= 5) {
         DPRINTF(PreDebug, "cycles after PRE: %d\n", cpu->cycleAfterPre);
     }
     wroteToTimeBuffer = false;
@@ -990,9 +990,9 @@ Commit::commitInsts()
     // things at the same time...
     ////////////////////////////////////
 
-    DPRINTF(Commit, "Trying to commit instructions in the ROB.\n");
-    DPRINTF(Commit, "ROB at commit: ");
-    rob->debugPrintROB(false);
+    // DPRINTF(PrePipelineDebug, "Trying to commit instructions in the ROB.\n");
+    // DPRINTF(PrePipelineDebug, "ROB at commit: ");
+    // rob->debugPrintROB(false);
 
 
     // DPRINTF(PreDebug, "SST at commit: ");

@@ -622,9 +622,9 @@ Rename::renameInsts(ThreadID tid)
         assert(!insts_to_rename.empty());
 
         DynInstPtr inst = insts_to_rename.front();
-        if (cpu->isInPreMode()){
+        if (cpu->isInPreMode() && !inst->isInROB()){
             inst->setRunaheadInst();
-            DPRINTF(PreRename, "[tid:%i] Sending instruction sn:%llu in PRE mode\n", tid, inst->seqNum);
+            DPRINTF(PreRename, "[tid:%i] Sending PRE instruction sn:%llu to IEW\n", tid, inst->seqNum);
         }
 
         //For all kind of instructions, check ROB and IQ first For load
@@ -758,9 +758,6 @@ Rename::renameInsts(ThreadID tid)
         // Notify potential listeners that source and destination registers for
         // this instruction have been renamed.
         ppRename->notify(inst);
-
-        if (cpu->isInPreMode())
-            inst->setRunaheadInst();
 
         // Put instruction in rename queue.
         DPRINTF(PreRename, "Inst [sn:%lli] put into renameQueue, in PRE?:%d\n", 
@@ -953,6 +950,7 @@ void
 Rename::doSquash(const InstSeqNum &squashed_seq_num, ThreadID tid)
 {
     auto hb_it = historyBuffer[tid].begin();
+    PhysRegIdPtr newPhysReg;
 
     // After a syscall squashes everything, the history buffer may be empty
     // but the ROB may still be squashing instructions.
@@ -961,11 +959,19 @@ Rename::doSquash(const InstSeqNum &squashed_seq_num, ThreadID tid)
     while (!historyBuffer[tid].empty() &&
            hb_it->instSeqNum > squashed_seq_num) {
         assert(hb_it != historyBuffer[tid].end());
+        newPhysReg = hb_it->newPhysReg;
 
-        DPRINTF(PreRename, "[tid:%i] Removing history entry with sequence "
+        if (newPhysReg->renamedInPreMode){
+            DPRINTF(PreDebug, "renamedInPRE: Removing history entry with sequence "
+                    "number %i (archReg: %d, newPhysReg: %d, prevPhysReg: %d).\n", 
+                    hb_it->instSeqNum, hb_it->archReg.index(),
+                    newPhysReg->index(), hb_it->prevPhysReg->index());
+        } else {
+            DPRINTF(PreRename, "[tid:%i] Removing history entry with sequence "
                 "number %i (archReg: %d, newPhysReg: %d, prevPhysReg: %d).\n",
                 tid, hb_it->instSeqNum, hb_it->archReg.index(),
-                hb_it->newPhysReg->index(), hb_it->prevPhysReg->index());
+                newPhysReg->index(), hb_it->prevPhysReg->index());
+        }
 
         // Undo the rename mapping only if it was really a change.
         // Special regs that are not really renamed (like misc regs
@@ -973,20 +979,34 @@ Rename::doSquash(const InstSeqNum &squashed_seq_num, ThreadID tid)
         // is the same as the old one.  While it would be merely a
         // waste of time to update the rename table, we definitely
         // don't want to put these on the free list.
-        if (hb_it->newPhysReg != hb_it->prevPhysReg) {
+        if (newPhysReg != hb_it->prevPhysReg) {
             // Tell the rename map to set the architected register to the
             // previous physical register that it was renamed to.
             renameMap[tid]->setEntry(hb_it->archReg, hb_it->prevPhysReg);
 
+            DPRINTF(PreRename, "Squash: Freeing up rename of physical reg %i (%s), "
+                    "[sn:%llu] renamed in PRE: %d, wasFreed %d.\n",
+                    newPhysReg->index(), newPhysReg->className(),
+                    hb_it->instSeqNum, newPhysReg->renamedInPreMode, 
+                    newPhysReg->wasFreed);
+
             // Put the renamed physical register back on the free list.
-            freeList->addReg(hb_it->newPhysReg);
+            // Only do that if the register wasn't recently freed in PRE.
+            if (!newPhysReg->wasFreed){
+                freeList->addReg(newPhysReg);
+                DPRINTF(PreRename,"Squash sn: %llu Freeing register %i (%s)"
+                    "\n", hb_it->instSeqNum, newPhysReg->index(), 
+                    newPhysReg->className());
+                newPhysReg->freeSetRegFlags();
+            } else {
+                printf("Avoided freeing reg twice\n");
+            }
         }
 
         // Notify potential listeners that the register mapping needs to be
         // removed because the instruction it was mapped to got squashed. Note
         // that this is done before hb_it is incremented.
-        ppSquashInRename->notify(std::make_pair(hb_it->instSeqNum,
-                                                hb_it->newPhysReg));
+        ppSquashInRename->notify(std::make_pair(hb_it->instSeqNum, newPhysReg));
 
         historyBuffer[tid].erase(hb_it++);
 
@@ -1027,17 +1047,21 @@ Rename::removeFromHistory(InstSeqNum inst_seq_num, ThreadID tid)
            hb_it != historyBuffer[tid].end() &&
            hb_it->instSeqNum <= inst_seq_num) {
 
-        DPRINTF(PreRename, "[tid:%i] Freeing up older rename of reg %i (%s), "
-                "[sn:%llu].\n",
+        DPRINTF(PreRename, "[tid:%i] removeFromHistory: Freeing up older "
+                "rename of physical reg %i (%s), [sn:%llu].\n", 
                 tid, hb_it->prevPhysReg->index(),
-                hb_it->prevPhysReg->className(),
-                hb_it->instSeqNum);
+                hb_it->prevPhysReg->className(), hb_it->instSeqNum);
+
+        panic_if(hb_it->prevPhysReg->wasFreed, "removeFromHistory phys reg %i was freed sn: %llu\n", hb_it->prevPhysReg->index(), hb_it->instSeqNum);
 
         // Don't free special phys regs like misc and zero regs, which
         // can be recognized because the new mapping is the same as
         // the old one.
         if (hb_it->newPhysReg != hb_it->prevPhysReg) {
             freeList->addReg(hb_it->prevPhysReg);
+            DPRINTF(PreRename,"sn: %llu Freeing register %i (%s)"
+                "\n", hb_it->instSeqNum, hb_it->prevPhysReg->index(), hb_it->prevPhysReg->className());
+            hb_it->prevPhysReg->freeSetRegFlags();
         }
 
         ++stats.committedMaps;
@@ -1147,11 +1171,10 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
         scoreboard->unsetReg(rename_result.first);
 
 
-        DPRINTF(PreRename,
-                "[tid:%i] "
-                "PRE:%d - Renaming arch reg %i (%s) to physical reg %i (%i).\n",
-                cpu->isInPreMode(),
-                tid, dest_reg.index(), dest_reg.className(),
+        DPRINTF(PreRename, "[tid:%i] PRE:%d inst sn:%llu - "
+                "Renaming arch reg %i (%s) to physical reg %i (%i).\n",
+                tid, cpu->isInPreMode(), inst->seqNum,
+                dest_reg.index(), dest_reg.className(),
                 rename_result.first->index(),
                 rename_result.first->flatIndex());
 
@@ -1159,6 +1182,27 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
         RenameHistory hb_entry(inst->seqNum, flat_dest_regid,
                                rename_result.first,
                                rename_result.second);
+
+        // Mark if the new physical register is being used by 
+        // a runahead instruction, i.e. it is renamed in PRE mode.
+        // This is important for later reusing of registers in PRDQ.
+
+        if (!cpu->isInPreMode() || (cpu->isInPreMode() && inst->isInROB())) {
+            rename_result.first->renamedInNormalMode = true;
+        } else {
+            rename_result.first->renamedInPreMode = true;
+        }
+        rename_result.first->wasFreed = false;
+
+        panic_if (cpu->isInPreMode() && inst->isInROB(), "Rename inst from ROB in PRE\n");
+
+        if (rename_result.first->renamedInPreMode &&
+            rename_result.first->renamedInNormalMode &&
+            rename_result.first != rename_result.second){
+            cpu->printPipeline();
+            panic("Inst sn %llu has reg %i that was renamed both in PRE and in"
+                " normal!!\n", inst->seqNum, rename_result.first->index());
+        }
 
         historyBuffer[tid].push_front(hb_entry);
 
@@ -1499,18 +1543,18 @@ Rename::prdqRetireEntry()
 {
     // cannot retire any item if the queue is empty
     if (prdq.empty() || !prdq.front()->executed) { 
-        DPRINTF(PrePRDQ, "Retire PRDQ called, empty or not executed!\n");
         return false; 
     }
 
-    InstSeqNum first_sn = prdq.front()->instId;
+    InstSeqNum sn_to_retire = prdq.front()->instId;
     int retired = 0;
 
-    while ( prdq.front()->executed && 
-            prdq.front()->instId == first_sn) {    
+    while ( !prdq.empty() &&
+            prdq.front()->executed && 
+            prdq.front()->instId == sn_to_retire) {    
         DPRINTF(PrePRDQ, "Remove PRDQ entry reg:%llu\n", 
                 prdq.front()->physRegToFree->index());
-        cpu->cpuStats.prdqEntriesRecycled++;
+        ++cpu->cpuStats.prdqEntriesRecycled;
         ++retired;
         prdq.pop_front();
     }
@@ -1523,32 +1567,38 @@ Rename::prdqRetireEntry()
         int tid = 0;
         auto hb_it = historyBuffer[tid].end();
         --hb_it;
-        // while (!historyBuffer[tid].empty() &&
-        //     hb_it != historyBuffer[tid].end() &&
-        //     hb_it->instSeqNum <= first_sn) {
+        while (!historyBuffer[tid].empty() &&
+            hb_it != historyBuffer[tid].end() &&
+            hb_it->instSeqNum <= sn_to_retire) {
             
-        //     if (first_sn == hb_it->instSeqNum) {
-        //         DPRINTF(PreDebug, "[tid:%i] Freeing up older rename of reg %i (%s), "
-        //                 "[sn:%llu].\n", tid, hb_it->prevPhysReg->index(),
-        //                 hb_it->prevPhysReg->className(), hb_it->instSeqNum);
+            if (sn_to_retire == hb_it->instSeqNum) {
 
-        //         // Don't free special phys regs like misc and zero regs, which
-        //         // can be recognized because the new mapping is the same as
-        //         // the old one.
-        //         if (hb_it->newPhysReg != hb_it->prevPhysReg) {
-        //             freeList->addReg(hb_it->prevPhysReg);
-                        // 
-        //         }
-        //         ++freed;
-        //         historyBuffer[tid].erase(hb_it--);
-        //     } else {
-        //         DPRINTF(PreDebug, "--hb ptr, current sn %llu\n", 
-        //             hb_it->instSeqNum);
-        //         --hb_it;
-        //     }
-        // }
-        // debugPrintPRDQ();
+                if (hb_it->prevPhysReg->renamedInNormalMode) {
+                    DPRINTF(PreDebug, "Reg %i was used by an instruction in the ROB, cannot free it in PRE\n", hb_it->prevPhysReg->index());
+                } else if (hb_it->newPhysReg != hb_it->prevPhysReg && !hb_it->prevPhysReg->wasFreed){
+                    // Don't free special phys regs like misc and zero regs, which can
+                    // be recognized because the new mapping is the same as the old one.
+                    DPRINTF(PrePRDQ, "PRDQ: Freeing up an older rename of physical reg %i (%s), "
+                            "[sn:%llu].\n", hb_it->prevPhysReg->index(),
+                            hb_it->prevPhysReg->className(), hb_it->instSeqNum);
+                    freeList->addReg(hb_it->prevPhysReg);
+            DPRINTF(PreRename,"sn: %llu Freeing register %i (%s)"
+                "\n", hb_it->instSeqNum, hb_it->prevPhysReg->index(), hb_it->prevPhysReg->className());
+                    hb_it->prevPhysReg->freeSetRegFlags();
+                    ++cpu->cpuStats.preRegsFreed;
+                    // historyBuffer[tid].erase(hb_it--);
+                } else if (hb_it->newPhysReg != hb_it->prevPhysReg &&    
+                        hb_it->prevPhysReg->wasFreed) {
+                    panic("Reg was freed recently! This shouldn't happen\n");
+                }
+                ++freed;
+            }
+            --hb_it;
+        }
+        debugPrintPRDQ();
 
+        // the number of freed will be different from retired if 
+        // there was a squash during PRE
         // panic_if(freed != retired, 
         //     "Retired %d PRDQ entries but freed %d registers!",
         //     retired, freed);
@@ -1567,7 +1617,6 @@ Rename::prdqAddEntry(const DynInstPtr &inst, const PhysRegIdPtr &old_reg)
     entry->executed = false;
 
     prdq.push_back(entry);
-    DPRINTF(PrePRDQ, "prdq size:%d\n", prdq.size());
 }
 
 void 

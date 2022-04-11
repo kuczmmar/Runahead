@@ -70,9 +70,10 @@ if 'PreO3CPU' in env['CPU_MODELS']:
     DebugFlag('PreWriteback')
     DebugFlag('PreDebug')
     DebugFlag('PreEnter')
-    DebugFlag('PreCommit')
+    DebugFlag('PrePipelineDebug')
     DebugFlag('PreFetch')
     DebugFlag('PrePRDQ')
+    DebugFlag('PreSST')
 
     CompoundFlag('PreO3CPUAll', [ 'Fetch', 'Decode', 'PreRename', 'PreIEW', 'Commit',
         'PreIQ', 'PreROB', 'FreeList', 'PreLSQ', 'PreLSQUnit', 'PreStoreSet', 'PreMemDepUnit',

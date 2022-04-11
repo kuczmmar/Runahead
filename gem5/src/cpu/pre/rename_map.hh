@@ -184,6 +184,8 @@ class SimpleRenameMap
     const_iterator end() const { return map.end(); }
     const_iterator cend() const { return map.cend(); }
     /** @} */
+
+    void debugPrint();
 };
 
 /**
@@ -444,7 +446,7 @@ class UnifiedRenameMap
      * depending on vecMode (vector renaming mode).
      */
     void switchFreeList(UnifiedFreeList* freeList);
-
+    void printIntMap() { intMap.debugPrint(); }
 };
 
 } // namespace pre

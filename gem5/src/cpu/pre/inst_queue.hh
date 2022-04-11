@@ -273,7 +273,7 @@ class InstructionQueue
     /** Returns the number of used entries for a thread. */
     unsigned getCount(ThreadID tid) { return count[tid]; };
 
-    /** Debug function to print all instructions. */
+    /** Debug function to print all instructions in the IQ. */
     void printInsts();
 
     /** Debug print all instrusctions that are ready to be executed */

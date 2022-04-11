@@ -27,4 +27,4 @@ parsing_data/mcpat_out/*
 /benchmarks/cbench/consumer_lame/src/_finfo_dataset
 /benchmarks/cbench/consumer_lame/src/ftmp_out
 /benchmarks/cbench/consumer_lame/src/tmp_bat
-
+/benchmarks/cbench/bzip2_data/*

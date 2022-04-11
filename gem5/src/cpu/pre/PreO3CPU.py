@@ -178,6 +178,12 @@ class PreO3CPU(BaseCPU):
     
     prdqEntries = Param.Int(192, "Size of the Precise Register Deallocation Queue")
 
+    sst_enabled = Param.Bool(True, "Specifies whether PRE uses SST")
+
+    rrr_enabled = Param.Bool(True, "Specifies whether PRE uses RRR")
+
+    exit_PRE_when_squash = Param.Bool(False, "Specifies whether CPU exits PRE mode upon a squash in the ROB")
+
     def addCheckerCpu(self):
         if buildEnv['TARGET_ISA'] in ['arm']:
             from m5.objects.ArmMMU import ArmMMU

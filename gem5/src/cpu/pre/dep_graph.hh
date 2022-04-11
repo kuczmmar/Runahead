@@ -278,12 +278,14 @@ DependencyGraph<DynInstPtr>::dump()
     for (int i = 0; i < numEntries; ++i)
     {
         curr = &dependGraph[i];
+        bool empty = false;
 
         if (curr->inst) {
             cprintf("dependGraph[%i]: producer: %s [sn:%lli] consumer: ",
                     i, curr->inst->pcState(), curr->inst->seqNum);
-        } else {
-            cprintf("dependGraph[%i]: No producer. consumer: ", i);
+        } 
+        else {
+            empty = true;
         }
 
         while (curr->next != NULL) {
@@ -292,8 +294,8 @@ DependencyGraph<DynInstPtr>::dump()
             cprintf("%s [sn:%lli] ",
                     curr->inst->pcState(), curr->inst->seqNum);
         }
-
-        cprintf("\n");
+        if (!empty)
+            cprintf("\n");
     }
     cprintf("memAllocCounter: %i\n", memAllocCounter);
 }

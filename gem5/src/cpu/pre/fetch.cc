@@ -65,7 +65,6 @@
 #include "debug/PreO3CPU.hh"
 #include "mem/packet.hh"
 #include "params/PreO3CPU.hh"
-#include "debug/PreEnter.hh"
 #include "sim/byteswap.hh"
 #include "sim/core.hh"
 #include "sim/eventq.hh"

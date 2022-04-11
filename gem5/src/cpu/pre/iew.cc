@@ -641,8 +641,8 @@ IEW::instToCommit(const DynInstPtr& inst)
             wbCycle, wbWidth, wbNumInst, wbCycle * wbWidth + wbNumInst);
     // Add finished instruction to queue to commit.
 
-    if (cpu->isInPreMode()) {
-        DPRINTF(PreIEW, "Sending inst sn:%i to commit in PRE\n", inst->seqNum);
+    if (cpu->isInPreMode() && !inst->isInROB()) {
+        DPRINTF(PreIEW, "Sending PRE inst sn:%i to commit\n", inst->seqNum);
         inst->setRunaheadInst();
     }
 
@@ -1240,20 +1240,13 @@ IEW::executeInsts()
 
         DynInstPtr inst = instQueue.getInstToExecute();
 
-        if (cpu->isInPreMode()) {
-            DPRINTF(PreIEW, "Executing inst sn:%i in PRE\n", inst->seqNum);
-            // TODO remove
-            DPRINTF(PreDebug, "Executing inst sn:%i in PRE\n", inst->seqNum);
-            if (!inst->isInROB()){
-                DPRINTF(PreDebug, "PRE inst not in ROB! sn:%i\n", inst->seqNum);
-            }
+        if (cpu->isInPreMode() && !inst->isInROB()) {
             inst->setRunaheadInst();
-            cpu->cpuStats.totalExecutedPRE++;
         }
 
-        DPRINTF(PreIEW, "Execute: Executing instructions from IQ sn:%d.\n", inst->seqNum); 
-
-        if (cpu->isInPreMode()){
+        if (cpu->isInPreMode()) {
+            DPRINTF(PreIEW, "Executing inst sn:%i in PRE\n", inst->seqNum);
+            cpu->cpuStats.totalExecutedPRE++;
             DPRINTF(PreDebug, "PRE: Executing instructions from IQ sn:%d, inROB:%d.\n", 
                 inst->seqNum, inst->isInROB()); 
         }

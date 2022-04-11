@@ -67,6 +67,9 @@ SimpleOpts.add_option("--binary_args", help="Arguments to the test binary", type
 SimpleOpts.add_option("--mode", default='baseline', choices=['baseline', 'runahead', 'pre'], 
     help="Which implementstion of the o3 CPU should be run")
 SimpleOpts.add_option("--rob_size", help="size of re-order buffer", default=192)
+SimpleOpts.add_option("--sst_enabled", help="Specifies whether PRE uses SST", default=True)
+SimpleOpts.add_option("--rrr_enabled", help="Specifies whether PRE uses RRR", default=True)
+SimpleOpts.add_option("--exit_PRE_when_squash", help="Specifies whether CPU exits PRE mode upon a squash in the ROB", default=False)
 
 # Finalize the arguments and grab the args so we can pass it on to our objects
 args = SimpleOpts.parse_args()
@@ -94,14 +97,15 @@ elif args.mode == 'runahead':
 elif args.mode == 'pre':
     print('----------------PRE----------------\n')
     system.cpu = PreO3CPU()
+    system.cpu.sst_enabled = args.sst_enabled
+    system.cpu.rrr_enabled = args.rrr_enabled
+    system.cpu.exit_PRE_when_squash = args.exit_PRE_when_squash
 
 system.cpu.numROBEntries = args.rob_size
 
 # Create an L1 instruction and data cache
 system.cpu.icache = L1ICache(args)
 system.cpu.dcache = L1DCache(args)
-# if runahead:
-#     system.cpu.ra_cache = L1RunaheadCache(args)
 
 # Connect the instruction and data caches to the CPU
 system.cpu.icache.connectCPU(system.cpu)

@@ -554,6 +554,7 @@ class Rename
     void prdqAddEntry(const DynInstPtr &inst, const PhysRegIdPtr &old_reg);
     void debugPrintPRDQ();
     void emptyPRDQ();
+    void printIntRenameMap(int tid) { renameMap[tid]->printIntMap(); }
 
 };
 

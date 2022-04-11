@@ -314,6 +314,15 @@ class PhysRegId : private RegId
 
     // PRE support
     InstSeqNum lastInstProducerSeqNum;
+    bool renamedInNormalMode = false;
+    bool renamedInPreMode = false;
+    bool wasFreed = false;
+    
+    void freeSetRegFlags() {
+        renamedInNormalMode = false;
+        renamedInPreMode = false;
+        wasFreed = true;
+    }
 };
 
 using PhysRegIdPtr = PhysRegId*;

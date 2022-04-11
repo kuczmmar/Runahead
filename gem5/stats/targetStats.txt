@@ -25,3 +25,4 @@ system.cpu.totalExecutedPRE
 system.cpu.totalDecodedRA
 system.cpu.iqFullRa
 system.cpu.prdqEntriesRecycled
+system.cpu.preRegsFreed
