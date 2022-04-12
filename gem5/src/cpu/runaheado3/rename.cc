@@ -1025,6 +1025,7 @@ Rename::renameSrcRegs(const DynInstPtr &inst, ThreadID tid)
 
         renamed_reg = map->lookup(tc->flattenRegId(src_reg));
         // make sure the register is not invalid after previous runahead execution
+        // TODO is it only reset in normal mode??
         if (!cpu->isInRunaheadMode()) {
             renamed_reg->resetInvBit();
         }

@@ -1048,17 +1048,6 @@ Commit::commitInsts()
         */
         if (cpu->isInRunaheadMode() || head_inst->isRunaheadInst()) {
 
-            // if (head_inst->seqNum == 4306) {
-            //     DPRINTF(RunaheadDebug, "Src regs of 4306:\n");
-            //     for (int src=0; src<head_inst->numSrcRegs(); ++src){
-            //         RegId& reg = const_cast<RegId&>(head_inst->srcRegIdx(src));
-            //         DPRINTF(RunaheadDebug, "Reg:%d, at addr:%d is INV:%d\n renamed:%d\n",
-            //             reg, &reg, head_inst->regs.renamedDestIdx(src)->isInvalid() , 
-            //             head_inst->regs.renamedDestIdx(src));
-            //     }
-            //     // head_inst->invalidateSrcRegs();
-            // }
-
             if (head_inst->missedInL2() || head_inst->isStore()) {
                 DPRINTF(RunaheadDebug, "Mark sn:%d INV due to miss or is store \n", head_inst->seqNum);
                 head_inst->setInvalid();
@@ -1083,10 +1072,12 @@ Commit::commitInsts()
                 // to indicate the time it would take to update the architectural state
                 ++num_committed;
 
+                // TODO
                 // reset INV bits in dest registers when a valid load retires
                 // if (head_inst->isLoad()) {
                 //     head_inst->invalidateDestRegs(false);
                 // }
+                // TODO why??
                 head_inst->invalidateDestRegs();
 
             } else {
