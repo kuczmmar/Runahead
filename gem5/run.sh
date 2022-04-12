@@ -40,20 +40,16 @@ RA_DEBUG=""
 PRE_DEBUG=""
 # BASE_DEBUG="--debug-flags=Commit,RunaheadCompare,RunaheadEnter,O3CPUAll"
 # RA_DEBUG="--debug-flags=RunaheadDebug,CACHE,MSHR,RunaheadCommit"
-# PRE_DEBUG="--debug-flags=PreEnter,Fetch,PreDebug,Commit,PreIQ,PreIEW,PreRename,PreO3CPU"
-# PRE_DEBUG="--debug-flags=PreEnter,PreDebug,Commit,PreIEW,PreO3CPU,PreRename,PreIQ"
-PRE_DEBUG="--debug-flags=PreEnter,PreDebug,Commit,PreO3CPU,PreRename,O3CPUAll"
+# PRE_DEBUG="--debug-flags=PreEnter,PreDebug"
+# PRE_DEBUG="--debug-flags=PreEnter,PreDebug,PrePRDQ,Commit,PrePipelineDebug,PreIEW,PreO3CPU,PreRename,PreIQ"
+# PRE_DEBUG="--debug-flags=PreEnter,PreDebug,PrePRDQ,PrePipelineDebug"
 
 echo_lines() {
   yes '' | sed 3q
 }
 
 run_base() {
-  ARG=$1
-  L2=$2
-  ROB=$3
-  BENCH_NAME=$4
-  BENCH_PATH=$5
+  ARG=$1;  L2=$2;  ROB=$3;  BENCH_NAME=$4;  BENCH_PATH=$5
   PROGRAM="--binary=${BENCH_PATH} --binary_args ${ARG}"
   NAME="${BENCH_NAME}_rob${ROB}_${L2}"
 
@@ -65,11 +61,7 @@ run_base() {
 
 
 run_run() {
-  ARG=$1
-  L2=$2
-  ROB=$3
-  BENCH_NAME=$4
-  BENCH_PATH=$5
+  ARG=$1;  L2=$2;  ROB=$3;  BENCH_NAME=$4;  BENCH_PATH=$5
   PROGRAM="--binary=${BENCH_PATH} --binary_args ${ARG}"
   NAME="${BENCH_NAME}_rob${ROB}_${L2}"
 
@@ -81,18 +73,36 @@ run_run() {
 
 
 run_pre() {
-  ARG=$1
-  L2=$2
-  ROB=$3
-  BENCH_NAME=$4
-  BENCH_PATH=$5
+  echo "$@"
+  ARG=$1;  L2=$2;  ROB=$3;  BENCH_NAME=$4;  BENCH_PATH=$5; ADD_FLAGS=$6
   PROGRAM="--binary=${BENCH_PATH} --binary_args ${ARG}"
   NAME="${BENCH_NAME}_rob${ROB}_${L2}"
   
   PRE_GEM_FLAGS="--stats-file=pre/${NAME} --json-config=pre/${NAME}_config.json ${PRE_DEBUG}"
   OUT="out/pre_${NAME}.txt"
 
-  time $GEM $PRE_GEM_FLAGS  $O3_TWO_LEVEL --mode=pre      --rob_size=$ROB --l2_size=$L2 $PROGRAM > $OUT
+  time $GEM $PRE_GEM_FLAGS  $O3_TWO_LEVEL --mode=pre  --rob_size=$ROB --l2_size=$L2 $ADD_FLAGS  $PROGRAM > $OUT
+}
+
+
+# run_pre_noSST() {
+#   ARG=$1;  L2=$2;  ROB=$3;  BENCH_NAME=$4;  BENCH_PATH=$5
+#   PROGRAM="--binary=${BENCH_PATH} --binary_args ${ARG}"
+#   NAME="${BENCH_NAME}_rob${ROB}_${L2}_noSST"
+  
+#   PRE_GEM_FLAGS="--stats-file=pre/${NAME} --json-config=pre/${NAME}_config.json ${PRE_DEBUG}"
+#   OUT="out/pre_${NAME}.txt"
+
+#   time $GEM $PRE_GEM_FLAGS  $O3_TWO_LEVEL --mode=pre      --rob_size=$ROB --l2_size=$L2 --sst_enabled=False $PROGRAM > $OUT
+#   # time $GEM $PRE_GEM_FLAGS  $O3_TWO_LEVEL --mode=pre      --rob_size=$ROB --l2_size=$L2 --sst_enabled=False --rrr_enabled=False $PROGRAM > $OUT 
+# }
+
+run_all_pre_options() {
+  ARG=$1;  L2=$2;  ROB=$3;  BENCH_NAME=$4;  BENCH_PATH=$5
+  run_pre $ARG $L2 $ROB "${BENCH_NAME}NoRrr" $BENCH_PATH "--rrr_enabled=False" &
+  run_pre $ARG $L2 $ROB "${BENCH_NAME}NoRrrNoSst" $BENCH_PATH "--sst_enabled=False --rrr_enabled=False" &
+  run_pre $ARG $L2 $ROB "${BENCH_NAME}NoSst" $BENCH_PATH "--sst_enabled=False "
+
 }
 
 
@@ -113,20 +123,10 @@ run_all_randacc() {
 
 
 # WARNING: Clears previous statistics outputs
-rm -r m5out/
-rm -r out/
+# rm -r m5out/
+# rm -r out/
 mkdir -p out m5out/base m5out/run m5out/pre
 echo_lines
-
-# run_all  100000 '64kB' 128  &
-# run_pre  525000 '256kB' 128  &  # crash
-# run_pre  525000 '256kB' 64   &  # crash
-# run_all  525000 '128kB' 192  &   # crash
-# run_all  1000000 '256kB' 192 &
-# run_pre  525000 '128kB' 192   &   # runs
-# run_pre  525000 '256kB' 192  & # runs
-# run_all  525000 '256kB' 192 &
-# run_all  500000 '256kB' 192 &
 
 # run_all_randacc   500000      '64kB' 128 &
 # run_all_randacc   600000      '64kB' 128 &
@@ -137,20 +137,22 @@ echo_lines
 # run_all_randacc   500000      '256kB' 192 &
 # run_all_randacc   600000      '256kB' 192 &
 
-run_all           $SUSAN_ARG  '256kB' 192 "susan" $SUSAN
-# run_base           $BZIP2D_ARG  '256kB' 192 "bzip2d" $BZIP2D
-# runs fine:
-# run_all  100000 '128kB' 128 &
-# run_all  100000 '128kB' 128 &
-# run_all  100000 '128kB' 64
+# run_all           $SUSAN_ARG  '256kB' 192 "susan" $SUSAN
+run_base           $BZIP2D_ARG  '256kB' 192 "bzip2d" $BZIP2D
 
-run_pre  500000 '128kB' 192
+# TMP=500000; 
+# run_all_pre_options          $TMP '128kB' 192 "randacc$((TMP/1000))k" $RANDACC &
+# run_all_randacc             $TMP '128kB' 192 &
+# TMP=1000000; 
+# run_all_pre_options $TMP '128kB' 192 "randacc$((TMP/1000))k" $RANDACC &
+# run_all_randacc             $TMP '128kB' 192 &
+# run_all_pre_options $SUSAN_ARG  '128kB' 192 "susan" $SUSAN &
+# run_all             $SUSAN_ARG  '128kB' 192 "susan" $SUSAN
 
-# run_pre  100000 '64kB' 64 &
-# run_all  50000 '128kB' 128 & 
-# run_pre  50000 '64kB' 128 & 
-# run_all  60000 '128kB' 128 &
-# run_pre  60000 '64kB' 128
+# TMP=525000; run_all_randacc  $TMP '128kB' 192 "randacc$((TMP/1000))k" $RANDACC &
+# run_all          $SUSAN_ARG   '128kB' 192 "susan" $SUSAN    &
+# run_all          $BZIP2D_ARG  '128kB' 192 "bzip2d" $BZIP2D
+
 # run_all_randacc 60000 '64kB' 128
 
 
@@ -162,5 +164,7 @@ python3 stats/summarize_stats.py m5out stats/simple.csv
 echo_lines
 cat stats/simple.csv  |sed 's/,/ ,/g' | column -t -s, 
 
-grep -hnr -B 4 -A 4 'PRDQ\|SST\|runahead\|14738\|PRE' out/pre_rob192_500k_128kB.txt > out/grepped.txt
+grep -hnr -B 4 -A 4 'physical reg 189 (IntReg\|physical reg 189 (189)\|PRDQ\|1951381\|runahead\|1951379\|PhysReg: 189' out/pre_randacc500k_rob192_128kB.txt > out/grepped.txt
 # head -n 100000 out/grepped.txt > out/grepped.txt
+
+grep -hnr 'to physical reg 189 \|Freeing register 189 (IntRegClass)\|old mapping was 189 ' out/pre_randacc500k_rob192_128kB.txt > out/grepped2.txt

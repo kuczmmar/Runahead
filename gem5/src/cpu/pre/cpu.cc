@@ -1888,6 +1888,8 @@ void
 CPU::enterPreMode(DynInstPtr inst, ThreadID tid)
 {
     if (_inPre) return;
+    printf("using SST: %d, RRR: %d, exitAfterSquash: %d\n", 
+        useSST, useRRR, exitPreWhenSquash);
 
     DPRINTF_NO_LOG(PreEnter, "\nEnter runahead mode!\n");
     DPRINTF_NO_LOG(PreEnter, "   ROB head sn: %lu, addr: %#lx"

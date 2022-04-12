@@ -759,7 +759,6 @@ class CPU : public BaseCPU
     void exitPreMode();
 
     // the stalling slice table
-    bool usingSST = true;
     std::set<Addr> sst;
     std::unordered_map<RegIndex, Addr> reg_to_last_producer;
     bool isInSST(Addr pc);

@@ -994,13 +994,6 @@ Commit::commitInsts()
     // DPRINTF(PrePipelineDebug, "ROB at commit: ");
     // rob->debugPrintROB(false);
 
-
-    // DPRINTF(PreDebug, "SST at commit: ");
-    // for (auto inst : cpu->sst) {
-    //     DPRINTF_NO_LOG(PreDebug, "Pc: %#lu ", inst);
-    // }
-    // DPRINTF_NO_LOG(PreDebug, "\n");
-
     unsigned num_committed = 0;
     DynInstPtr head_inst;
     bool first_iter = true;

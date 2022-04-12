@@ -999,7 +999,7 @@ Rename::doSquash(const InstSeqNum &squashed_seq_num, ThreadID tid)
                     newPhysReg->className());
                 newPhysReg->freeSetRegFlags();
             } else {
-                printf("Avoided freeing reg twice\n");
+                DPRINTF(PreRename, "Avoided freeing reg twice\n");
             }
         }
 
@@ -1164,6 +1164,7 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
         // set this instruction to be the most recent producer of this register
         rename_result.first->lastInstProducerSeqNum = inst->seqNum;
 
+        // SST PRE support
         cpu->reg_to_last_producer[dest_reg.index()] = inst->instAddr();
 
         inst->regs.flattenedDestIdx(dest_idx, flat_dest_regid);
@@ -1525,6 +1526,8 @@ Rename::dumpHistory()
 void
 Rename::prdqMarkInstExecuted(const DynInstPtr &inst)
 {
+    if (!cpu->useRRR) return;
+
     InstSeqNum id = inst->seqNum;
     DPRINTF(PrePRDQ, "Mark sn: %llu executed in PRDQ\n", inst->seqNum);
 
@@ -1541,6 +1544,8 @@ Rename::prdqMarkInstExecuted(const DynInstPtr &inst)
 bool 
 Rename::prdqRetireEntry()
 {
+    if (!cpu->useRRR) return false;
+
     // cannot retire any item if the queue is empty
     if (prdq.empty() || !prdq.front()->executed) { 
         return false; 
@@ -1609,6 +1614,8 @@ Rename::prdqRetireEntry()
 void
 Rename::prdqAddEntry(const DynInstPtr &inst, const PhysRegIdPtr &old_reg)
 {   
+    if (!cpu->useRRR) return;
+
     // panic_if(prdq.size() > prdqMaxSize, "PRDQ size exceeded");
     DPRINTF(PrePRDQ, "Add PRDQ entry sn:%llu\n", inst->seqNum);
     prdqEntryPtr entry(new prdqEntry);
@@ -1622,6 +1629,8 @@ Rename::prdqAddEntry(const DynInstPtr &inst, const PhysRegIdPtr &old_reg)
 void 
 Rename::debugPrintPRDQ()
 {
+    if (!cpu->useRRR) return;
+
     DPRINTF(PrePRDQ, "PRDQ: \n %-8s, %-6s, %-2s\n", 
         "register", "sn", "ex");
     std::deque<prdqEntryPtr>::iterator it;
@@ -1636,6 +1645,7 @@ Rename::debugPrintPRDQ()
 void 
 Rename::emptyPRDQ()
 {
+    if (!cpu->useRRR) return;
     prdq.clear();
 }
 

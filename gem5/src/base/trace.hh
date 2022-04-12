@@ -177,7 +177,7 @@ struct StringWrap
  * @{
  */
 
-#define GOOD_TICK(x)       (true)
+#define GOOD_TICK(x)       ( x >= 78677000 && x <= 78777000)
 
 #define DDUMP(x, data, count) do {               \
     if (GEM5_UNLIKELY(TRACING_ON && ::gem5::debug::x))     \

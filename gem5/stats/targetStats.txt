@@ -9,7 +9,7 @@ system.cpu.robFullRA
 # system.cpu.robFull
 
 system.cpu.l2MissRA
-system.cpu.cyclesAvgRA
+# system.cpu.cyclesAvgRA
 # system.cpu.insertedAvgRA
 # system.cpu.decodedAvgRA
 # system.cpu.pctRobEmptyRA
