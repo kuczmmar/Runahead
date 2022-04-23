@@ -10,8 +10,10 @@ gem5/stats/simple.csv
 /gem5/lib
 /gem5/bin
 gem5/parsetab.py
-*.o
+**/*.o
+benchmarks/**/*.o
 benchmarks/**/a.out
+benchmarks/**/bin/*
 parsing_data/mcpat/mcpat
 
 parsing_data/mcpat_out/*
@@ -22,9 +24,18 @@ parsing_data/mcpat_out/*
 /benchmarks/cbench/bzip2d/src/_finfo_dataset
 /benchmarks/cbench/bzip2d/src/ftmp_out
 /benchmarks/cbench/bzip2d/src/tmp_bat
-/gem5/ftmp_out
+/benchmarks/cbench/automotive_qsort1/src/ftmp_out
+/benchmarks/cbench/automotive_qsort1/src/sorted_output.dat
+/benchmarks/cbench/automotive_qsort1/src/tmp_bat
+/benchmarks/cgo2017/program/nas-cg/bin/x86-offsets/*
+/benchmarks/cgo2017/**/bin/x86/*
 
 /benchmarks/cbench/consumer_lame/src/_finfo_dataset
 /benchmarks/cbench/consumer_lame/src/ftmp_out
 /benchmarks/cbench/consumer_lame/src/tmp_bat
 /benchmarks/cbench/bzip2_data/*
+
+
+!/benchmarks/cgo2017/nas-is/bin/x86/is-no1
+!/benchmarks/cgo2017/nas-cg/bin/x86/cg-no2
+!/benchmarks/cbench/automotive_qsort1/src/a.out
