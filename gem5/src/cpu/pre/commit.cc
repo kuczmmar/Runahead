@@ -1040,12 +1040,12 @@ Commit::commitInsts()
                     head_inst->instAddr(), head_inst->cyclesAtHeadInRA);
             }
 
-            if (head_inst->cyclesAtHeadInRA >= 900) {
-                DPRINTF(PreDebug, "Head inst: %s\n", rob->readHeadInst(0)->seqNum);
-                rob->readHeadInst(0)->debugPrintStatus();
-                rob->readHeadInst(0)->printSrcRegs();
-                panic("At head for too long");
-            }
+            // if (head_inst->cyclesAtHeadInRA >= 900) {
+            //     DPRINTF(PreDebug, "Head inst: %s\n", rob->readHeadInst(0)->seqNum);
+            //     rob->readHeadInst(0)->debugPrintStatus();
+            //     rob->readHeadInst(0)->printSrcRegs();
+            //     panic("At head for too long");
+            // }
         }
 
         // enter PRE if the head instruction is waiting on a L2 
