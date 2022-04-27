@@ -35,6 +35,8 @@ parsing_data/mcpat_out/*
 /benchmarks/cbench/consumer_lame/src/tmp_bat
 /benchmarks/cbench/bzip2_data/*
 
+sorted_output.dat
+stats/simple1.csv
 
 !/benchmarks/cgo2017/nas-is/bin/x86/is-no1
 !/benchmarks/cgo2017/nas-cg/bin/x86/cg-no2
