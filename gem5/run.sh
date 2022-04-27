@@ -20,15 +20,22 @@ date
 
 # define benchmark variables
 RANDACC='../benchmarks/cgo2017/program/randacc/bin/x86/randacc-no'
+CG='../benchmarks/cgo2017/program/nas-cg/bin/x86/cg-no2'
+IS='../benchmarks/cgo2017/program/nas-is/bin/x86/is-no1'
+HASHJOIN2='../benchmarks/cgo2017/program/hashjoin-ph-2/src/bin/x86/hj2-no'
+GRAPH500='../benchmarks/cgo2017/program/graph500/bin/x86/g500-no'
 
 SUSAN='../benchmarks/cbench/automotive_susan_c/src/a.out'
 SUSAN_ARG='../benchmarks/cbench/automotive_susan_data/1.pgm,out/output_susan.pgm,-c'
 
 BZIP2D='./../benchmarks/cbench/bzip2d/src/a.out'
-BZIP2D_ARG='../benchmarks/cbench/bzip2_data/1.bz2,-d,-k,-f'
+BZIP2D_ARG='../benchmarks/cbench/bzip2_data/1.bz2,-d,-k,-f,--stdout'
 
-# consumer_lame
-# "../../consumer_data/1.wav output_large.mp3 2> ftmp_out"
+CONSUMER_LAME='./../benchmarks/cbench/consumer_lame/src/a.out'
+CONSUMER_ARG='../benchmarks/cbench/consumer_data/1.wav,out/consumer_output_large.mp3'
+
+QSORT='./../benchmarks/cbench/automotive_qsort1/src/a.out'
+QSORT_ARG='../benchmarks/cbench/automotive_qsort_data/1.dat,out/qsort_output.dat,out/qsort_out'
  
 
 # define paths to configuration files
@@ -38,9 +45,7 @@ GEM='build/X86/gem5.opt'
 BASE_DEBUG=""
 RA_DEBUG=""
 PRE_DEBUG=""
-# BASE_DEBUG="--debug-flags=Commit,RunaheadCompare,RunaheadEnter,O3CPUAll"
-# RA_DEBUG="--debug-flags=RunaheadDebug,CACHE,MSHR,RunaheadCommit"
-# PRE_DEBUG="--debug-flags=PreEnter,PreDebug"
+# RA_DEBUG="--debug-flags=RunaheadDebug,RunaheadEnter,RunaheadRename"
 # PRE_DEBUG="--debug-flags=PreEnter,PreDebug,PrePRDQ,Commit,PrePipelineDebug,PreIEW,PreO3CPU,PreRename,PreIQ"
 # PRE_DEBUG="--debug-flags=PreEnter,PreDebug,PrePRDQ,PrePipelineDebug"
 
@@ -50,7 +55,8 @@ echo_lines() {
 
 run_base() {
   ARG=$1;  L2=$2;  ROB=$3;  BENCH_NAME=$4;  BENCH_PATH=$5
-  PROGRAM="--binary=${BENCH_PATH} --binary_args ${ARG}"
+  PROGRAM="--binary=${BENCH_PATH} "
+  if ! test -z $ARG; then PROGRAM+="--binary_args ${ARG}"; fi
   NAME="${BENCH_NAME}_rob${ROB}_${L2}"
 
   BASE_GEM_FLAGS="--stats-file=base/${NAME} --json-config=base/${NAME}_config.json ${BASE_DEBUG}"
@@ -62,10 +68,11 @@ run_base() {
 
 run_run() {
   ARG=$1;  L2=$2;  ROB=$3;  BENCH_NAME=$4;  BENCH_PATH=$5
-  PROGRAM="--binary=${BENCH_PATH} --binary_args ${ARG}"
+  PROGRAM="--binary=${BENCH_PATH} "
+  if ! test -z $ARG; then PROGRAM+="--binary_args ${ARG}"; fi
   NAME="${BENCH_NAME}_rob${ROB}_${L2}"
 
-  RA_GEM_FLAGS="--stats-file=run/${NAME} --json-config=run/${NAME}_config.json ${RUN_DEBUG}"
+  RA_GEM_FLAGS="--stats-file=run/${NAME} --json-config=run/${NAME}_config.json ${RA_DEBUG}"
   OUT="out/run_${NAME}.txt"
 
   time $GEM $RA_GEM_FLAGS  $O3_TWO_LEVEL --mode=runahead   --rob_size=$ROB  --l2_size=$L2  $PROGRAM > $OUT
@@ -73,9 +80,9 @@ run_run() {
 
 
 run_pre() {
-  echo "$@"
   ARG=$1;  L2=$2;  ROB=$3;  BENCH_NAME=$4;  BENCH_PATH=$5; ADD_FLAGS=$6
-  PROGRAM="--binary=${BENCH_PATH} --binary_args ${ARG}"
+  PROGRAM="--binary=${BENCH_PATH} "
+  if ! test -z $ARG; then PROGRAM+="--binary_args ${ARG}"; fi
   NAME="${BENCH_NAME}_rob${ROB}_${L2}"
   
   PRE_GEM_FLAGS="--stats-file=pre/${NAME} --json-config=pre/${NAME}_config.json ${PRE_DEBUG}"
@@ -85,24 +92,11 @@ run_pre() {
 }
 
 
-# run_pre_noSST() {
-#   ARG=$1;  L2=$2;  ROB=$3;  BENCH_NAME=$4;  BENCH_PATH=$5
-#   PROGRAM="--binary=${BENCH_PATH} --binary_args ${ARG}"
-#   NAME="${BENCH_NAME}_rob${ROB}_${L2}_noSST"
-  
-#   PRE_GEM_FLAGS="--stats-file=pre/${NAME} --json-config=pre/${NAME}_config.json ${PRE_DEBUG}"
-#   OUT="out/pre_${NAME}.txt"
-
-#   time $GEM $PRE_GEM_FLAGS  $O3_TWO_LEVEL --mode=pre      --rob_size=$ROB --l2_size=$L2 --sst_enabled=False $PROGRAM > $OUT
-#   # time $GEM $PRE_GEM_FLAGS  $O3_TWO_LEVEL --mode=pre      --rob_size=$ROB --l2_size=$L2 --sst_enabled=False --rrr_enabled=False $PROGRAM > $OUT 
-# }
-
 run_all_pre_options() {
   ARG=$1;  L2=$2;  ROB=$3;  BENCH_NAME=$4;  BENCH_PATH=$5
   run_pre $ARG $L2 $ROB "${BENCH_NAME}NoRrr" $BENCH_PATH "--rrr_enabled=False" &
   run_pre $ARG $L2 $ROB "${BENCH_NAME}NoRrrNoSst" $BENCH_PATH "--sst_enabled=False --rrr_enabled=False" &
   run_pre $ARG $L2 $ROB "${BENCH_NAME}NoSst" $BENCH_PATH "--sst_enabled=False "
-
 }
 
 
@@ -112,13 +106,20 @@ run_all() {
 
 
 run_all_randacc() {
-  echo "Randomaccess run all: arg: ${1}, L2: ${2}, ROB: ${3}"
-  echo
-  ARG=$1
-  BNAME="randacc$((ARG/1000))k"
+  ARG=$1; BNAME="randacc$((ARG/1000))k";
   run_base "$@" $BNAME $RANDACC &
   run_run  "$@" $BNAME $RANDACC &
   run_pre  "$@" $BNAME $RANDACC
+}
+
+run_all_benchmarks() {
+  L2=$1; ROB=$2;
+  run_all_randacc 500000        $L2 $ROB &
+  run_all_randacc 600000        $L2 $ROB &
+  run_all         $SUSAN_ARG    $L2 $ROB "susan"  $SUSAN &
+  run_all         $QSORT_ARG    $L2 $ROB "qsort"  $QSORT &
+  run_all         $CONSUMER_ARG $L2 $ROB "consumer" $CONSUMER_LAME &
+  run_all         $BZIP2D_ARG   $L2 $ROB "bzip2d" $BZIP2D
 }
 
 
@@ -128,43 +129,74 @@ run_all_randacc() {
 mkdir -p out m5out/base m5out/run m5out/pre
 echo_lines
 
-# run_all_randacc   500000      '64kB' 128 &
-# run_all_randacc   600000      '64kB' 128 &
-# run_all           $SUSAN_ARG  '64kB' 128 "susan" $SUSAN &
-# run_all_randacc   500000      '128kB' 128 &
-# run_all_randacc   600000      '128kB' 128 &
-# run_all           $SUSAN_ARG  '128kB' 128 "susan" $SUSAN &
-# run_all_randacc   500000      '256kB' 192 &
-# run_all_randacc   600000      '256kB' 192 &
+ROBS=( 81 128 192 )
+L2S=( '64kB' '128kB' '256kB')
 
-# run_all           $SUSAN_ARG  '256kB' 192 "susan" $SUSAN
-run_base           $BZIP2D_ARG  '256kB' 192 "bzip2d" $BZIP2D
+for r in ${ROBS[@]}; do 
+  for l in ${L2S[@]}; do 
+    echo $r, $l; run_all_benchmarks $l $r &
+  done
+done
 
-# TMP=500000; 
-# run_all_pre_options          $TMP '128kB' 192 "randacc$((TMP/1000))k" $RANDACC &
-# run_all_randacc             $TMP '128kB' 192 &
+
+# run_all_benchmarks '64kB' 81 
+# run_all_benchmarks '64kB' 128 &
+# run_all_benchmarks '64kB' 192 &
+# run_all_benchmarks '128kB' 81 &
+# run_all_benchmarks '128kB' 128 &
+# run_all_benchmarks '128kB' 192 &
+# run_all_benchmarks '256kB' 81 &
+# run_all_benchmarks '256kB' 128 &
+# run_all_benchmarks '256kB' 192 &
+
+
+## Random access benchmark runs
+# TMP=600000; echo "randacc$((TMP/1000))k"; 
+# run_all_pre_options 600000 '128kB' 192 "randacc$((TMP/1000))k" $RANDACC &
 # TMP=1000000; 
 # run_all_pre_options $TMP '128kB' 192 "randacc$((TMP/1000))k" $RANDACC &
-# run_all_randacc             $TMP '128kB' 192 &
+# run_all_randacc     $TMP '128kB' 192 &
+# TMP=500000; ROB=81;
+# run_all_pre_options          $TMP '128kB' $ROB "randacc$((TMP/1000))k" $RANDACC &
+# run_all_randacc              $TMP '128kB' $ROB
+
+
+## Susan benchmark
+# run_all             $SUSAN_ARG  '64kB' 128 "susan" $SUSAN &
+# run_all             $SUSAN_ARG  '128kB' 128 "susan" $SUSAN &
 # run_all_pre_options $SUSAN_ARG  '128kB' 192 "susan" $SUSAN &
-# run_all             $SUSAN_ARG  '128kB' 192 "susan" $SUSAN
+# run_all             $SUSAN_ARG  '128kB' 192 "susan" $SUSAN &
+# run_all             $SUSAN_ARG   '256kB' 128 "susan"   $SUSAN &
+# run_all             $SUSAN_ARG   '256kB' 192 "susan"   $SUSAN
 
-# TMP=525000; run_all_randacc  $TMP '128kB' 192 "randacc$((TMP/1000))k" $RANDACC &
-# run_all          $SUSAN_ARG   '128kB' 192 "susan" $SUSAN    &
-# run_all          $BZIP2D_ARG  '128kB' 192 "bzip2d" $BZIP2D
 
-# run_all_randacc 60000 '64kB' 128
+## Qsort
+# run_all             $QSORT_ARG   '256kB' 128 "qsort"   $QSORT &
+# run_all             $QSORT_ARG   '256kB' 192 "qsort"   $QSORT &
 
+
+## Bzip2d
+# run_pre          $BZIP2D_ARG  '128kB' 192 "bzip2d" $BZIP2D &
+# run_all          $BZIP2D_ARG  '256kB' 192 "bzip2d" $BZIP2D 
+
+
+# run_run "" '256kB' 192 "g500" $GRAPH500  & # RA crashes
+# run_run "" '256kB' 192 "hj2" $HASHJOIN2  # RA crashes
+
+# run_all "" '256kB' 192 "is" $IS
+
+
+# run_all  "" '256kB' 192 "cg" $CG &
+# run_all  $CONSUMER_ARG '256kB' 192 "consumer" $CONSUMER_LAME &
 
 wait
 wait
 wait
 python3 stats/summarize_stats.py m5out stats/simple.csv
-
-echo_lines
+echo "----------------------------------------------------"
 cat stats/simple.csv  |sed 's/,/ ,/g' | column -t -s, 
 
-grep -hnr -B 4 -A 4 'physical reg 189 (IntReg\|physical reg 189 (189)\|PRDQ\|1951381\|runahead\|1951379\|PhysReg: 189' out/pre_randacc500k_rob192_128kB.txt > out/grepped.txt
+# grep -hnr -B 4 -A 4 'physical reg 189 (IntReg\|physical reg 189 (189)\|PRDQ\|1951381\|runahead\|1951379\|PhysReg: 189' out/pre_randacc500k_rob192_128kB.txt > out/grepped.txt
 # head -n 100000 out/grepped.txt > out/grepped.txt
 
-grep -hnr 'to physical reg 189 \|Freeing register 189 (IntRegClass)\|old mapping was 189 ' out/pre_randacc500k_rob192_128kB.txt > out/grepped2.txt
+# grep -hnr 'to physical reg 189 \|Freeing register 189 (IntRegClass)\|old mapping was 189 ' out/pre_randacc500k_rob192_128kB.txt > out/grepped2.txt

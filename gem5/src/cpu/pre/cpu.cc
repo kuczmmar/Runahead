@@ -610,9 +610,6 @@ CPU::tick()
     DPRINTF(PreO3CPU, "\n\nPreO3CPU: Ticking main, PreO3CPU. In PRE: %d\n", 
         isInPreMode());
 
-    if (curTick() % 1000000000 == 0) {
-        std::cout << "Current sim tick: " << curTick()<< "\n";
-    }
     assert(!switchedOut());
     assert(drainState() != DrainState::Drained);
 
