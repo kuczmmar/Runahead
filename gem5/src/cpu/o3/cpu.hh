@@ -711,7 +711,6 @@ class CPU : public BaseCPU
         statistics::Formula avgRobSizeAtEnterRA;
         statistics::Formula avgRobSizeAtExitRA;
         statistics::Scalar numPossiblePrefetchesRA;
-        statistics::Scalar l2MissRA;
         statistics::Scalar robFullRA;
         statistics::Formula cyclesAvgRA;
         statistics::Scalar totalCyclesRA;

@@ -441,9 +441,6 @@ CPU::CPUStats::CPUStats(CPU *cpu)
       ADD_STAT(numPossiblePrefetchesRA, statistics::units::Count::get(),
                "number of instructions that could possibly be prefetched in runahead "
                "looking at one rob_size instructions after exit from runahead"),
-      ADD_STAT(l2MissRA, statistics::units::Count::get(),
-               "number of misses in L2 that occur during runahead in ROB"
-               "(runahead has no improvement over the baseline here)"),
       ADD_STAT(robFullRA, statistics::units::Count::get(),
                 "how many times the ROB becomes full, when CPU would be in runahead"),
       ADD_STAT(totalCyclesRA, statistics::units::Cycle::get(),
@@ -546,7 +543,6 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     avgRobSizeAtEnterRA.precision(3);
     avgRobSizeAtExitRA.precision(3);
     numPossiblePrefetchesRA.prereq(numPossiblePrefetchesRA);
-    l2MissRA.prereq(l2MissRA);
     
     robFullRA.prereq(robFullRA);
     totalCyclesRA.prereq(totalCyclesRA);
@@ -1843,7 +1839,7 @@ CPU::wouldEnterRA(DynInstPtr inst)
     // this will make sure that RA is not trigerred by one of the instructions 
     // which was already in ROB during the current RA execution
     // all fetched instructions are also marked as RA
-    rob.markAllRunahead();
+    // rob.markAllRunahead();
 }
 
 void
@@ -1851,13 +1847,7 @@ CPU::wouldExitRA(DynInstPtr inst)
 {
     assert(wouldBeInRA);
 
-    // DPRINTF(RunaheadEnter, "Would exit runahead mode!\n");
-    DPRINTF_NO_LOG(RunaheadEnter, "Exit runahead mode!\n\n"
-        // " - sn:%d,"
-        // " entries inserted in RA:%d\n\n", 
-        // inst->seqNum, rob.numInstsInROB - numRobEntriesWhenEnter
-        );
-    
+    DPRINTF_NO_LOG(RunaheadEnter, "Exit runahead mode!\n\n");
     wouldBeInRA = false;
     instsAfterLastRA = 0;
     inst->resetL2Miss();
@@ -1869,7 +1859,7 @@ CPU::wouldExitRA(DynInstPtr inst)
     }
 
     // reset the runahead flag for all current instructions 
-    rob.markAllRunahead(false);
+    // rob.markAllRunahead(false);
 
 }
 
