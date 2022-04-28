@@ -48,10 +48,6 @@ from setup import *
 
 class L1Cache(Cache):
     """Simple L1 Cache with default values"""
-    assoc = L1.assoc
-    tag_latency = L1.tag_latency
-    data_latency = L1.data_latency
-    response_latency = L1.response_latency
     mshrs = L1.mshrs
     tgts_per_mshr = L1.tgts_per_mshr
 
@@ -71,6 +67,10 @@ class L1Cache(Cache):
 class L1ICache(L1Cache):
     """Simple L1 instruction cache with default values"""
     size = L1.i_size
+    assoc = L1.i_assoc
+    tag_latency = L1.i_latency
+    data_latency = L1.i_latency
+    response_latency = L1.i_latency
 
     SimpleOpts.add_option('--l1i_size',
                           help="L1 instruction cache size. Default: %s" % size)
@@ -88,6 +88,10 @@ class L1ICache(L1Cache):
 class L1DCache(L1Cache):
     """Simple L1 data cache with default values"""
     size = L1.d_size
+    assoc = L1.d_assoc
+    tag_latency = L1.d_latency
+    data_latency = L1.d_latency
+    response_latency = L1.d_latency
 
     SimpleOpts.add_option('--l1d_size',
                           help="L1 data cache size. Default: %s" % size)

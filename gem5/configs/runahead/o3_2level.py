@@ -39,6 +39,7 @@ IMPORTANT: If you modify this file, it's likely that the Learning gem5 book
 """
 
 # import the m5 (gem5) library created when gem5 is built
+from random import SystemRandom
 import m5
 # import all of the SimObjects
 from m5.objects import *
@@ -79,7 +80,7 @@ system = System()
 
 # Set the clock fequency of the system (and all of its children)
 system.clk_domain = SrcClockDomain()
-system.clk_domain.clock = '1GHz'
+system.clk_domain.clock = '2.66GHz'
 system.clk_domain.voltage_domain = VoltageDomain()
 
 # Set up the system
@@ -102,6 +103,10 @@ elif args.mode == 'pre':
     system.cpu.exit_PRE_when_squash = args.exit_PRE_when_squash
 
 system.cpu.numROBEntries = args.rob_size
+system.cpu.LQEntries = LQEntries
+system.cpu.SQEntries = SQEntries
+system.cpu.numIQEntries = numIQEntries
+# system.cpu.branchPred = branchPred
 
 # Create an L1 instruction and data cache
 system.cpu.icache = L1ICache(args)
@@ -110,8 +115,6 @@ system.cpu.dcache = L1DCache(args)
 # Connect the instruction and data caches to the CPU
 system.cpu.icache.connectCPU(system.cpu)
 system.cpu.dcache.connectCPU(system.cpu)
-# if runahead:
-#     system.cpu.ra_cache.connectCPU(system.cpu)
 
 # Create a memory bus, a coherent crossbar, in this case
 system.l2bus = L2XBar()
@@ -119,8 +122,6 @@ system.l2bus = L2XBar()
 # Hook the CPU ports up to the l2bus
 system.cpu.icache.connectBus(system.l2bus)
 system.cpu.dcache.connectBus(system.l2bus)
-# if runahead:
-#     system.cpu.ra_cache.connectBus(system.l2bus)
 
 # Create an L2 cache and connect it to the l2bus
 system.l2cache = L2Cache(args)
