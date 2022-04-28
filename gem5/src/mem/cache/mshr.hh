@@ -531,7 +531,7 @@ class MSHR : public QueueEntry, public Printable
 private:
    bool _missedInL2 = false;
 public:
-   void markTargetsMissedInL2();
+   int markTargetsMissedInL2();
    bool hasMissedInL2();
    TargetList* getTargets() { return &targets; }
    PacketPtr sharedPkt = nullptr;

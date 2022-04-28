@@ -416,31 +416,90 @@ BaseCache::recvTimingReq(PacketPtr pkt)
 
         handleTimingReqHit(pkt, blk, request_time);
     } else {
-        handleTimingReqMiss(pkt, blk, forward_time, request_time);
+
         RequestPtr r = pkt->req;
+        DynInstParent* inst = r->getInst();
+
+        if ( inst && !inst->isExecuted() && !inst->isSquashed()) {
+            if (this->name() == "system.l2cache") {
+                DPRINTF_NO_LOG(RunaheadDebug, "Inst misses in L2: %#lx\n",
+                    inst->instAddr());
+                
+                // this request could have travelled through multiple mshrs
+                // mark all targets on these mshrs as missed in L2;
+                // only one shared req is created for multiple original 
+                // requests, we want to count all towards statistics
+                for (auto mshr : r->getMshrs())
+                {
+                    int count = mshr->markTargetsMissedInL2();
+                    DPRINTF_NO_LOG(RunaheadDebug, "L2 miss: MSHR count %d\n", count);
+                    if (r->isGeneratedInRunahead()) {
+                        stats.l2MissRA += count;
+                    } else {
+                        stats.l2Miss += count;
+                    }
+                }
+            } else if (this->name() == "system.cpu.dcache") {
+                // When missing in L1 cache we need to count all requests
+                // even if these would be put onto MSHR, so don't need to 
+                // check the associates MSHRs (there should be none at 
+                // this point anyway)
+                DPRINTF_NO_LOG(RunaheadDebug, "Inst misses in L1: %#lx\n",
+                    inst->instAddr());
+                if (r->isGeneratedInRunahead()) {
+                    ++stats.l1MissRA;
+                } else {
+                    ++stats.l1Miss;
+                }
+            }
+        }
+
+
+        handleTimingReqMiss(pkt, blk, forward_time, request_time);
+        // RequestPtr r = pkt->req;
         
         // runahead support - check when instruction misses in L2
         // make sure that the miss is caused by an instruction
         // which hasn't been executed nor squashed yet
-        DynInstParent* inst = r->getInst();
-        if (this->name() == "system.l2cache" && inst && \
-                !inst->isExecuted() && !inst->isSquashed()) {
-            DPRINTF_NO_LOG(RunaheadDebug, "Inst misses in L2: %#lx\n",
-                inst->instAddr());
-            
-            // this request could have travelled through multiple mshrs
-            // mark all targets on these mshrs as missed in L2;
-            // only one shared req is created for multiple original 
-            // requests, we want to count all towards statistics
-            for (auto mshr : r->getMshrs())
-            {
-                mshr->markTargetsMissedInL2();
-                if (r->isGeneratedInRunahead()) {
-                    stats.l2MissRA += mshr->getNumTargets();
-                }
-                stats.l2Miss += mshr->getNumTargets();
-            }
-        }
+        // DynInstParent* inst = r->getInst();
+        // if ( inst && !inst->isExecuted() && !inst->isSquashed()) {
+        //     if (this->name() == "system.l2cache") {
+        //         DPRINTF_NO_LOG(RunaheadDebug, "Inst misses in L2: %#lx\n",
+        //             inst->instAddr());
+                
+        //         // this request could have travelled through multiple mshrs
+        //         // mark all targets on these mshrs as missed in L2;
+        //         // only one shared req is created for multiple original 
+        //         // requests, we want to count all towards statistics
+        //         for (auto mshr : r->getMshrs())
+        //         {
+        //             int count = mshr->markTargetsMissedInL2();
+        //             DPRINTF_NO_LOG(RunaheadDebug, "L2 miss: MSHR count %d\n", count);
+        //             if (r->isGeneratedInRunahead()) {
+        //                 stats.l2MissRA += count;
+        //             } else {
+        //                 stats.l2Miss += count;
+        //             }
+        //         }
+        //     } else if (this->name() == "system.cpu.dcache") {
+        //         DPRINTF_NO_LOG(RunaheadDebug, "Inst misses in L1: %#lx\n",
+        //             inst->instAddr());
+        //         for (auto mshr : r->getMshrs()) {
+        //             int count = mshr->getNumTargets();
+        //             DPRINTF_NO_LOG(RunaheadDebug, "Targets count %d\n", count);
+
+        //             if (r->isGeneratedInRunahead()) {
+        //                 stats.l1MissRA += count;
+        //             } else {
+        //                 stats.l1Miss += count;
+        //             }
+        //         }
+        //     } else {
+        //         DPRINTF_NO_LOG(RunaheadDebug, "Name of this cache: %s\n",
+        //             this->name().c_str());
+        //     }
+
+        // }
         
         ppMiss->notify(pkt);
     }
@@ -2238,7 +2297,11 @@ BaseCache::CacheStats::CacheStats(BaseCache &c)
     ADD_STAT(l2Miss, statistics::units::Count::get(),
             "number of times a miss in L2 occurred in normal mode"),
     ADD_STAT(l2MissRA, statistics::units::Count::get(),
-            "number of times a miss in L2 occurred in runahead mode")
+            "number of times a miss in L2 occurred in runahead mode"),
+    ADD_STAT(l1Miss, statistics::units::Count::get(),
+            "number of times a miss in L1 occurred in normal mode"),
+    ADD_STAT(l1MissRA, statistics::units::Count::get(),
+            "number of times a miss in L1 occurred in runahead mode")
 {
     for (int idx = 0; idx < MemCmd::NUM_MEM_CMDS; ++idx)
         cmd[idx].reset(new CacheCmdStats(c, MemCmd(idx).toString()));
@@ -2458,6 +2521,8 @@ BaseCache::CacheStats::regStats()
     dataContractions.flags(nozero | nonan);
     l2Miss.flags(nozero | nonan);
     l2MissRA.flags(nozero | nonan);
+    l1Miss.flags(nozero | nonan);
+    l1MissRA.flags(nozero | nonan);
 }
 
 void
