@@ -66,6 +66,7 @@
 #include "debug/O3PipeView.hh"
 #include "debug/RunaheadDebug.hh"
 #include "debug/RunaheadCommit.hh"
+#include "debug/RunaheadROB.hh"
 #include "params/RunaheadO3CPU.hh"
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
@@ -971,7 +972,7 @@ Commit::commitInsts()
     ////////////////////////////////////
 
     DPRINTF(Commit, "Trying to commit instructions in the ROB.\n");
-    DPRINTF(RunaheadDebug, "ROB at commit: ");
+    DPRINTF(RunaheadROB, "ROB at commit: ");
     rob->debugPrintROB();
 
     bool first_iter = true;
@@ -1017,10 +1018,6 @@ Commit::commitInsts()
                 int(cpu->cpuStats.maxAtRobHd.value()));
             DPRINTF(RunaheadDebug, "Max at rob head: %d\n", 
                 head_inst->cyclesAtHeadInRA);
-
-            if (head_inst->cyclesAtHeadInRA == 20) {
-                rob->debugPrintRegisters();
-            }
         }
 
         // enter runahead mode if the head instruction is waiting on a L2 cache miss
@@ -1048,17 +1045,6 @@ Commit::commitInsts()
         */
         if (cpu->isInRunaheadMode() || head_inst->isRunaheadInst()) {
 
-            // if (head_inst->seqNum == 4306) {
-            //     DPRINTF(RunaheadDebug, "Src regs of 4306:\n");
-            //     for (int src=0; src<head_inst->numSrcRegs(); ++src){
-            //         RegId& reg = const_cast<RegId&>(head_inst->srcRegIdx(src));
-            //         DPRINTF(RunaheadDebug, "Reg:%d, at addr:%d is INV:%d\n renamed:%d\n",
-            //             reg, &reg, head_inst->regs.renamedDestIdx(src)->isInvalid() , 
-            //             head_inst->regs.renamedDestIdx(src));
-            //     }
-            //     // head_inst->invalidateSrcRegs();
-            // }
-
             if (head_inst->missedInL2() || head_inst->isStore()) {
                 DPRINTF(RunaheadDebug, "Mark sn:%d INV due to miss or is store \n", head_inst->seqNum);
                 head_inst->setInvalid();
@@ -1067,7 +1053,7 @@ Commit::commitInsts()
             if (head_inst->isInvalid()) {
                 DPRINTF(RunaheadCommit, "Retiring INV inst [sn:%llu]\n", head_inst->seqNum);
 
-                // destination registers of a pseudo-retired instruction 
+                // destination registers of an INV instruction 
                 // should be invalidated
                 head_inst->invalidateDestRegs();
             } else if (head_inst->isSquashed()) {
@@ -1083,10 +1069,7 @@ Commit::commitInsts()
                 // to indicate the time it would take to update the architectural state
                 ++num_committed;
 
-                // reset INV bits in dest registers when a valid load retires
-                // if (head_inst->isLoad()) {
-                //     head_inst->invalidateDestRegs(false);
-                // }
+                // set INV bits since the instruction does not actually commit
                 head_inst->invalidateDestRegs();
 
             } else {

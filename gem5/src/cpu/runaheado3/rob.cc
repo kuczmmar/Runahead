@@ -575,20 +575,20 @@ ROB::debugPrintROB() {
                 flags += (inst->readyToCommit() ? "c" : "");
                 flags += (inst->isInvalid() ? "i" : "");
                 flags += (inst->missedInL2() ? "m" : "");
-                DPRINTF_NO_LOG(RunaheadDebug, "%4ld[%4s] ", inst->seqNum, flags.c_str());
+                DPRINTF_NO_LOG(RunaheadROB, "%4ld[%4s] ", inst->seqNum, flags.c_str());
             }
-            DPRINTF_NO_LOG(RunaheadDebug, "\n%43s", "");//43
+            DPRINTF_NO_LOG(RunaheadROB, "\n%43s", "");//43
             for (auto inst : thread_list) {
-                DPRINTF_NO_LOG(RunaheadDebug, "%#lx   ",  inst->instAddr());
+                DPRINTF_NO_LOG(RunaheadROB, "%#lx   ",  inst->instAddr());
             }
-            DPRINTF_NO_LOG(RunaheadDebug, "\n");
+            DPRINTF_NO_LOG(RunaheadROB, "\n");
         }
     }
     if (all_empty) { 
-        DPRINTF_NO_LOG(RunaheadDebug, "ROB is empty\n");
+        DPRINTF_NO_LOG(RunaheadROB, "ROB is empty\n");
     } else if (isFull()) {
         std::string str = cpu->isInRunaheadMode() ? " in RA" : "";
-        DPRINTF(RunaheadDebug, "ROB is full%s\n", str.c_str());
+        DPRINTF(RunaheadROB, "ROB is full%s\n", str.c_str());
     }
 }
 
