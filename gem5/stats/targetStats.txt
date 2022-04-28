@@ -2,21 +2,28 @@ simTicks
 # system.cpu.numCycles
 system.l2cache.l2Miss
 system.l2cache.l2MissRA
+system.cpu.dcache.l1Miss
+system.cpu.dcache.l1MissRA
 system.cpu.cpi
-# system.cpu.ipc
 system.cpu.enterRA
 system.cpu.robFullRA
 # system.cpu.robFull
 
-system.cpu.l2MissRA
+
 # system.cpu.cyclesAvgRA
 # system.cpu.insertedAvgRA
 # system.cpu.decodedAvgRA
 # system.cpu.pctRobEmptyRA
-# system.cpu.fetch.icacheStallCycles
+system.cpu.fetch.icacheStallCycles
+
+system.cpu.numCycles
+system.cpu.ipc
+system.cpu.totalCyclesRA
+system.cpu.cyclesAvgRA   
+
 
 system.cpu.fetch.fetchedRA
-system.cpu.maxAtRobHd
+# system.cpu.maxAtRobHd
 system.cpu.freeRegsAvg
 system.cpu.sstHitsPRE
 system.cpu.rename.fullRegistersEvents
@@ -24,5 +31,5 @@ system.cpu.iqFullEvents
 system.cpu.totalExecutedPRE
 system.cpu.totalDecodedRA
 system.cpu.iqFullRa
-system.cpu.prdqEntriesRecycled
-system.cpu.preRegsFreed
+# system.cpu.prdqEntriesRecycled
+# system.cpu.preRegsFreed

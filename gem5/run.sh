@@ -47,7 +47,7 @@ RA_DEBUG=""
 PRE_DEBUG=""
 # RA_DEBUG="--debug-flags=RunaheadDebug,RunaheadEnter,RunaheadRename"
 # PRE_DEBUG="--debug-flags=PreEnter,PreDebug,PrePRDQ,Commit,PrePipelineDebug,PreIEW,PreO3CPU,PreRename,PreIQ"
-# PRE_DEBUG="--debug-flags=PreEnter,PreDebug,PrePRDQ,PrePipelineDebug"
+PRE_DEBUG="--debug-flags=PreEnter,PreDebug,PrePRDQ,PrePipelineDebug"
 
 echo_lines() {
   yes '' | sed 3q
@@ -114,12 +114,15 @@ run_all_randacc() {
 
 run_all_benchmarks() {
   L2=$1; ROB=$2;
+  run_all_randacc 200000        $L2 $ROB &
   run_all_randacc 500000        $L2 $ROB &
   run_all_randacc 600000        $L2 $ROB &
   run_all         $SUSAN_ARG    $L2 $ROB "susan"  $SUSAN &
   run_all         $QSORT_ARG    $L2 $ROB "qsort"  $QSORT &
   run_all         $CONSUMER_ARG $L2 $ROB "consumer" $CONSUMER_LAME &
-  run_all         $BZIP2D_ARG   $L2 $ROB "bzip2d" $BZIP2D
+  # run_all         $BZIP2D_ARG   $L2 $ROB "bzip2d" $BZIP2D &
+  run_all         ""            $L2 $ROB "cg"     $CG &
+  run_all         ""            $L2 $ROB "is"     $IS
 }
 
 
@@ -129,25 +132,14 @@ run_all_benchmarks() {
 mkdir -p out m5out/base m5out/run m5out/pre
 echo_lines
 
-ROBS=( 81 128 192 )
+ROBS=( 64 96 128 160 192 )
 L2S=( '64kB' '128kB' '256kB')
 
-for r in ${ROBS[@]}; do 
-  for l in ${L2S[@]}; do 
-    echo $r, $l; run_all_benchmarks $l $r &
-  done
-done
-
-
-# run_all_benchmarks '64kB' 81 
-# run_all_benchmarks '64kB' 128 &
-# run_all_benchmarks '64kB' 192 &
-# run_all_benchmarks '128kB' 81 &
-# run_all_benchmarks '128kB' 128 &
-# run_all_benchmarks '128kB' 192 &
-# run_all_benchmarks '256kB' 81 &
-# run_all_benchmarks '256kB' 128 &
-# run_all_benchmarks '256kB' 192 &
+# for r in ${ROBS[@]}; do 
+#   for l in ${L2S[@]}; do 
+#     echo $r, $l; run_all_benchmarks $l $r &
+#   done
+# done
 
 
 ## Random access benchmark runs
@@ -176,7 +168,7 @@ done
 
 
 ## Bzip2d
-# run_pre          $BZIP2D_ARG  '128kB' 192 "bzip2d" $BZIP2D &
+run_pre          $BZIP2D_ARG  '256kB' 81 "bzip2d" $BZIP2D
 # run_all          $BZIP2D_ARG  '256kB' 192 "bzip2d" $BZIP2D 
 
 
@@ -188,6 +180,12 @@ done
 
 # run_all  "" '256kB' 192 "cg" $CG &
 # run_all  $CONSUMER_ARG '256kB' 192 "consumer" $CONSUMER_LAME &
+
+
+# run_all_randacc     100000 '128kB' 128 &
+# run_all_randacc     500000 '128kB' 128 &
+# run_all_randacc     500000 '128kB' 81 &
+# run_all_randacc     100000 '128kB' 81 
 
 wait
 wait
