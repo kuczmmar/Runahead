@@ -17,6 +17,7 @@ benchmarks/**/bin/*
 parsing_data/mcpat/mcpat
 
 parsing_data/mcpat_out/*
+parsing_data/mcpat_in/*
 /benchmarks/cbench/automotive_susan_c/src/_finfo_dataset
 /benchmarks/cbench/automotive_susan_c/src/ftmp_out
 /benchmarks/cbench/automotive_susan_c/src/output_large.corners.pgm
@@ -24,6 +25,7 @@ parsing_data/mcpat_out/*
 /benchmarks/cbench/bzip2d/src/_finfo_dataset
 /benchmarks/cbench/bzip2d/src/ftmp_out
 /benchmarks/cbench/bzip2d/src/tmp_bat
+/benchmarks/cbench/bzip2_data/*
 /benchmarks/cbench/automotive_qsort1/src/ftmp_out
 /benchmarks/cbench/automotive_qsort1/src/sorted_output.dat
 /benchmarks/cbench/automotive_qsort1/src/tmp_bat
@@ -33,7 +35,12 @@ parsing_data/mcpat_out/*
 /benchmarks/cbench/consumer_lame/src/_finfo_dataset
 /benchmarks/cbench/consumer_lame/src/ftmp_out
 /benchmarks/cbench/consumer_lame/src/tmp_bat
-/benchmarks/cbench/bzip2_data/*
+benchmarks/cbench/consumer_lame/src/output_large.mp3
+
+benchmarks/cbench/network_dijkstra/src/_finfo_dataset
+benchmarks/cbench/network_dijkstra/src/output_large.dat
+benchmarks/cbench/network_dijkstra/src/tmp_bat
+
 
 sorted_output.dat
 stats/simple1.csv
