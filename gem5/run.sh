@@ -23,6 +23,7 @@ RANDACC='../benchmarks/cgo2017/program/randacc/bin/x86/randacc-no'
 CG='../benchmarks/cgo2017/program/nas-cg/bin/x86/cg-no2'
 IS='../benchmarks/cgo2017/program/nas-is/bin/x86/is-no1'
 HASHJOIN2='../benchmarks/cgo2017/program/hashjoin-ph-2/src/bin/x86/hj2-no'
+HASHJOIN8='./../benchmarks/cgo2017/program/hashjoin-ph-8/src/bin/x86/hj8-no'
 GRAPH500='../benchmarks/cgo2017/program/graph500/bin/x86/g500-no'
 
 SUSAN='../benchmarks/cbench/automotive_susan_c/src/a.out'
@@ -36,6 +37,9 @@ CONSUMER_ARG='../benchmarks/cbench/consumer_data/1.wav,out/consumer_output_large
 
 QSORT='./../benchmarks/cbench/automotive_qsort1/src/a.out'
 QSORT_ARG='../benchmarks/cbench/automotive_qsort_data/1.dat,out/qsort_output.dat,out/qsort_out'
+
+DIJKSTRA='./../benchmarks/cbench/network_dijkstra/src/a.out'
+DIJKSTRA_ARG='../benchmarks/cbench/network_dijkstra_data/1.dat'
  
 
 # define paths to configuration files
@@ -47,7 +51,7 @@ RA_DEBUG=""
 PRE_DEBUG=""
 # RA_DEBUG="--debug-flags=RunaheadDebug,RunaheadEnter,RunaheadRename"
 # PRE_DEBUG="--debug-flags=PreEnter,PreDebug,PrePRDQ,Commit,PrePipelineDebug,PreIEW,PreO3CPU,PreRename,PreIQ"
-PRE_DEBUG="--debug-flags=PreEnter,PreDebug,PrePRDQ,PrePipelineDebug"
+# PRE_DEBUG="--debug-flags=PreEnter,PreDebug,PrePRDQ,PrePipelineDebug"
 
 echo_lines() {
   yes '' | sed 3q
@@ -114,15 +118,17 @@ run_all_randacc() {
 
 run_all_benchmarks() {
   L2=$1; ROB=$2;
-  run_all_randacc 200000        $L2 $ROB &
-  run_all_randacc 500000        $L2 $ROB &
-  run_all_randacc 600000        $L2 $ROB &
-  run_all         $SUSAN_ARG    $L2 $ROB "susan"  $SUSAN &
-  run_all         $QSORT_ARG    $L2 $ROB "qsort"  $QSORT &
-  run_all         $CONSUMER_ARG $L2 $ROB "consumer" $CONSUMER_LAME &
+  # run_all_randacc 200000        $L2 $ROB &
+  # run_all_randacc 500000        $L2 $ROB &
+  # run_all_randacc 600000        $L2 $ROB &
+  # run_all         $DIJKSTRA_ARG $L2 $ROB "dijkstra" $DIJKSTRA &
+  # run_all         $SUSAN_ARG    $L2 $ROB "susan"  $SUSAN &
+  # run_all         $QSORT_ARG    $L2 $ROB "qsort"  $QSORT &
   # run_all         $BZIP2D_ARG   $L2 $ROB "bzip2d" $BZIP2D &
-  run_all         ""            $L2 $ROB "cg"     $CG &
-  run_all         ""            $L2 $ROB "is"     $IS
+  # run_all         ""            $L2 $ROB "cg"     $CG &
+  # run_all         $CONSUMER_ARG $L2 $ROB "consumer" $CONSUMER_LAME &
+  run_all         ""            $L2 $ROB "is"     $IS &
+  run_all         ""            $L2 $ROB "hj2" $HASHJOIN2
 }
 
 
@@ -135,11 +141,11 @@ echo_lines
 ROBS=( 64 96 128 160 192 )
 L2S=( '64kB' '128kB' '256kB')
 
-# for r in ${ROBS[@]}; do 
-#   for l in ${L2S[@]}; do 
-#     echo $r, $l; run_all_benchmarks $l $r &
-#   done
-# done
+for r in ${ROBS[@]}; do 
+  for l in ${L2S[@]}; do 
+    echo $r, $l; run_all_benchmarks $l $r &
+  done
+done
 
 
 ## Random access benchmark runs
@@ -153,39 +159,15 @@ L2S=( '64kB' '128kB' '256kB')
 # run_all_randacc              $TMP '128kB' $ROB
 
 
-## Susan benchmark
-# run_all             $SUSAN_ARG  '64kB' 128 "susan" $SUSAN &
-# run_all             $SUSAN_ARG  '128kB' 128 "susan" $SUSAN &
-# run_all_pre_options $SUSAN_ARG  '128kB' 192 "susan" $SUSAN &
-# run_all             $SUSAN_ARG  '128kB' 192 "susan" $SUSAN &
-# run_all             $SUSAN_ARG   '256kB' 128 "susan"   $SUSAN &
-# run_all             $SUSAN_ARG   '256kB' 192 "susan"   $SUSAN
-
-
-## Qsort
-# run_all             $QSORT_ARG   '256kB' 128 "qsort"   $QSORT &
-# run_all             $QSORT_ARG   '256kB' 192 "qsort"   $QSORT &
-
 
 ## Bzip2d
-run_pre          $BZIP2D_ARG  '256kB' 81 "bzip2d" $BZIP2D
-# run_all          $BZIP2D_ARG  '256kB' 192 "bzip2d" $BZIP2D 
+# run_pre          $BZIP2D_ARG  '256kB' 160 "bzip2d" $BZIP2D
+
+run_all "" '128kB' 96 "g500" $GRAPH500  & # RA crashes
+run_all "" '128kB' 96 "hj8" $HASHJOIN8  # RA crashes
 
 
-# run_run "" '256kB' 192 "g500" $GRAPH500  & # RA crashes
-# run_run "" '256kB' 192 "hj2" $HASHJOIN2  # RA crashes
 
-# run_all "" '256kB' 192 "is" $IS
-
-
-# run_all  "" '256kB' 192 "cg" $CG &
-# run_all  $CONSUMER_ARG '256kB' 192 "consumer" $CONSUMER_LAME &
-
-
-# run_all_randacc     100000 '128kB' 128 &
-# run_all_randacc     500000 '128kB' 128 &
-# run_all_randacc     500000 '128kB' 81 &
-# run_all_randacc     100000 '128kB' 81 
 
 wait
 wait
@@ -198,3 +180,5 @@ cat stats/simple.csv  |sed 's/,/ ,/g' | column -t -s,
 # head -n 100000 out/grepped.txt > out/grepped.txt
 
 # grep -hnr 'to physical reg 189 \|Freeing register 189 (IntRegClass)\|old mapping was 189 ' out/pre_randacc500k_rob192_128kB.txt > out/grepped2.txt
+
+# build/X86/gem5.opt --stats-file=run/d_rob81_256kB --json-config=run/dij_rob81_256kB_config.json configs/runahead/o3_2level.py --mode=runahead --rob_size=81 --l2_size=256kB --binary=./../benchmarks/cbench/network_dijkstra/src/a.out  --binary_args ../benchmarks/cbench/network_dijkstra_data/1.dat

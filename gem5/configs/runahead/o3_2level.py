@@ -85,7 +85,7 @@ system.clk_domain.voltage_domain = VoltageDomain()
 
 # Set up the system
 system.mem_mode = 'timing'               # Use timing accesses
-system.mem_ranges = [AddrRange('512MB')] # Create an address range
+system.mem_ranges = [AddrRange('1024MB')] # Create an address range
 
 # 03 out of order CPU
 runahead = True if args.mode == 'runahead' else False

@@ -443,11 +443,6 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                "looking at one rob_size instructions after exit from runahead"),
       ADD_STAT(robFullRA, statistics::units::Count::get(),
                 "how many times the ROB becomes full, when CPU would be in runahead"),
-      ADD_STAT(totalCyclesRA, statistics::units::Cycle::get(),
-                "total number of cycles the CPU would spend in runahead"),
-      ADD_STAT(cyclesAvgRA, statistics::units::Rate<
-                statistics::units::Cycle, statistics::units::Count>::get(),
-                "average number of cycles the CPU would spend in runahead"),
       ADD_STAT(totalInsertedRA, statistics::units::Count::get(),
                 "total number of instructions inserted into ROB when the CPU would be in runahead"),
       ADD_STAT(insertedAvgRA, statistics::units::Ratio::get(),
@@ -459,7 +454,9 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                 "average number of instructions decoded when the CPU would be in runahead",
                 totalDecodedRA / enterRA),
       ADD_STAT(maxAtRobHd, statistics::units::Count::get(),
-                "maximum number of cycles one instruction spends at the head of ROB")
+                "maximum number of cycles one instruction spends at the head of ROB"),
+      ADD_STAT(fullROBstalls, statistics::units::Count::get(),
+                "number of stalls caused by full ROB")
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -545,14 +542,12 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     numPossiblePrefetchesRA.prereq(numPossiblePrefetchesRA);
     
     robFullRA.prereq(robFullRA);
-    totalCyclesRA.prereq(totalCyclesRA);
-    cyclesAvgRA.precision(3);
-    cyclesAvgRA = totalCyclesRA / enterRA;
     totalInsertedRA.prereq(totalInsertedRA);
     insertedAvgRA.precision(3);
     totalDecodedRA.prereq(totalDecodedRA);
     decodedAvgRA.precision(3);
     maxAtRobHd.prereq(maxAtRobHd);
+    fullROBstalls.prereq(fullROBstalls);
 }
 
 void
@@ -615,10 +610,6 @@ CPU::tick()
         updateThreadPriority();
 
     tryDrain();
-
-    if (wouldBeInRA) {
-        ++cpuStats.totalCyclesRA;
-    }
 }
 
 void
