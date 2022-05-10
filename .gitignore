@@ -13,3 +13,6 @@ gem5/parsetab.py
 *.o
 benchmarks/**/a.out
 parsing_data/mcpat/mcpat
+parsing_data/m5out_copy/*
+plotting_stats/images/*
+parsing_data/mcpat_out/*
