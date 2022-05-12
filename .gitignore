@@ -11,9 +11,13 @@ gem5/stats/simple.csv
 /gem5/bin
 gem5/parsetab.py
 *.o
-benchmarks/**/a.out
 parsing_data/mcpat/mcpat
 parsing_data/mcpat_out/*
+parsing_data/m5out_copy/*
+plotting_stats/images/*
+parsing_data/mcpat_out/*
+
+benchmarks/**/a.out
 /benchmarks/cbench/automotive_susan_c/src/_finfo_dataset
 /benchmarks/cbench/automotive_susan_c/src/ftmp_out
 /benchmarks/cbench/automotive_susan_c/src/output_large.corners.pgm
@@ -26,3 +30,4 @@ parsing_data/mcpat_out/*
 /benchmarks/cbench/consumer_lame/src/_finfo_dataset
 /benchmarks/cbench/consumer_lame/src/ftmp_out
 /benchmarks/cbench/consumer_lame/src/tmp_bat
+

@@ -33,3 +33,5 @@ ssh -K mmk64@sofia.cl.cam.ac.uk
 cd /local/scratch/mmk64/Runahead
 
 mmk64@sofia:/local/scratch/mmk64/Runahead/gem5$ python3 ./bin/scons build/X86/gem5.opt -j17
+
+polecam nfs, sambę +  cachefilesd
