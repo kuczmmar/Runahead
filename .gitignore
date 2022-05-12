@@ -13,15 +13,16 @@ gem5/parsetab.py
 *.o
 parsing_data/mcpat/mcpat
 parsing_data/mcpat_out/*
+parsing_data/mcpat_in/*
 parsing_data/m5out_copy/*
 plotting_stats/images/*
 parsing_data/mcpat_out/*
 
 benchmarks/**/a.out
 /benchmarks/cbench/automotive_susan_c/src/_finfo_dataset
-/benchmarks/cbench/automotive_susan_c/src/ftmp_out
+/benchmarks/cbench/**/ftmp_out
 /benchmarks/cbench/automotive_susan_c/src/output_large.corners.pgm
-/benchmarks/cbench/automotive_susan_c/src/tmp_bat
+/benchmarks/cbench/**/tmp_bat
 /benchmarks/cbench/bzip2d/src/_finfo_dataset
 /benchmarks/cbench/bzip2d/src/ftmp_out
 /benchmarks/cbench/bzip2d/src/tmp_bat
@@ -30,4 +31,11 @@ benchmarks/**/a.out
 /benchmarks/cbench/consumer_lame/src/_finfo_dataset
 /benchmarks/cbench/consumer_lame/src/ftmp_out
 /benchmarks/cbench/consumer_lame/src/tmp_bat
+
+/benchmarks/cbench/automotive_qsort1/src/sorted_output.dat
+/benchmarks/cbench/bzip2_data/1
+/benchmarks/cbench/consumer_lame/src/output_large.mp3
+/benchmarks/cbench/network_dijkstra/src/_finfo_dataset
+/benchmarks/cbench/network_dijkstra/src/output_large.dat
+/gem5/sorted_output.dat
 
