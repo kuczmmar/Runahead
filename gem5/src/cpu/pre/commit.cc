@@ -65,7 +65,7 @@
 #include "debug/HtmCpu.hh"
 #include "debug/O3PipeView.hh"
 #include "debug/PreDebug.hh"
-#include "debug/PreCommit.hh"
+#include "debug/PrePipelineDebug.hh"
 #include "params/PreO3CPU.hh"
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
@@ -546,7 +546,6 @@ Commit::squashAll(ThreadID tid)
     // number as the youngest instruction in the ROB (0 in this case.
     // Hopefully nothing breaks.)
     youngestSeqNum[tid] = lastCommitedSeqNum[tid];
-    DPRINTF(PreDebug, "Setting youngestSeqNum = %i\n", youngestSeqNum[tid]);
 
     rob->squash(squashed_inst, tid);
     changedROBNumEntries[tid] = true;
@@ -632,7 +631,7 @@ Commit::squashAfter(ThreadID tid, const DynInstPtr &head_inst)
 void
 Commit::tick()
 {
-    if (cpu->cycleAfterPre <= 10) {
+    if (cpu->cycleAfterPre <= 5) {
         DPRINTF(PreDebug, "cycles after PRE: %d\n", cpu->cycleAfterPre);
     }
     wroteToTimeBuffer = false;
@@ -991,16 +990,9 @@ Commit::commitInsts()
     // things at the same time...
     ////////////////////////////////////
 
-    DPRINTF(Commit, "Trying to commit instructions in the ROB.\n");
-    DPRINTF(PreDebug, "ROB at commit: ");
-    rob->debugPrintROB(false);
-
-
-    // DPRINTF(PreDebug, "SST at commit: ");
-    // for (auto inst : cpu->sst) {
-    //     DPRINTF_NO_LOG(PreDebug, "Pc: %#lu ", inst);
-    // }
-    // DPRINTF_NO_LOG(PreDebug, "\n");
+    // DPRINTF(PrePipelineDebug, "Trying to commit instructions in the ROB.\n");
+    // DPRINTF(PrePipelineDebug, "ROB at commit: ");
+    // rob->debugPrintROB(false);
 
     unsigned num_committed = 0;
     DynInstPtr head_inst;
@@ -1048,12 +1040,12 @@ Commit::commitInsts()
                     head_inst->instAddr(), head_inst->cyclesAtHeadInRA);
             }
 
-            if (head_inst->cyclesAtHeadInRA >= 900) {
-                DPRINTF(PreDebug, "Head inst: %s\n", rob->readHeadInst(0)->seqNum);
-                rob->readHeadInst(0)->debugPrintStatus();
-                rob->readHeadInst(0)->printSrcRegs();
-                panic("At head for too long");
-            }
+            // if (head_inst->cyclesAtHeadInRA >= 900) {
+            //     DPRINTF(PreDebug, "Head inst: %s\n", rob->readHeadInst(0)->seqNum);
+            //     rob->readHeadInst(0)->debugPrintStatus();
+            //     rob->readHeadInst(0)->printSrcRegs();
+            //     panic("At head for too long");
+            // }
         }
 
         // enter PRE if the head instruction is waiting on a L2 

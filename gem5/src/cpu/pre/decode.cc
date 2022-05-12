@@ -48,6 +48,7 @@
 #include "cpu/pre/limits.hh"
 #include "debug/Activity.hh"
 #include "debug/Decode.hh"
+#include "debug/PreSST.hh"
 #include "debug/O3PipeView.hh"
 #include "debug/PreDebug.hh"
 #include "params/PreO3CPU.hh"
@@ -681,33 +682,36 @@ Decode::decodeInsts(ThreadID tid)
         // check if this instruction is in the SST
         // if hit then add the producers of this instruction as well
         if (cpu->isInPreMode()) {
-            ++(cpu->cpuStats.totalDecodedRA);
             inst->setRunaheadInst();
 
-            if (cpu->usingSST) {
+            if (cpu->useSST) {
                 if (cpu->isInSST(inst->instAddr())) {
-                    DPRINTF(PreDebug, "Hit in SST during decode, inst PC: %#x, pcState: %#x\n",
+                    DPRINTF(PreSST, "Hit in SST during decode, inst PC: %#x, pcState: %#x\n",
                         inst->instAddr(), inst->pcState());
                     
                     ++cpu->cpuStats.sstHitsPRE;
+                    ++(cpu->cpuStats.totalDecodedRA);
                     std::vector<RegIndex> sources = inst->getArchSrcRegIndicies();
 
                     for (auto reg_idx : sources) {
                         if (cpu->reg_to_last_producer.find(reg_idx) != cpu->reg_to_last_producer.end()) {
-                            DPRINTF(PreDebug, " Adding inst with addr:%#x to SST - "
-                                "producer of arch register: %d\n", 
+                            DPRINTF(PreSST, "Adding inst with addr:%#x to SST - "
+                                "producer of arch reg %d\n", 
                                 cpu->reg_to_last_producer[reg_idx], reg_idx);
-                    
                             cpu->addToSST(cpu->reg_to_last_producer[reg_idx]);
                         }
                     }
                 } else {
                     // The CPU is in PRE mode, but the instruction address does not hit in SST
                     // don't send this instruction to rename
+                    DPRINTF(PreSST, "Inst sn:%i did not hit in SST\n",
+                        inst->seqNum);
                     ++stats.squashedInsts;
                     --insts_available;
                     continue;
                 }
+            } else {
+                ++(cpu->cpuStats.totalDecodedRA);
             }
         }
 

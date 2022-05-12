@@ -441,16 +441,8 @@ CPU::CPUStats::CPUStats(CPU *cpu)
       ADD_STAT(numPossiblePrefetchesRA, statistics::units::Count::get(),
                "number of instructions that could possibly be prefetched in runahead "
                "looking at one rob_size instructions after exit from runahead"),
-      ADD_STAT(l2MissRA, statistics::units::Count::get(),
-               "number of misses in L2 that occur during runahead in ROB"
-               "(runahead has no improvement over the baseline here)"),
       ADD_STAT(robFullRA, statistics::units::Count::get(),
                 "how many times the ROB becomes full, when CPU would be in runahead"),
-      ADD_STAT(totalCyclesRA, statistics::units::Cycle::get(),
-                "total number of cycles the CPU would spend in runahead"),
-      ADD_STAT(cyclesAvgRA, statistics::units::Rate<
-                statistics::units::Cycle, statistics::units::Count>::get(),
-                "average number of cycles the CPU would spend in runahead"),
       ADD_STAT(totalInsertedRA, statistics::units::Count::get(),
                 "total number of instructions inserted into ROB when the CPU would be in runahead"),
       ADD_STAT(insertedAvgRA, statistics::units::Ratio::get(),
@@ -462,7 +454,9 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                 "average number of instructions decoded when the CPU would be in runahead",
                 totalDecodedRA / enterRA),
       ADD_STAT(maxAtRobHd, statistics::units::Count::get(),
-                "maximum number of cycles one instruction spends at the head of ROB")
+                "maximum number of cycles one instruction spends at the head of ROB"),
+      ADD_STAT(fullROBstalls, statistics::units::Count::get(),
+                "number of stalls caused by full ROB")
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -546,17 +540,14 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     avgRobSizeAtEnterRA.precision(3);
     avgRobSizeAtExitRA.precision(3);
     numPossiblePrefetchesRA.prereq(numPossiblePrefetchesRA);
-    l2MissRA.prereq(l2MissRA);
     
     robFullRA.prereq(robFullRA);
-    totalCyclesRA.prereq(totalCyclesRA);
-    cyclesAvgRA.precision(3);
-    cyclesAvgRA = totalCyclesRA / enterRA;
     totalInsertedRA.prereq(totalInsertedRA);
     insertedAvgRA.precision(3);
     totalDecodedRA.prereq(totalDecodedRA);
     decodedAvgRA.precision(3);
     maxAtRobHd.prereq(maxAtRobHd);
+    fullROBstalls.prereq(fullROBstalls);
 }
 
 void
@@ -619,10 +610,6 @@ CPU::tick()
         updateThreadPriority();
 
     tryDrain();
-
-    if (wouldBeInRA) {
-        ++cpuStats.totalCyclesRA;
-    }
 }
 
 void
@@ -1843,7 +1830,7 @@ CPU::wouldEnterRA(DynInstPtr inst)
     // this will make sure that RA is not trigerred by one of the instructions 
     // which was already in ROB during the current RA execution
     // all fetched instructions are also marked as RA
-    rob.markAllRunahead();
+    // rob.markAllRunahead();
 }
 
 void
@@ -1851,13 +1838,7 @@ CPU::wouldExitRA(DynInstPtr inst)
 {
     assert(wouldBeInRA);
 
-    // DPRINTF(RunaheadEnter, "Would exit runahead mode!\n");
-    DPRINTF_NO_LOG(RunaheadEnter, "Exit runahead mode!\n\n"
-        // " - sn:%d,"
-        // " entries inserted in RA:%d\n\n", 
-        // inst->seqNum, rob.numInstsInROB - numRobEntriesWhenEnter
-        );
-    
+    DPRINTF_NO_LOG(RunaheadEnter, "Exit runahead mode!\n\n");
     wouldBeInRA = false;
     instsAfterLastRA = 0;
     inst->resetL2Miss();
@@ -1869,7 +1850,7 @@ CPU::wouldExitRA(DynInstPtr inst)
     }
 
     // reset the runahead flag for all current instructions 
-    rob.markAllRunahead(false);
+    // rob.markAllRunahead(false);
 
 }
 

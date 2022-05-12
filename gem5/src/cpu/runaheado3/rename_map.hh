@@ -379,6 +379,15 @@ class UnifiedRenameMap
             // their mappings.  We end up here when a commit or squash
             // tries to update or undo a hardwired misc reg nmapping,
             // which should always be setting it to what it already is.
+            
+            // TODO: crash in RA
+            if (phys_reg != lookup(arch_reg)) {
+              printf( "phys reg: ptr:%d, index:%i (%i),;\n"
+                      "arch reg: ptr:%d, index:%i (%i)\n",
+                    phys_reg, phys_reg->index(), phys_reg->flatIndex(), 
+                    lookup(arch_reg), lookup(arch_reg)->index(), 
+                      lookup(arch_reg)->flatIndex());
+            }
             assert(phys_reg == lookup(arch_reg));
             return;
 

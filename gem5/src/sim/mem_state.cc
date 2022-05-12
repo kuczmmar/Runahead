@@ -440,7 +440,7 @@ MemState::fixupFault(Addr vaddr)
                 fatal("Maximum stack size exceeded\n");
             }
             _ownerProcess->allocateMem(_stackMin, _pageBytes);
-            inform("Increasing stack size by one page.");
+            DPRINTFN("Increasing stack size by one page.\n");
         }
         return true;
     }

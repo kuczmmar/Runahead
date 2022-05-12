@@ -1092,9 +1092,9 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
     // Keep track of if we can take an interrupt at this boundary
     delayedCommit[tid] = instruction->isDelayedCommit();
 
-    if (cpu->wouldBeInRA) {
-        instruction->setRunaheadInst();
-    }
+    // if (cpu->wouldBeInRA) {
+    //     instruction->setRunaheadInst();
+    // }
 
     return instruction;
 }

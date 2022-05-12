@@ -63,6 +63,7 @@
 #include "sim/process.hh"
 #include "sim/stat_control.hh"
 #include "sim/system.hh"
+#include "debug/PrePipelineDebug.hh"
 
 namespace gem5
 {
@@ -121,7 +122,10 @@ CPU::CPU(const PreO3CPUParams &params)
       globalSeqNum(1),
       system(params.system),
       lastRunningCycle(curCycle()),
-      cpuStats(this)
+      cpuStats(this),
+      useSST(params.sst_enabled),
+      useRRR(params.rrr_enabled),
+      exitPreWhenSquash(params.exit_PRE_when_squash)
 {
     fatal_if(FullSystem && params.numThreads > 1,
             "SMT is not supported in O3 in full system mode currently.");
@@ -483,7 +487,13 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                 "average number of instructions decoded in runahead",
                 totalDecodedRA / enterRA),
       ADD_STAT(sstHitsPRE, statistics::units::Count::get(),
-               "Number of hits in stalling slice table during PRE")
+               "Number of hits in stalling slice table during PRE"),
+      ADD_STAT(iqFullRa, statistics::units::Count::get(), 
+                "Number of IQ full events during RA"),
+      ADD_STAT(prdqEntriesRecycled, statistics::units::Count::get(),
+                "Number of entries that retired from the PRDQ in PRE."),
+      ADD_STAT(preRegsFreed, statistics::units::Count::get(),
+                "Number of registers actually freed by RRR in PRE.")
 {
     // Register any of the O3CPU's stats here.
     timesIdled
@@ -589,6 +599,9 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     totalExecutedPRE.prereq(totalExecutedPRE);
     executedPREAvg.precision(3);
     sstHitsPRE.prereq(sstHitsPRE);
+    iqFullRa.prereq(iqFullRa);
+    prdqEntriesRecycled.prereq(prdqEntriesRecycled);
+    preRegsFreed.prereq(preRegsFreed);
 }
 
 void
@@ -597,9 +610,6 @@ CPU::tick()
     DPRINTF(PreO3CPU, "\n\nPreO3CPU: Ticking main, PreO3CPU. In PRE: %d\n", 
         isInPreMode());
 
-    if (curTick() % 1000000000 == 0) {
-        std::cout << "Current sim tick: " << curTick()<< "\n";
-    }
     assert(!switchedOut());
     assert(drainState() != DrainState::Drained);
 
@@ -1885,7 +1895,6 @@ CPU::enterPreMode(DynInstPtr inst, ThreadID tid)
         lastFetched->seqNum, lastFetched->instAddr(), lastFetched->readPredTarg());
 
     _inPre = true;
-    // trace_in_RA = true;
     raTriggerInst = inst;
     ra_tid = tid;
     inst->setTriggeredRunahead();
@@ -1907,7 +1916,6 @@ CPU::enterPreMode(DynInstPtr inst, ThreadID tid)
     cpuStats.freeRegsWhenEnter += freeList.numFreeIntRegs();
     cpuStats.freeRegsWhenEnter += freeList.numFreeFloatRegs();
 
-    rob.markAllPre();
 }
 
 
@@ -1916,7 +1924,6 @@ CPU::exitPreMode()
 {
     assert(_inPre);
     _inPre = false;
-    // trace_in_RA = false;
     DPRINTF(PreEnter, "Exit runahead mode!\n");
     lastNonRaInst = rob.readLastInst(ra_tid)->seqNum;
 
@@ -1932,11 +1939,11 @@ CPU::exitPreMode()
         "   tail: %lu, addr: %#lx\n", 
         rob.readHeadInst(ra_tid)->seqNum, rob.readHeadInst(ra_tid)->instAddr(), 
         rob.readLastInst(ra_tid)->seqNum,  rob.readLastInst(ra_tid)->instAddr());
-    DPRINTF_NO_LOG(PreEnter, "   last fetched sn was: %lu, addr: %#lx, squash till %lu\n\n", 
+    DPRINTF_NO_LOG(PreEnter, "   last fetched sn was: %lu, addr: %#lx, squash till %lu\n\n\n", 
         lastFetched->seqNum, lastFetched->instAddr(), seqNum);
-    DPRINTF_NO_LOG(PreEnter, "\n");
 
     iew.squashDueToRunaheadExit(lastInstBeforePRE[ra_tid], ra_tid);
+    rename.emptyPRDQ();
     cycleAfterPre = 0;
 }
 
@@ -1947,9 +1954,18 @@ CPU::isInSST(Addr pc)
 }
 
 void 
-CPU::markInstExecuted(const DynInstPtr &inst)
+CPU::markInstExecutedInPrdq(const DynInstPtr &inst)
 {
     rename.prdqMarkInstExecuted(inst);
+}
+
+void 
+CPU::printPipeline() {
+    DPRINTF(PrePipelineDebug, "Insts in IQ:\n");
+    iew.instQueue.printInsts();
+
+    DPRINTF(PrePipelineDebug, "\nInsts in ROB:\n");
+    rob.debugPrintROB(false);
 }
 
 } // namespace pre

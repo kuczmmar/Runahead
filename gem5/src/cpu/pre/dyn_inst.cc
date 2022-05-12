@@ -75,17 +75,18 @@ DynInst::DynInst(const StaticInstPtr &static_inst,
 #ifndef NDEBUG
     ++cpu->instcount;
 
-    if (cpu->instcount > 1500) {
+    if (cpu->instcount > 1500 && !cpu->isInPreMode() && cpu->cycleAfterPre > 3) {
 #ifdef DEBUG
         cpu->dumpInsts();
         dumpSNList();
 #endif
+        DPRINTF(DynInst, "Cycles after PRE: %d\n", cpu->cycleAfterPre);
         assert(cpu->instcount <= 1500);
     }
 
     DPRINTF(DynInst,
-        "DynInst: [sn:%lli] Instruction created. Instcount for %s = %i\n",
-        seqNum, cpu->name(), cpu->instcount);
+        "DynInst: [sn:%lli] RA:%d Instruction created. Instcount for %s = %i\n",
+        seqNum, cpu->isInPreMode(), cpu->name(), cpu->instcount);
 #endif
 
 #ifdef DEBUG
@@ -143,8 +144,8 @@ DynInst::~DynInst()
     --cpu->instcount;
 
     DPRINTF(DynInst,
-        "DynInst: [sn:%lli] Instruction destroyed. Instcount for %s = %i\n",
-        seqNum, cpu->name(), cpu->instcount);
+        "DynInst: [sn:%lli] RA:%d Instruction destroyed. Instcount for %s = %i\n",
+        seqNum, isRunaheadInst(), cpu->name(), cpu->instcount);
 #endif
 #ifdef DEBUG
     cpu->snList.erase(seqNum);
@@ -190,6 +191,7 @@ DynInst::markSrcRegReady()
 {
     DPRINTF(PreIQ, "[sn:%lli] has %d ready out of %d sources. RTI %d)\n",
             seqNum, readyRegs+1, numSrcRegs(), readyToIssue());
+
     if (++readyRegs == numSrcRegs()) {
         setCanIssue();
     }

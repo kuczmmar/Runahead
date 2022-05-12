@@ -540,18 +540,21 @@ class Rename
     int prdqMaxSize;
     struct prdqEntry {
       PhysRegIdPtr physRegToFree;
-      int16_t instId;
+      InstSeqNum instId;
       bool executed;
     };
+    typedef std::shared_ptr<prdqEntry> prdqEntryPtr;
 
     // precise register deallocation queue
-    std::deque<prdqEntry> prdq;
+    std::deque<prdqEntryPtr> prdq;
 
   public:
-    int16_t prdqGetInstId(const DynInstPtr &inst);
     void prdqMarkInstExecuted(const DynInstPtr &inst);
     bool prdqRetireEntry();
     void prdqAddEntry(const DynInstPtr &inst, const PhysRegIdPtr &old_reg);
+    void debugPrintPRDQ();
+    void emptyPRDQ();
+    void printIntRenameMap(int tid) { renameMap[tid]->printIntMap(); }
 
 };
 

@@ -9,6 +9,7 @@
  
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "id3tag.h"
 ID3TAGDATA id3tag;
  
@@ -34,7 +35,7 @@ void id3_inittag(ID3TAGDATA *tag) {
 	strcpy( tag->album, "");
 	strcpy( tag->year, "");    
 	strcpy( tag->comment, "");
-	strcpy( tag->genre, "ÿ");	/* unset genre */
+	strcpy( tag->genre, "");	/* unset genre */
 	tag->track = 0;
 
 	tag->valid = 0;		/* not ready for writing*/

@@ -380,6 +380,7 @@ MSHR::deallocate()
     targets.resetFlags();
     assert(deferredTargets.isReset());
     inService = false;
+    _missedInL2 = false;
 }
 
 /*
@@ -778,18 +779,27 @@ MSHR::conflictAddr(const QueueEntry* entry) const
     return entry->matchBlockAddr(blkAddr, isSecure);
 }
 
-void 
+int 
 MSHR::markTargetsMissedInL2()
 {
     DPRINTF(RunaheadDebug, "Targets Size: %d in MSHR\n",targets.size());
+
+    int count = 0;
     for (auto t : targets) {
-        assert(t.pkt->req->getInst());
+        if (!t.pkt->req->getInst()) continue;
+        DynInstParent* inst = t.pkt->req->getInst();
         if (t.source == Target::FromCPU) {
-            t.pkt->req->getInst()->setL2Miss();
-            DPRINTF_NO_LOG(RunaheadDebug, " Inst %#lu marked miss in L2 in MSHR ptr:%d\n",
-                t.pkt->req->getInst()->instAddr(), this);
+            DPRINTF_NO_LOG(RunaheadDebug, " Instin MSHR was marked as missed? %d\n",
+                inst->missedInL2());
+            if (!inst->missedInL2()) {
+                t.pkt->req->getInst()->setL2Miss();
+                DPRINTF_NO_LOG(RunaheadDebug, " Inst %#lu marked miss in L2 in MSHR ptr:%d\n",
+                    t.pkt->req->getInst()->instAddr(), this);
+                ++count;
+            }
         }
-    }    
+    }
+    return count;
 }
 
 bool 
@@ -799,7 +809,7 @@ MSHR::hasMissedInL2()
     if (_missedInL2) return true;
 
     for (auto t : targets) {
-        assert(t.pkt->req->getInst());
+        if (!t.pkt->req->getInst()) continue;
         if (t.source == Target::FromCPU && 
             t.pkt->req->getInst()->missedInL2()) {
                 _missedInL2 = true;

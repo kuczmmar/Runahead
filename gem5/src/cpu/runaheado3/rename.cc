@@ -1170,11 +1170,11 @@ Rename::calcFreeLQEntries(ThreadID tid)
 {
         int num_free = freeEntries[tid].lqEntries -
             (loadsInProgress[tid] - fromIEW->iewInfo[tid].dispatchedToLQ);
-        DPRINTF(RunaheadRename,
-                "calcFreeLQEntries: free lqEntries: %d, loadsInProgress: %d, "
-                "loads dispatchedToLQ: %d\n",
-                freeEntries[tid].lqEntries, loadsInProgress[tid],
-                fromIEW->iewInfo[tid].dispatchedToLQ);
+        // DPRINTF(RunaheadRename,
+        //         "calcFreeLQEntries: free lqEntries: %d, loadsInProgress: %d, "
+        //         "loads dispatchedToLQ: %d\n",
+        //         freeEntries[tid].lqEntries, loadsInProgress[tid],
+        //         fromIEW->iewInfo[tid].dispatchedToLQ);
         return num_free;
 }
 

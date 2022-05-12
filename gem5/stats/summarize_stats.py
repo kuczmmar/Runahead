@@ -36,7 +36,8 @@ def write_to_csv(file, data_dict):
             writer.writerow([key, value])
 
 prefixes = ['system.', 'cpu.', 'cpu.mmu.', 'mem_ctrl.dram.',
-        'l2cache.', 'fetch.', 'branchPred.', 'decode.', 'rename.'
+        'l2cache.', 'fetch.', 'branchPred.', 'decode.', 'rename.',
+        'dcache.'
 ]
 
 def split_name(key):
@@ -71,5 +72,6 @@ for dir in subdirectories:
             stats = filter_out_stats(read_single_stat_file(file_path, dir +"_"+f))
             df = df.append(stats, ignore_index=True)
 
+df = df.sort_values('0_config')
 os.makedirs(os.path.dirname(output_file), exist_ok=True)
 df.to_csv(output_file, index=False)

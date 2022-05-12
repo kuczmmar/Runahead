@@ -853,9 +853,9 @@ class DynInst : public ExecContext, public RefCounted, public DynInstParent
     /** Sets this instruction as executed. */
     void setExecuted() { 
         status.set(Executed);
-        // PRDQ todo
-        // if (cpu->isInPreMode())
-        //     cpu->markInstExecuted(this);
+        // PRDQ support
+        if (cpu->isInPreMode() && !isInROB())
+            cpu->markInstExecutedInPrdq(this);
     }
 
     /** Returns whether or not this instruction has executed. */

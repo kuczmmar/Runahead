@@ -107,6 +107,16 @@ SimpleRenameMap::rename(const RegId& arch_reg)
 }
 
 
+void
+SimpleRenameMap::debugPrint()
+{
+    DPRINTF(PreRename, "Print rename map:\n");
+    for (int i=0; i<map.size(); ++i) {
+        DPRINTF(PreRename, "Arch %d ---> phys :%d\n", 
+            i, map[i]->index());
+    }
+}
+
 /**** UnifiedRenameMap methods ****/
 
 void

@@ -508,11 +508,13 @@ class LSQUnit
     
   public:
     void printStoresToWB() {
-      std::stringstream s;
-      for (auto sn : storesToWBSet) {
-        s << " [sn:" << sn << "]";
+      std::string s = "";
+      for (InstSeqNum sn : storesToWBSet) {
+        s += " [sn:";
+        s +=  std::to_string(sn);
+        s += "]";
       }
-      DPRINTF_NO_LOG(PreDebug, "Stores to WB:\n %s\n", s.get());
+      DPRINTF(PreDebug, "Stores to WB:\n %s\n", s);
     }
 
   private:

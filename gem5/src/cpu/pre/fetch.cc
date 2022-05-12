@@ -60,11 +60,11 @@
 #include "debug/Activity.hh"
 #include "debug/Drain.hh"
 #include "debug/Fetch.hh"
+#include "debug/PreFetch.hh"
 #include "debug/O3PipeView.hh"
 #include "debug/PreO3CPU.hh"
 #include "mem/packet.hh"
 #include "params/PreO3CPU.hh"
-#include "debug/PreEnter.hh"
 #include "sim/byteswap.hh"
 #include "sim/core.hh"
 #include "sim/eventq.hh"
@@ -1098,6 +1098,10 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
         instruction->setRunaheadInst();
 
         DPRINTF(Fetch, "Fetched inst [sn:%d] addr:%#lx in PRE mode\n", 
+            instruction->seqNum, instruction->instAddr());
+        
+        // TODO remove
+        DPRINTF(PreFetch, "Fetched inst [sn:%d] addr:%#lx in PRE mode\n", 
             instruction->seqNum, instruction->instAddr());
     }
 

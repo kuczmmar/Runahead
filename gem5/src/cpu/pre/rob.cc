@@ -48,6 +48,7 @@
 #include "debug/Fetch.hh"
 #include "debug/PreROB.hh"
 #include "debug/PreDebug.hh"
+#include "debug/PrePipelineDebug.hh"
 #include "params/PreO3CPU.hh"
 
 namespace gem5
@@ -307,6 +308,10 @@ ROB::doSquash(ThreadID tid)
     stats.writes++;
     DPRINTF(PreROB, "[tid:%i] Squashing instructions until [sn:%llu].\n",
             tid, squashedSeqNum[tid]);
+    if (cpu->isInPreMode())
+    {
+        DPRINTF(PreDebug, "ROB squashing while in PRE until %llu\n", squashedSeqNum[tid]);
+    }
 
     assert(squashIt[tid] != instList[tid].end());
 
@@ -529,9 +534,7 @@ ROB::ROBStats::ROBStats(statistics::Group *parent)
 DynInstPtr
 ROB::findInst(ThreadID tid, InstSeqNum squash_inst)
 {
-    DPRINTF(PreDebug, "ROB findInst sn:%llu \n", squash_inst);
     for (InstIt it = instList[tid].begin(); it != instList[tid].end(); it++) {
-        DPRINTF_NO_LOG(PreDebug, "%llu, ", (*it)->seqNum);
         if ((*it)->seqNum == squash_inst) {
             return *it;
         }
@@ -560,19 +563,19 @@ ROB::debugPrintROB(bool withAddr) {
                 flags += (inst->isRunaheadInst() ? "r" : "");
                 flags += (inst->readyToCommit() ? "c" : "");
                 flags += (inst->missedInL2() ? "m" : "");
-                DPRINTF_NO_LOG(PreDebug, "%4ld[%4s] ", inst->seqNum, flags.c_str());
+                DPRINTF_NO_LOG(PrePipelineDebug, "%4ld[%4s] ", inst->seqNum, flags.c_str());
             }
             if (withAddr) {
-                DPRINTF_NO_LOG(PreDebug, "\n%43s", "");//43
+                DPRINTF_NO_LOG(PrePipelineDebug, "\n%43s", "");//43
                 for (auto inst : thread_list) {
-                    DPRINTF_NO_LOG(PreDebug, "%#lx   ",  inst->instAddr());
+                    DPRINTF_NO_LOG(PrePipelineDebug, "%#lx   ",  inst->instAddr());
                 }
             }
-            DPRINTF_NO_LOG(PreDebug, "\n");
+            DPRINTF_NO_LOG(PrePipelineDebug, "\n");
         }
     }
     if (all_empty)
-        DPRINTF_NO_LOG(PreDebug, "\n");
+        DPRINTF_NO_LOG(PrePipelineDebug, "\n");
 }
 
 
@@ -585,10 +588,10 @@ ROB::readLastInst(ThreadID tid)
 DynInstPtr
 ROB::findFirstNotOlderInst(ThreadID tid, InstSeqNum sn)
 {
-    DPRINTF(PreDebug, "ROB find inst not older than sn:%llu \n", sn);
+    DPRINTF(PreROB, "ROB find inst not older than sn:%llu \n", sn);
     std::list<DynInstPtr>::reverse_iterator rit;
     for (rit = instList[tid].rbegin(); rit != instList[tid].rend(); ++rit) {
-        DPRINTF_NO_LOG(PreDebug, "%llu, ", (*rit)->seqNum);
+        DPRINTF_NO_LOG(PreROB, "%llu, ", (*rit)->seqNum);
         if ((*rit)->seqNum <= sn) {
             return *rit;
         }

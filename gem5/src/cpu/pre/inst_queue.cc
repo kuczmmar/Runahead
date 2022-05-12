@@ -49,6 +49,7 @@
 #include "cpu/pre/fu_pool.hh"
 #include "cpu/pre/limits.hh"
 #include "debug/PreIQ.hh"
+#include "debug/PrePipelineDebug.hh"
 #include "enums/OpClass.hh"
 #include "params/PreO3CPU.hh"
 #include "sim/core.hh"
@@ -571,6 +572,10 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
     DPRINTF(PreIQ, "Inserting instruction [sn:%llu] PC %s to the IQ. [isRA:%d]\n",
             new_inst->seqNum, new_inst->pcState(), new_inst->isRunaheadInst());
 
+    if (cpu->isInPreMode()) {
+        DPRINTF(PreDebug, "Inserting instruction [sn:%llu] to the IQ in PRE [isRA:%d]\n",
+                new_inst->seqNum, new_inst->isRunaheadInst());
+    }
     assert(freeEntries != 0);
 
     instList[new_inst->threadNumber].push_back(new_inst);
@@ -974,7 +979,8 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
     completed_inst->lastWakeDependents = curTick();
 
-    DPRINTF(PreIQ, "Waking dependents of completed instruction. [sn:%llu]\n", completed_inst->seqNum);
+    DPRINTF(PreIQ, "Waking dependents of completed instruction. [sn:%llu] isPRE:%d\n", 
+        completed_inst->seqNum, completed_inst->isRunaheadInst());
 
     assert(!completed_inst->isSquashed());
 
@@ -1251,7 +1257,7 @@ InstructionQueue::doSquash(ThreadID tid)
                     if (!squashed_inst->regs.readySrcIdx(src_reg_idx) &&
                         !src_reg->isFixedMapping()) {
                             DPRINTF(PreIQ, "IQ removing dependancy graph entries "
-                                "for a squashed inst sn:%i reg id:%d, flat od:%d\n", 
+                                "for a squashed inst sn:%i reg id:%d, flat id:%d\n", 
                                 squashed_inst->seqNum, src_reg->index() ,src_reg->flatIndex());
                         dependGraph.remove(src_reg->flatIndex(),
                                            squashed_inst);
@@ -1344,6 +1350,14 @@ InstructionQueue::addToDependents(const DynInstPtr &new_inst)
     int8_t total_src_regs = new_inst->numSrcRegs();
     bool return_val = false;
 
+    int8_t total_dest_regs = new_inst->numDestRegs();
+    for(int i = 0; i<total_dest_regs; ++i)
+    {
+        DPRINTF(PreIQ, "Instruction sn %llu PRE:%d has dest reg %i\n",
+            new_inst->seqNum, new_inst->isRunaheadInst(),
+            new_inst->regs.renamedDestIdx(i)->index());
+    }
+
     for (int src_reg_idx = 0;
          src_reg_idx < total_src_regs;
          src_reg_idx++)
@@ -1407,9 +1421,10 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
 
         if (!dependGraph.empty(dest_reg->flatIndex())) {
             dependGraph.dump();
-            panic("Dependency graph %i (%s) (flat: %i) not empty!",
+            panic("Dependency graph %i (%s) (flat: %i) not empty! sn:%llu isRA %d",
                   dest_reg->index(), dest_reg->className(),
-                  dest_reg->flatIndex());
+                  dest_reg->flatIndex(), new_inst->seqNum,
+                  new_inst->isRunaheadInst());
         }
 
         dependGraph.setInst(dest_reg->flatIndex(), new_inst);
@@ -1588,6 +1603,30 @@ InstructionQueue::dumpInsts()
         inst_list_it++;
         ++num;
     }
+}
+
+void 
+InstructionQueue::printInsts() {
+    bool all_empty = true;
+    for (auto thread_list :  instList) {
+        if (!thread_list.empty()) {
+            all_empty = false;
+            for (auto inst : thread_list) {
+                std::string flags = "";
+                flags += (inst->isSquashed() ? "s" : "");
+                flags += (inst->isRunaheadInst() ? "r" : "");
+                flags += (inst->readyToCommit() ? "c" : "");
+                flags += (inst->missedInL2() ? "m" : "");
+                flags += (inst->isIssued() ? "i" : "");
+                flags += (inst->isExecuted() ? "e" : "");
+
+                DPRINTF_NO_LOG(PrePipelineDebug, "%4ld[%4s] ", inst->seqNum, flags.c_str());
+            }
+            DPRINTF_NO_LOG(PrePipelineDebug, "\n");
+        }
+    }
+    if (all_empty)
+        DPRINTF_NO_LOG(PrePipelineDebug, "\n");
 }
 
 void 

@@ -1008,7 +1008,11 @@ Commit::commitInsts()
             cpu->wouldEnterRA(head_inst);
         }  
 
-        if (!rob->isHeadReady(commit_thread)) break;
+        if (!rob->isHeadReady(commit_thread)) {
+            if (rob->isFull())
+                ++cpu->cpuStats.fullROBstalls;
+            break;
+        }
 
         ThreadID tid = head_inst->threadNumber;
 

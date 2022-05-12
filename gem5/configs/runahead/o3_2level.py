@@ -39,6 +39,7 @@ IMPORTANT: If you modify this file, it's likely that the Learning gem5 book
 """
 
 # import the m5 (gem5) library created when gem5 is built
+from random import SystemRandom
 import m5
 # import all of the SimObjects
 from m5.objects import *
@@ -67,6 +68,9 @@ SimpleOpts.add_option("--binary_args", help="Arguments to the test binary", type
 SimpleOpts.add_option("--mode", default='baseline', choices=['baseline', 'runahead', 'pre'], 
     help="Which implementstion of the o3 CPU should be run")
 SimpleOpts.add_option("--rob_size", help="size of re-order buffer", default=192)
+SimpleOpts.add_option("--sst_enabled", help="Specifies whether PRE uses SST", default=True)
+SimpleOpts.add_option("--rrr_enabled", help="Specifies whether PRE uses RRR", default=True)
+SimpleOpts.add_option("--exit_PRE_when_squash", help="Specifies whether CPU exits PRE mode upon a squash in the ROB", default=False)
 
 # Finalize the arguments and grab the args so we can pass it on to our objects
 args = SimpleOpts.parse_args()
@@ -76,12 +80,12 @@ system = System()
 
 # Set the clock fequency of the system (and all of its children)
 system.clk_domain = SrcClockDomain()
-system.clk_domain.clock = '1GHz'
+system.clk_domain.clock = '2.66GHz'
 system.clk_domain.voltage_domain = VoltageDomain()
 
 # Set up the system
 system.mem_mode = 'timing'               # Use timing accesses
-system.mem_ranges = [AddrRange('512MB')] # Create an address range
+system.mem_ranges = [AddrRange('1024MB')] # Create an address range
 
 # 03 out of order CPU
 runahead = True if args.mode == 'runahead' else False
@@ -94,20 +98,23 @@ elif args.mode == 'runahead':
 elif args.mode == 'pre':
     print('----------------PRE----------------\n')
     system.cpu = PreO3CPU()
+    system.cpu.sst_enabled = args.sst_enabled
+    system.cpu.rrr_enabled = args.rrr_enabled
+    system.cpu.exit_PRE_when_squash = args.exit_PRE_when_squash
 
 system.cpu.numROBEntries = args.rob_size
+system.cpu.LQEntries = LQEntries
+system.cpu.SQEntries = SQEntries
+system.cpu.numIQEntries = numIQEntries
+# system.cpu.branchPred = branchPred
 
 # Create an L1 instruction and data cache
 system.cpu.icache = L1ICache(args)
 system.cpu.dcache = L1DCache(args)
-# if runahead:
-#     system.cpu.ra_cache = L1RunaheadCache(args)
 
 # Connect the instruction and data caches to the CPU
 system.cpu.icache.connectCPU(system.cpu)
 system.cpu.dcache.connectCPU(system.cpu)
-# if runahead:
-#     system.cpu.ra_cache.connectCPU(system.cpu)
 
 # Create a memory bus, a coherent crossbar, in this case
 system.l2bus = L2XBar()
@@ -115,8 +122,6 @@ system.l2bus = L2XBar()
 # Hook the CPU ports up to the l2bus
 system.cpu.icache.connectBus(system.l2bus)
 system.cpu.dcache.connectBus(system.l2bus)
-# if runahead:
-#     system.cpu.ra_cache.connectBus(system.l2bus)
 
 # Create an L2 cache and connect it to the l2bus
 system.l2cache = L2Cache(args)

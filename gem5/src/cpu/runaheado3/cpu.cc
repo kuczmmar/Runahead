@@ -1872,7 +1872,7 @@ CPU::exitRunaheadMode()
 
     // Restore the architectural state: the rename map 
     // and the PC of the instruction which caused runahead
-    commitRenameMap[ra_tid] = *raCheckpt.renameMaps[ra_tid];
+    // commitRenameMap[ra_tid] = *raCheckpt.renameMaps[ra_tid];
     // commit.pcState(raCheckpt.pc[ra_tid], ra_tid);
 
 }
