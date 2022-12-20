@@ -59,12 +59,14 @@ isa = str(m5.defines.buildEnv['TARGET_ISA']).lower()
 # Default to running 'hello', use the compiled ISA to find the binary
 # grab the specific path to the binary
 thispath = os.path.dirname(os.path.realpath(__file__))
-default_binary = os.path.join(thispath, '../../../',
-    'tests/test-progs/hello/bin/', isa, 'linux/hello')
+# default_binary = os.path.join(thispath, '../../../',
+#     'tests/test-progs/hello/bin/', isa, 'linux/hello')
+default_binary = os.path.join('/home/xhc/vector_runahead/Runahead-master/benchmarks/cgo2017/program/randacc/bin/x86/randacc-no')
 
 # Binary to execute
 SimpleOpts.add_option("--binary", nargs='?', default=default_binary, help="Test binary")
-SimpleOpts.add_option("--binary_args", help="Arguments to the test binary", type=str)
+# SimpleOpts.add_option("--binary_args", help="Arguments to the test binary", type=str)
+SimpleOpts.add_option("--binary_args", help="Arguments to the test binary", type=str, default = '10000')
 SimpleOpts.add_option("--mode", default='baseline', choices=['baseline', 'runahead', 'pre'], 
     help="Which implementstion of the o3 CPU should be run")
 SimpleOpts.add_option("--rob_size", help="size of re-order buffer", default=192)

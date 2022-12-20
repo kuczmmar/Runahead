@@ -1834,8 +1834,8 @@ CPU::enterRunaheadMode(DynInstPtr inst, ThreadID tid)
     inst->setTriggeredRunahead();
 
     // checkpoint the architectural state and PC for the thread
-    raCheckpt.renameMaps[ra_tid] = std::make_unique<UnifiedRenameMap>(commitRenameMap[ra_tid]);
-    raCheckpt.pc[ra_tid] = commit.pcState(ra_tid);
+    // raCheckpt.renameMaps[ra_tid] = std::make_unique<UnifiedRenameMap>(commitRenameMap[ra_tid]);
+    // raCheckpt.pc[ra_tid] = commit.pcState(ra_tid);
     raTriggerInst->setInvalid();
     
     if (raTriggerInst->isLoad()) {

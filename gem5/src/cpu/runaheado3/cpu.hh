@@ -730,14 +730,14 @@ class CPU : public BaseCPU
     DynInstPtr raTriggerInst;
     ThreadID ra_tid;
 
-    struct RunaheadCheckpoint
-    {
-      // the commit PC state of each thread
-      TheISA::PCState pc[MaxThreads];
-      // Pointers to a copy of the architectural register file
-      // this is a copy of the commitRenameMap
-      std::unique_ptr<UnifiedRenameMap> renameMaps[MaxThreads];
-    } raCheckpt;
+    // struct RunaheadCheckpoint
+    // {
+    //   // the commit PC state of each thread
+    //   TheISA::PCState pc[MaxThreads];
+    //   // Pointers to a copy of the architectural register file
+    //   // this is a copy of the commitRenameMap
+    //   std::unique_ptr<UnifiedRenameMap> renameMaps[MaxThreads];
+    // } raCheckpt;
   
   public:
     void enterRunaheadMode(DynInstPtr inst, ThreadID tid);
