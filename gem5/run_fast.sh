@@ -12,8 +12,8 @@ done
 
 if $compile ; then
   echo "Compiling gem5"
-  # python3 `which scons` build/X86/gem5.opt -j9
-  python3 ./bin/scons build/X86/gem5.opt -j33
+  # python3 `which scons` build/X86/gem5.fast -j9
+  python3 ./bin/scons build/X86/gem5.fast -j33
 fi
 
 date
@@ -44,7 +44,7 @@ DIJKSTRA_ARG='../benchmarks/cbench/network_dijkstra_data/1.dat'
 
 # define paths to configuration files
 O3_TWO_LEVEL='configs/runahead/o3_2level.py'
-GEM='build/X86/gem5.opt'
+GEM='build/X86/gem5.fast'
 
 BASE_DEBUG=""
 RA_DEBUG=""
@@ -105,8 +105,8 @@ run_all_pre_options() {
 
 
 run_all() {
-  run_base "$@" &  run_run  "$@" &  run_pre  "$@"
-  # run_base "$@"
+  # run_base "$@" &  run_run  "$@" &  run_pre  "$@"
+  run_base "$@" &  run_run
 }
 
 
@@ -119,7 +119,7 @@ run_all_randacc() {
 
 run_all_benchmarks() {
   L2=$1; ROB=$2;
-  run_all         $QSORT_ARG    $L2 $ROB "qsort"  $QSORT
+  run_all_randacc 600000        $L2 $ROB
   # run_all_randacc 200000        $L2 $ROB &
   # run_all_randacc 500000        $L2 $ROB &
   # run_all_randacc 600000        $L2 $ROB &
@@ -140,10 +140,8 @@ run_all_benchmarks() {
 mkdir -p out m5out/base m5out/run m5out/pre
 echo_lines
 
-# ROBS=( 64 96 128 160 192 )
-# L2S=( '64kB' '128kB' '256kB')
-ROBS=( 64 )
-L2S=( '64kB')
+ROBS=( 64 96 128 160 192 )
+L2S=( '64kB' '128kB' '256kB')
 
 for r in ${ROBS[@]}; do 
   for l in ${L2S[@]}; do 
@@ -185,4 +183,4 @@ cat stats/simple.csv  |sed 's/,/ ,/g' | column -t -s,
 
 # grep -hnr 'to physical reg 189 \|Freeing register 189 (IntRegClass)\|old mapping was 189 ' out/pre_randacc500k_rob192_128kB.txt > out/grepped2.txt
 
-# build/X86/gem5.opt --stats-file=run/d_rob81_256kB --json-config=run/dij_rob81_256kB_config.json configs/runahead/o3_2level.py --mode=runahead --rob_size=81 --l2_size=256kB --binary=./../benchmarks/cbench/network_dijkstra/src/a.out  --binary_args ../benchmarks/cbench/network_dijkstra_data/1.dat
+# build/X86/gem5.fast --stats-file=run/d_rob81_256kB --json-config=run/dij_rob81_256kB_config.json configs/runahead/o3_2level.py --mode=runahead --rob_size=81 --l2_size=256kB --binary=./../benchmarks/cbench/network_dijkstra/src/a.out  --binary_args ../benchmarks/cbench/network_dijkstra_data/1.dat

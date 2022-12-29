@@ -718,6 +718,8 @@ class CPU : public BaseCPU
         statistics::Scalar maxAtRobHd;
         statistics::Scalar totalDecodedRA;
         statistics::Formula decodedAvgRA;
+
+        statistics::Scalar iqfull_whenenterra;
     } cpuStats;
 
     // hardware transactional memory
@@ -725,9 +727,10 @@ class CPU : public BaseCPU
                             HtmFailureFaultCause cause);
 
   /** Runahead support */ 
+  public:
+    DynInstPtr raTriggerInst;
   private:
     bool _inRunahead = false;
-    DynInstPtr raTriggerInst;
     ThreadID ra_tid;
 
     // struct RunaheadCheckpoint

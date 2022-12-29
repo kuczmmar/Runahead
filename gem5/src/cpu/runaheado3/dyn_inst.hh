@@ -1335,7 +1335,7 @@ public:
     // Instruction that sources a register whose INV bit is set
     // is an invalid instruction.
     bool isInvalid();
-    void setInvalid() { _invalid = true; }
+    void setInvalid();
     void invalidateDestRegs(bool setINV = true);
     void invalidateSrcRegs(bool setINV = true);
     
@@ -1344,6 +1344,9 @@ public:
 
     void printDestRegs(std::ostream &os);
     void printSrcRegs(std::ostream &os);
+
+    // whether this instruction has been invalidated at the commit stage
+    bool hasbeenInvalid() {return _invalid;};
 };
 
 } // namespace runaheado3

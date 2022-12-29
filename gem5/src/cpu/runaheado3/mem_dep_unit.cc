@@ -427,7 +427,9 @@ MemDepUnit::completed(const DynInstPtr &inst)
 void
 MemDepUnit::completeInst(const DynInstPtr &inst)
 {
-    wakeDependents(inst);
+    if (!inst->hasbeenInvalid()) {
+        wakeDependents(inst);
+    }
     completed(inst);
     InstSeqNum barr_sn = inst->seqNum;
 

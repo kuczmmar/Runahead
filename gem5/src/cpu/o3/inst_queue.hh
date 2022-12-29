@@ -540,6 +540,11 @@ class InstructionQueue
         statistics::Vector fuBusy;
         /** Number of times the FU was busy per instruction issued. */
         statistics::Formula fuBusyRate;
+
+        /** Stat for number of runahead instructions released. */
+        statistics::Scalar releaseRunaheadInst;
+        /** Stat for number of instructions released during runahead. */
+        statistics::Scalar release_during_Runahead;
     } iqStats;
 
    public:

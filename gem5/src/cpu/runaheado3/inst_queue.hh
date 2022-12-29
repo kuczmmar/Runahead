@@ -171,6 +171,9 @@ class InstructionQueue
     /** Returns number of free entries for a thread. */
     unsigned numFreeEntries(ThreadID tid);
 
+    /** Returns total number of iq entries. */
+    unsigned numMaxEntries() {return numEntries;};
+
     /** Returns whether or not the IQ is full. */
     bool isFull();
 
@@ -275,6 +278,12 @@ class InstructionQueue
 
     /** Debug function to print all instructions. */
     void printInsts();
+
+    void releaseiqentry(ThreadID tid) {
+      ++freeEntries;
+      count[tid]--;
+      assert(freeEntries <= numEntries);
+    };
 
   private:
     /** Does the actual squashing. */
@@ -482,6 +491,10 @@ class InstructionQueue
     struct IQStats : public statistics::Group
     {
         IQStats(CPU *cpu, const unsigned &total_width);
+        /** Stat for number of runahead instructions released in the IQ. */
+        statistics::Scalar releaseRunaheadInst;
+        /** Stat for number of instructions released in the IQ during runahead. */
+        statistics::Scalar release_during_Runahead;
         /** Stat for number of instructions added. */
         statistics::Scalar instsAdded;
         /** Stat for number of non-speculative instructions added. */

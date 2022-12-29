@@ -60,6 +60,9 @@
 #include "debug/RunaheadDebug.hh"
 #include "params/RunaheadO3CPU.hh"
 
+#include "debug/RunaheadIQrelease.hh"
+
+
 namespace gem5
 {
 
@@ -145,6 +148,8 @@ IEW::regProbePoints()
 
 IEW::IEWStats::IEWStats(CPU *cpu)
     : statistics::Group(cpu),
+    ADD_STAT(iqFullEvents_ra, statistics::units::Count::get(),
+             "Number of times the IQ has become full during runahead, causing a stall"),
     ADD_STAT(idleCycles, statistics::units::Cycle::get(),
              "Number of cycles IEW is idle"),
     ADD_STAT(squashCycles, statistics::units::Cycle::get(),
@@ -737,6 +742,25 @@ IEW::checkSignalsAndUpdate(ThreadID tid)
     //     if so then go to unblocking
     // If status was Squashing
     //     check if squashing is not high.  Switch to running this cycle.
+    if (cpu->isInRunaheadMode()) {
+        DynInstPtr inst = nullptr;
+        while (!fromCommit->releaseAfterInvalidInst[tid].empty()) {
+            inst = fromCommit->releaseAfterInvalidInst[tid].front();
+            if (!inst->isSquashed()) {
+                DPRINTF(RunaheadIQrelease, "release inst %d in the iq by the signal sent back from commit stage, freeentrynum = %d\n", inst->seqNum, instQueue.numFreeEntries(tid));
+                // assert(inst->isInIQ());
+                if (inst->isInIQ()) {
+                    inst->clearInIQ();
+                    instQueue.releaseiqentry(tid);
+                }
+                else {
+                    DPRINTF(RunaheadIQrelease, "this has already been released in iq\n");
+                }
+            }
+            fromCommit->releaseAfterInvalidInst[tid].pop();
+        }
+    }
+    
 
     if (fromCommit->commitInfo[tid].squash) {
         squash(tid);
@@ -973,6 +997,8 @@ IEW::dispatchInsts(ThreadID tid)
             toRename->iewUnblock[tid] = false;
 
             ++iewStats.iqFullEvents;
+            if (cpu->isInRunaheadMode())
+                ++iewStats.iqFullEvents_ra;
             break;
         }
 
@@ -1423,6 +1449,11 @@ IEW::writebackInsts()
         // Notify potential listeners that execution is complete for this
         // instruction.
         ppToCommit->notify(inst);
+
+        // do not wake up if this is invalid
+        if (inst->hasbeenInvalid()) {
+            continue;
+        }
 
         // Some instructions will be sent to commit without having
         // executed because they need commit to handle them.

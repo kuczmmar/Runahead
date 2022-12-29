@@ -47,6 +47,8 @@
 #include "debug/O3PipeView.hh"
 #include "debug/RunaheadDebug.hh"
 
+#include "debug/RunaheadIQrelease.hh"
+
 namespace gem5
 {
 
@@ -348,6 +350,7 @@ DynInst::isInvalid()
     for (int src=0; src<numSrcRegs(); ++src){
         if (regs.renamedSrcIdx(src)->isInvalid()) {
             DPRINTF(RunaheadDebug, "Mark sn:%d INV due to src reg INV\n", seqNum);
+            DPRINTF(RunaheadIQrelease, "\nMark sn:%d INV due to src reg INV\n", seqNum);
             _invalid = true;
             return true;
         }
@@ -392,7 +395,16 @@ DynInst::printSrcRegs(std::ostream &os)
         PhysRegIdPtr r = regs.renamedSrcIdx(s);
         ccprintf(os, " %u i:%d,", r->flatIndex(), r->isInvalid());
     }
-} 
+}
+
+void
+DynInst::setInvalid()
+{
+    _invalid = true;
+    DPRINTF(RunaheadIQrelease, "\nset instruction %d invalid\n", seqNum);
+    // printDestRegs(std::cout);
+    // printSrcRegs(std::cout);
+}
 
 } // namespace runaheado3
 } // namespace gem5
