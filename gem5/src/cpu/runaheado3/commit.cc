@@ -1072,7 +1072,7 @@ Commit::commitInsts()
                 ++num_committed;
 
                 // set INV bits since the instruction does not actually commit
-                head_inst->invalidateDestRegs();
+                // head_inst->invalidateDestRegs();
 
             } else {
                 // don't commit anything if the head is not ready
