@@ -532,6 +532,10 @@ class Rename
         statistics::Scalar tempSerializing;
         /** Number of instructions inserted into skid buffers. */
         statistics::Scalar skidInsts;
+
+        /** Stat for total number of times that rename runs out of free
+         *  registers to use to rename during runahead. */
+        statistics::Scalar fullRegistersEvents_ra;
     } stats;
 };
 
