@@ -79,6 +79,19 @@ SimpleRenameMap::rename(const RegId& arch_reg)
     // requested architected register.
     PhysRegIdPtr prev_reg = map[arch_reg.flatIndex()];
 
+    if (!prev_reg->renamedInNormalMode && !prev_reg->renamedInPreMode) {
+        prev_reg->renamedInNormalMode = true;
+        prev_reg->wasFreed = false;
+        DPRINTF(PreRename, "Avoid this physical reg %i (%i) to be wrongly freed\n",
+                prev_reg->index(), prev_reg->flatIndex());
+    }
+
+    // prev_reg can be wrongly freed if one instruction (new reg A, prev reg B) is first released in
+    // the PRDQ when committed (B is released, waiting for a new rename to make A become its prev reg),
+    // and when it is squashed (say a branch misprediction) (A is re) 
+    // assert(!prev_reg->wasFreed || (prev_reg->index() == );
+    assert(!prev_reg->wasFreed);
+
     if (arch_reg == zeroReg) {
         assert(prev_reg->index() == zeroReg.index());
         renamed_reg = prev_reg;
@@ -98,10 +111,10 @@ SimpleRenameMap::rename(const RegId& arch_reg)
             arch_reg.getNumPinnedWrites() + 1);
     }
 
-    DPRINTF(PreRename, "Renamed reg %d to physical reg %d (%d) old mapping was"
+    DPRINTF(PreRename, "Renamed reg %d to physical reg %d (%d) old mapping was physical reg"
             " %d (%d)\n",
-            arch_reg, renamed_reg->flatIndex(), renamed_reg->flatIndex(),
-            prev_reg->flatIndex(), prev_reg->flatIndex());
+            arch_reg, renamed_reg->index(), renamed_reg->flatIndex(),
+            prev_reg->index(), prev_reg->flatIndex());
 
     return RenameInfo(renamed_reg, prev_reg);
 }

@@ -180,6 +180,8 @@ class PreO3CPU(BaseCPU):
 
     sst_enabled = Param.Bool(True, "Specifies whether PRE uses SST")
 
+    sstEntries = Param.Int(128, "Specifies the maximum extries of this SST")
+
     rrr_enabled = Param.Bool(True, "Specifies whether PRE uses RRR")
 
     exit_PRE_when_squash = Param.Bool(False, "Specifies whether CPU exits PRE mode upon a squash in the ROB")

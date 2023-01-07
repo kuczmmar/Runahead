@@ -582,6 +582,7 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
 
     --freeEntries;
 
+    assert(!new_inst->isInIQ());
     new_inst->setInIQ();
 
     // Look through its source registers (physical regs), and mark any
@@ -632,6 +633,7 @@ InstructionQueue::insertNonSpec(const DynInstPtr &new_inst)
 
     --freeEntries;
 
+    assert(!new_inst->isInIQ());
     new_inst->setInIQ();
 
     // Have this instruction set itself as the producer of its destination
@@ -1637,7 +1639,7 @@ InstructionQueue::printInstsToExecute()
     for (auto inst : instsToExecute) {
         if ((count++)%3==0) DPRINTF_NO_LOG(PreIQ, "\n\t");
 
-        DPRINTF_NO_LOG(PreIQ, "PC: %#llx, TN: %d, SN: %i, RA: %d | ",
+        DPRINTF_NO_LOG(PreIQ, "PC:%#llx, TN:%d, SN:%i, RA:%d | ",
             inst->pcState(), 
             inst->threadNumber, 
             inst->seqNum, 

@@ -66,13 +66,15 @@ default_binary = os.path.join('/home/xhc/vector_runahead/Runahead-master/benchma
 # Binary to execute
 SimpleOpts.add_option("--binary", nargs='?', default=default_binary, help="Test binary")
 # SimpleOpts.add_option("--binary_args", help="Arguments to the test binary", type=str)
-SimpleOpts.add_option("--binary_args", help="Arguments to the test binary", type=str, default = '10000')
+SimpleOpts.add_option("--binary_args", help="Arguments to the test binary", type=str, default = '600000')
 SimpleOpts.add_option("--mode", default='baseline', choices=['baseline', 'runahead', 'pre'], 
     help="Which implementstion of the o3 CPU should be run")
 SimpleOpts.add_option("--rob_size", help="size of re-order buffer", default=192)
 SimpleOpts.add_option("--sst_enabled", help="Specifies whether PRE uses SST", default=True)
 SimpleOpts.add_option("--rrr_enabled", help="Specifies whether PRE uses RRR", default=True)
 SimpleOpts.add_option("--exit_PRE_when_squash", help="Specifies whether CPU exits PRE mode upon a squash in the ROB", default=False)
+SimpleOpts.add_option("--prdq_entries", help="Size of the Precise Register Deallocation Queue", default=192)
+SimpleOpts.add_option("--sst_entries", help="Specifies the maximum extries of this SST", default=128)
 
 # Finalize the arguments and grab the args so we can pass it on to our objects
 args = SimpleOpts.parse_args()
@@ -103,6 +105,8 @@ elif args.mode == 'pre':
     system.cpu.sst_enabled = args.sst_enabled
     system.cpu.rrr_enabled = args.rrr_enabled
     system.cpu.exit_PRE_when_squash = args.exit_PRE_when_squash
+    system.cpu.prdqEntries = args.prdq_entries
+    system.cpu.sstEntries = args.sst_entries
 
 system.cpu.numROBEntries = args.rob_size
 system.cpu.LQEntries = LQEntries

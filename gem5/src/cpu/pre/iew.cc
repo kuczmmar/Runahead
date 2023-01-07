@@ -1023,7 +1023,8 @@ IEW::dispatchInsts(ThreadID tid)
             toRename->iewUnblock[tid] = false;
 
             ++iewStats.iqFullEvents;
-            ++cpu->cpuStats.iqFullRa;
+            if (cpu->isInPreMode())
+                ++cpu->cpuStats.iqFullRa;
             
             break;
         }

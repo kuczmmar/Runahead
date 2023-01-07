@@ -731,6 +731,7 @@ class CPU : public BaseCPU
         statistics::Scalar totalExecutedPRE;
         statistics::Formula executedPREAvg;
         statistics::Scalar sstHitsPRE;
+        statistics::Scalar addToSST;
         statistics::Scalar iqFullRa;
         statistics::Scalar prdqEntriesRecycled;
         statistics::Scalar preRegsFreed;
@@ -751,6 +752,7 @@ class CPU : public BaseCPU
   public:
     DynInstPtr raTriggerInst;
     bool useSST;
+    int sstMaxSize;
     bool useRRR;
     bool exitPreWhenSquash;
 
@@ -759,10 +761,10 @@ class CPU : public BaseCPU
     void exitPreMode();
 
     // the stalling slice table
-    std::set<Addr> sst;
+    std::vector<Addr> sst;
     std::unordered_map<RegIndex, Addr> reg_to_last_producer;
-    bool isInSST(Addr pc);
-    void addToSST(Addr pc)    { sst.insert(pc); }
+    bool isInSST(Addr pc, bool update);
+    void addToSST(Addr pc);
     DynInstPtr lastFetched;
 
     // Initiate the number of cycles after last PRE to something nonzero
@@ -775,6 +777,8 @@ class CPU : public BaseCPU
     void printPipeline();
 
     void printIntRenameMap() { rename.printIntRenameMap(0); }
+
+    DynInstPtr readTailInst(ThreadID tid);
     
 };
 

@@ -595,6 +595,7 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
 
     --freeEntries;
     // DPRINTF(RunaheadIQrelease, "\ninst %d takes one iq entry\n", new_inst->seqNum);
+    assert(!new_inst->isInIQ());
     new_inst->setInIQ();
 
     // Look through its source registers (physical regs), and mark any
@@ -644,6 +645,7 @@ InstructionQueue::insertNonSpec(const DynInstPtr &new_inst)
     instList[new_inst->threadNumber].push_back(new_inst);
     // printf("\ninst %d takes one iq entry\n", new_inst->seqNum);
     --freeEntries;
+    assert(!new_inst->isInIQ());
     assert(!new_inst->isInIQ());
     new_inst->setInIQ();
 

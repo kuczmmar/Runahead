@@ -302,8 +302,9 @@ UnifiedFreeList::addRegs(InputIt first, InputIt last)
 inline void
 UnifiedFreeList::addReg(PhysRegIdPtr freed_reg)
 {
-    DPRINTF(FreeList,"Freeing register %i (%s).\n", freed_reg->index(),
-            freed_reg->className());
+    DPRINTF(FreeList,"Freeing physical reg %i (%s) (%i).\n", freed_reg->index(),
+            freed_reg->className(), freed_reg->flatIndex());
+    assert(freed_reg->wasFreed);
     //Might want to add in a check for whether or not this register is
     //already in there.  A bit vector or something similar would be useful.
     switch (freed_reg->classValue()) {

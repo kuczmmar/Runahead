@@ -119,12 +119,12 @@ run_all_randacc() {
 
 run_all_benchmarks() {
   L2=$1; ROB=$2;
-  run_all         $QSORT_ARG    $L2 $ROB "qsort"  $QSORT
+  # run_all         $QSORT_ARG    $L2 $ROB "qsort"  $QSORT &
   # run_all_randacc 200000        $L2 $ROB &
   # run_all_randacc 500000        $L2 $ROB &
-  # run_all_randacc 600000        $L2 $ROB &
+  run_all_randacc 600000        $L2 $ROB
   # run_all         $DIJKSTRA_ARG $L2 $ROB "dijkstra" $DIJKSTRA &
-  # run_all         $SUSAN_ARG    $L2 $ROB "susan"  $SUSAN &
+  # run_all         $SUSAN_ARG    $L2 $ROB "susan"  $SUSAN
   # run_all         $QSORT_ARG    $L2 $ROB "qsort"  $QSORT &
   # run_all         $BZIP2D_ARG   $L2 $ROB "bzip2d" $BZIP2D &
   # run_all         ""            $L2 $ROB "cg"     $CG &
@@ -143,7 +143,8 @@ echo_lines
 # ROBS=( 64 96 128 160 192 )
 # L2S=( '64kB' '128kB' '256kB')
 ROBS=( 64 )
-L2S=( '64kB')
+# L2S=( '64kB' '128kB')
+L2S=( '64kB' )
 
 for r in ${ROBS[@]}; do 
   for l in ${L2S[@]}; do 
