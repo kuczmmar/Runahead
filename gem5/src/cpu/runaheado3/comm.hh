@@ -43,6 +43,7 @@
 #define __CPU_RUNAHEAD_O3_COMM_HH__
 
 #include <vector>
+#include <queue>
 
 #include "arch/pcstate.hh"
 #include "base/types.hh"
@@ -225,6 +226,8 @@ struct TimeStruct
     bool renameUnblock[MaxThreads];
     bool iewBlock[MaxThreads];
     bool iewUnblock[MaxThreads];
+
+    std::queue<DynInstPtr> releaseAfterInvalidInst[MaxThreads];
 };
 
 } // namespace runaheado3

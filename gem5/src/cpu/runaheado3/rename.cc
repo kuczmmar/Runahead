@@ -123,6 +123,8 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
                "Number of times rename has blocked due to SQ full"),
       ADD_STAT(fullRegistersEvents, statistics::units::Count::get(),
                "Number of times there has been no free registers"),
+      ADD_STAT(fullRegistersEvents_ra, statistics::units::Count::get(),
+               "Number of times there has been no free registers during runahead"),
       ADD_STAT(renamedOperands, statistics::units::Count::get(),
                "Number of destination operands rename has renamed"),
       ADD_STAT(lookups, statistics::units::Count::get(),
@@ -161,6 +163,7 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
     LQFullEvents.prereq(LQFullEvents);
     SQFullEvents.prereq(SQFullEvents);
     fullRegistersEvents.prereq(fullRegistersEvents);
+    fullRegistersEvents_ra.prereq(fullRegistersEvents_ra);
 
     renamedOperands.prereq(renamedOperands);
     lookups.prereq(lookups);
@@ -669,6 +672,8 @@ Rename::renameInsts(ThreadID tid)
             blockThisCycle = true;
             insts_to_rename.push_front(inst);
             ++stats.fullRegistersEvents;
+            if (cpu->isInRunaheadMode())
+                ++stats.fullRegistersEvents_ra;
 
             break;
         }

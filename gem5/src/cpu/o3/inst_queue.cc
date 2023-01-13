@@ -577,6 +577,7 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
 
     --freeEntries;
 
+    assert(!new_inst->isInIQ());
     new_inst->setInIQ();
 
     // Look through its source registers (physical regs), and mark any
@@ -627,6 +628,7 @@ InstructionQueue::insertNonSpec(const DynInstPtr &new_inst)
 
     --freeEntries;
 
+    assert(!new_inst->isInIQ());
     new_inst->setInIQ();
 
     // Have this instruction set itself as the producer of its destination

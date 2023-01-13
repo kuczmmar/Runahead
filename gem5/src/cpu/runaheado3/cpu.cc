@@ -64,6 +64,8 @@
 #include "sim/stat_control.hh"
 #include "sim/system.hh"
 
+#include "debug/RunaheadIQrelease.hh"
+
 namespace gem5
 {
 
@@ -375,6 +377,8 @@ CPU::regProbePoints()
 
 CPU::CPUStats::CPUStats(CPU *cpu)
     : statistics::Group(cpu),
+      ADD_STAT(iqfull_whenenterra, statistics::units::Count::get(),
+               "Number of times that iq is full when enter runahead"),
       ADD_STAT(timesIdled, statistics::units::Count::get(),
                "Number of times that the entire CPU went into an idle state "
                "and unscheduled itself"),
@@ -1821,6 +1825,8 @@ CPU::htmSendAbortSignal(ThreadID tid, uint64_t htm_uid,
 void
 CPU::enterRunaheadMode(DynInstPtr inst, ThreadID tid)
 {
+    DPRINTF(RunaheadIQrelease, "enter runahead, trigger inst seq = %d\n", inst->seqNum);
+    assert(iew.instQueue.numFreeEntries() <= iew.instQueue.numMaxEntries());
     assert(!_inRunahead);
     DPRINTF_NO_LOG(RunaheadEnter, "\nEnter runahead mode! addr: %#lx\n", 
         // inst->seqNum,
@@ -1834,8 +1840,8 @@ CPU::enterRunaheadMode(DynInstPtr inst, ThreadID tid)
     inst->setTriggeredRunahead();
 
     // checkpoint the architectural state and PC for the thread
-    raCheckpt.renameMaps[ra_tid] = std::make_unique<UnifiedRenameMap>(commitRenameMap[ra_tid]);
-    raCheckpt.pc[ra_tid] = commit.pcState(ra_tid);
+    // raCheckpt.renameMaps[ra_tid] = std::make_unique<UnifiedRenameMap>(commitRenameMap[ra_tid]);
+    // raCheckpt.pc[ra_tid] = commit.pcState(ra_tid);
     raTriggerInst->setInvalid();
     
     if (raTriggerInst->isLoad()) {
@@ -1849,6 +1855,9 @@ CPU::enterRunaheadMode(DynInstPtr inst, ThreadID tid)
     }
     rob.markAllRunahead();
 
+    if (iew.instQueue.isFull(tid))
+        cpuStats.iqfull_whenenterra++;
+
 }
 
 bool
@@ -1860,6 +1869,9 @@ CPU::isInRunaheadMode()
 void 
 CPU::exitRunaheadMode()
 {
+    DPRINTF(RunaheadIQrelease, "\nexit runahead");
+    DPRINTF(RunaheadIQrelease, "\nfreeentrynum = %d\n", iew.instQueue.numFreeEntries());
+    assert(iew.instQueue.numFreeEntries() <= iew.instQueue.numMaxEntries());
     assert(_inRunahead);
     DPRINTF_NO_LOG(RunaheadEnter, "Exit runahead mode!\n\n");
     _inRunahead = false;

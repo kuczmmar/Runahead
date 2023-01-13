@@ -685,7 +685,7 @@ Decode::decodeInsts(ThreadID tid)
             inst->setRunaheadInst();
 
             if (cpu->useSST) {
-                if (cpu->isInSST(inst->instAddr())) {
+                if (cpu->isInSST(inst->instAddr(), true)) {
                     DPRINTF(PreSST, "Hit in SST during decode, inst PC: %#x, pcState: %#x\n",
                         inst->instAddr(), inst->pcState());
                     

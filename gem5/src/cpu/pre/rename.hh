@@ -513,6 +513,9 @@ class Rename
         /** Stat for total number of times that rename runs out of free
          *  registers to use to rename. */
         statistics::Scalar fullRegistersEvents;
+        /** Stat for total number of times that rename runs out of free
+         *  PRDQ entries to use to rename. */
+        statistics::Scalar fullPRDQEvents;
         /** Stat for total number of renamed destination registers. */
         statistics::Scalar renamedOperands;
         /** Stat for total number of source register rename lookups. */
@@ -550,7 +553,7 @@ class Rename
 
   public:
     void prdqMarkInstExecuted(const DynInstPtr &inst);
-    bool prdqRetireEntry();
+    bool prdqRetireEntry(ThreadID tid);
     void prdqAddEntry(const DynInstPtr &inst, const PhysRegIdPtr &old_reg);
     void debugPrintPRDQ();
     void emptyPRDQ();

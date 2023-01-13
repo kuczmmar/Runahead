@@ -53,6 +53,8 @@
 #include "params/RunaheadO3CPU.hh"
 #include "sim/core.hh"
 
+#include "debug/RunaheadIQrelease.hh"
+
 // clang complains about std::set being overloaded with Packet::set if
 // we open up the entire namespace std
 using std::list;
@@ -175,6 +177,10 @@ InstructionQueue::name() const
 
 InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
     : statistics::Group(cpu),
+    ADD_STAT(releaseRunaheadInst, statistics::units::Count::get(),
+             "Number of runahead instructions released in the IQ"),
+    ADD_STAT(release_during_Runahead, statistics::units::Count::get(),
+             "Number of instructions released in the IQ during runahead"),
     ADD_STAT(instsAdded, statistics::units::Count::get(),
              "Number of instructions added to the IQ (excludes non-spec)"),
     ADD_STAT(nonSpecInstsAdded, statistics::units::Count::get(),
@@ -215,6 +221,11 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
                 statistics::units::Count, statistics::units::Count>::get(),
              "FU busy rate (busy events/executed inst)")
 {
+    releaseRunaheadInst
+        .prereq(releaseRunaheadInst);
+    release_during_Runahead
+        .prereq(release_during_Runahead);
+
     instsAdded
         .prereq(instsAdded);
 
@@ -573,10 +584,18 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
 
     assert(freeEntries != 0);
 
+    // should be invalid before adding to the iq
+    // an inst should only be first added to iq, then send to commit stage, and finally might be invalidated
+    // if (new_inst->hasbeenInvalid())
+    //     printf("\ninst %d has been invalidated once it is added to the iq. whyyyyyy????\n", new_inst->seqNum);
+    // assert(!new_inst->hasbeenInvalid());
+    // the reason is that the inst is forwarded to commit from rename
+
     instList[new_inst->threadNumber].push_back(new_inst);
 
     --freeEntries;
-
+    // DPRINTF(RunaheadIQrelease, "\ninst %d takes one iq entry\n", new_inst->seqNum);
+    assert(!new_inst->isInIQ());
     new_inst->setInIQ();
 
     // Look through its source registers (physical regs), and mark any
@@ -624,9 +643,10 @@ InstructionQueue::insertNonSpec(const DynInstPtr &new_inst)
     assert(freeEntries != 0);
 
     instList[new_inst->threadNumber].push_back(new_inst);
-
+    // printf("\ninst %d takes one iq entry\n", new_inst->seqNum);
     --freeEntries;
-
+    assert(!new_inst->isInIQ());
+    assert(!new_inst->isInIQ());
     new_inst->setInIQ();
 
     // Have this instruction set itself as the producer of its destination
@@ -884,6 +904,7 @@ InstructionQueue::scheduleReadyInsts()
             if (!issuing_inst->isMemRef()) {
                 // Memory instructions can not be freed from the IQ until they
                 // complete.
+                assert(issuing_inst->isInIQ());
                 ++freeEntries;
                 count[tid]--;
                 issuing_inst->clearInIQ();
@@ -952,6 +973,10 @@ InstructionQueue::commit(const InstSeqNum &inst, ThreadID tid)
     while (iq_it != instList[tid].end() &&
            (*iq_it)->seqNum <= inst) {
         ++iq_it;
+        // if (instList[tid].front()->isRunaheadInst())
+        //     iqStats.releaseRunaheadInst++;
+        // if (cpu->isInRunaheadMode())
+        //     iqStats.release_during_Runahead++;
         instList[tid].pop_front();
     }
 
@@ -987,10 +1012,13 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
         DPRINTF(RunaheadIQ, "Completing mem instruction PC: %s [sn:%llu]\n",
             completed_inst->pcState(), completed_inst->seqNum);
-
-        ++freeEntries;
+        if (completed_inst->hasbeenInvalid())
+            printf("invalid memory inst %d gets returned\n", completed_inst->seqNum);
         completed_inst->memOpDone(true);
+        assert(completed_inst->isInIQ());
+        ++freeEntries;
         count[tid]--;
+        completed_inst->clearInIQ();
     } else if (completed_inst->isReadBarrier() ||
                completed_inst->isWriteBarrier()) {
         // Completes a non mem ref barrier
@@ -1164,6 +1192,8 @@ InstructionQueue::violation(const DynInstPtr &store,
 void
 InstructionQueue::squash(ThreadID tid)
 {
+    if (cpu->isInRunaheadMode())
+        DPRINTF(RunaheadIQrelease, "\nstart squashing iq during runahead mode\n");
     DPRINTF(RunaheadIQ, "[tid:%i] Starting to squash instructions in "
             "the IQ.\n", tid);
 
@@ -1175,6 +1205,8 @@ InstructionQueue::squash(ThreadID tid)
 
     // Also tell the memory dependence unit to squash.
     memDepUnit[tid].squash(squashedSeqNum[tid], tid);
+    if (cpu->isInRunaheadMode())
+        assert(freeEntries <= numEntries);
 }
 
 void
@@ -1287,12 +1319,16 @@ InstructionQueue::doSquash(ThreadID tid)
             // inst will flow through the rest of the pipeline.
             squashed_inst->setIssued();
             squashed_inst->setCanCommit();
-            squashed_inst->clearInIQ();
+            if (squashed_inst->isInIQ()) {
+                squashed_inst->clearInIQ();
 
-            //Update Thread IQ Count
-            count[squashed_inst->threadNumber]--;
+                //Update Thread IQ Count
+                count[squashed_inst->threadNumber]--;
 
-            ++freeEntries;
+                ++freeEntries;
+            } else {
+                DPRINTF(RunaheadIQrelease, "inst %d has already been released during runahead mode\n", squashed_inst->seqNum);
+            }
         }
 
         // IQ clears out the heads of the dependency graph only when
@@ -1414,6 +1450,28 @@ InstructionQueue::addIfReady(const DynInstPtr &inst)
     // If the instruction now has all of its source registers
     // available, then add it to the list of ready instructions.
     if (inst->readyToIssue()) {
+        // if (inst->isRunaheadInst())
+        //     iqStats.releaseRunaheadInst++;
+        // if (cpu->isInRunaheadMode())
+        //     iqStats.release_during_Runahead++;
+        // if (cpu->isInRunaheadMode()) 
+        // {
+        //     printf("aaa\n");
+        //     iqStats.releaseRunaheadInst++;
+        // }
+        // if (cpu->isInRunaheadMode() && inst->isInvalid() && inst != cpu->raTriggerInst)
+        // {
+        //     iqStats.release_during_Runahead++;
+        //     printf("bbb\n");
+        // }
+        // std::ostringstream str;
+        // if (cpu->isInRunaheadMode() && inst->hasbeenInvalid() && inst != cpu->raTriggerInst)
+        //     {printf("\naaa seq = %d\n", inst->seqNum);inst->printDestRegs(std::cout);inst->printSrcRegs(std::cout);}
+        // else if (cpu->isInRunaheadMode() && inst->hasbeenInvalid())
+        //     {printf("\nbbb seq = %d\n", inst->seqNum);inst->printDestRegs(std::cout);inst->printSrcRegs(std::cout);}
+        // else if (cpu->isInRunaheadMode())
+        //     {printf("\nccc seq = %d\n", inst->seqNum);inst->printDestRegs(std::cout);inst->printSrcRegs(std::cout);}
+        // std::cout << str.str() << std::endl;
 
         //Add the instruction to the proper ready list.
         if (inst->isMemRef()) {

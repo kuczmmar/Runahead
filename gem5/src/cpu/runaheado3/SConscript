@@ -72,6 +72,8 @@ if 'RunaheadO3CPU' in env['CPU_MODELS']:
     DebugFlag('RunaheadCommit')
     DebugFlag('RunaheadFetch')
 
+    DebugFlag('RunaheadIQrelease')
+
     CompoundFlag('RunaheadO3CPUAll', [ 'Fetch', 'Decode', 'RunaheadRename', 'RunaheadIEW', 'Commit',
         'RunaheadIQ', 'RunaheadROB', 'FreeList', 'RunaheadLSQ', 'RunaheadLSQUnit', 'RunaheadStoreSet', 'RunaheadMemDepUnit',
         'DynInst', 'RunaheadO3CPU', 'Activity', 'RunaheadScoreboard', 'RunaheadWriteback' ])

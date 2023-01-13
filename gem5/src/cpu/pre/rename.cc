@@ -125,6 +125,8 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
                "Number of times rename has blocked due to SQ full"),
       ADD_STAT(fullRegistersEvents, statistics::units::Count::get(),
                "Number of times there has been no free registers"),
+      ADD_STAT(fullPRDQEvents, statistics::units::Count::get(),
+               "Number of times there has been no free PRDQ entries"),
       ADD_STAT(renamedOperands, statistics::units::Count::get(),
                "Number of destination operands rename has renamed"),
       ADD_STAT(lookups, statistics::units::Count::get(),
@@ -163,6 +165,7 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
     LQFullEvents.prereq(LQFullEvents);
     SQFullEvents.prereq(SQFullEvents);
     fullRegistersEvents.prereq(fullRegistersEvents);
+    fullPRDQEvents.prereq(fullPRDQEvents);
 
     renamedOperands.prereq(renamedOperands);
     lookups.prereq(lookups);
@@ -449,11 +452,15 @@ Rename::tick()
         assert(instsInProgress[tid] >=0);
     }
 
-    // Remove entries from PRDQ in program order
-    // TODO can we remove as many as possible?
-    // or should there be a limit?
-    // PRDQ todo
-    while (prdqRetireEntry()) ;
+    threads = activeThreads->begin();
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        // Remove entries from PRDQ in program order
+        // TODO can we remove as many as possible?
+        // or should there be a limit?
+        // PRDQ todo
+        while (prdqRetireEntry(tid)) ;
+    }
 }
 
 void
@@ -682,27 +689,53 @@ Rename::renameInsts(ThreadID tid)
 
         // Check here to make sure there are enough destination registers
         // to rename to.  Otherwise block.
-        if (!renameMap[tid]->canRename(inst->numIntDestRegs(),
+        bool canrename = renameMap[tid]->canRename(inst->numIntDestRegs(),
                                        inst->numFPDestRegs(),
                                        inst->numVecDestRegs(),
                                        inst->numVecElemDestRegs(),
                                        inst->numVecPredDestRegs(),
-                                       inst->numCCDestRegs())) {
-            DPRINTF(PreRename,
-                    "Blocking due to "
-                    " lack of free physical registers to rename to.\n");
-            blockThisCycle = true;
-            insts_to_rename.push_front(inst);
+                                       inst->numCCDestRegs());
+        if (!canrename) {
             ++stats.fullRegistersEvents;
-            if (cpu->isInPreMode() && !prdq.empty()) {
+            if (cpu->isInPreMode()) {
                 DPRINTF(PreDebug, 
-                    "Regs full event, can retire entry: %d\n", prdq.front()->executed);
-            } else if (!cpu->isInPreMode()) {
+                    "Regs full event in PRE.\n");
+            } else {
                 DPRINTF(PreDebug, "Regs full event not in PRE!\n");
             }
+        }
+        bool isprdqfull = inst->isRunaheadInst() && (prdq.size() == prdqMaxSize);
+        if (isprdqfull) {
+            ++stats.fullPRDQEvents;
+            DPRINTF(PreDebug, "prdq full event\n");
+        }
 
+        if(!canrename || isprdqfull) {
+            blockThisCycle = true;
+            insts_to_rename.push_front(inst);
             break;
         }
+        // if (!renameMap[tid]->canRename(inst->numIntDestRegs(),
+        //                                inst->numFPDestRegs(),
+        //                                inst->numVecDestRegs(),
+        //                                inst->numVecElemDestRegs(),
+        //                                inst->numVecPredDestRegs(),
+        //                                inst->numCCDestRegs())) {
+        //     DPRINTF(PreRename,
+        //             "Blocking due to "
+        //             " lack of free physical registers to rename to.\n");
+        //     blockThisCycle = true;
+        //     insts_to_rename.push_front(inst);
+        //     ++stats.fullRegistersEvents;
+        //     if (cpu->isInPreMode() && !prdq.empty()) {
+        //         DPRINTF(PreDebug, 
+        //             "Regs full event, can retire entry: %d\n", prdq.front()->executed);
+        //     } else if (!cpu->isInPreMode()) {
+        //         DPRINTF(PreDebug, "Regs full event not in PRE!\n");
+        //     }
+
+        //     break;
+        // }
 
         // Handle serializeAfter/serializeBefore instructions.
         // serializeAfter marks the next instruction as serializeBefore.
@@ -962,13 +995,13 @@ Rename::doSquash(const InstSeqNum &squashed_seq_num, ThreadID tid)
         newPhysReg = hb_it->newPhysReg;
 
         if (newPhysReg->renamedInPreMode){
-            DPRINTF(PreDebug, "renamedInPRE: Removing history entry with sequence "
-                    "number %i (archReg: %d, newPhysReg: %d, prevPhysReg: %d).\n", 
+            DPRINTF(PreDebug, "renamedInPRE: Removing history entry with sn:"
+                    "%i (archReg: %d, newPhysReg: %d, prevPhysReg: %d).\n", 
                     hb_it->instSeqNum, hb_it->archReg.index(),
                     newPhysReg->index(), hb_it->prevPhysReg->index());
         } else {
-            DPRINTF(PreRename, "[tid:%i] Removing history entry with sequence "
-                "number %i (archReg: %d, newPhysReg: %d, prevPhysReg: %d).\n",
+            DPRINTF(PreRename, "[tid:%i] Removing history entry with sn:"
+                "%i (archReg: %d, newPhysReg: %d, prevPhysReg: %d).\n",
                 tid, hb_it->instSeqNum, hb_it->archReg.index(),
                 newPhysReg->index(), hb_it->prevPhysReg->index());
         }
@@ -984,20 +1017,22 @@ Rename::doSquash(const InstSeqNum &squashed_seq_num, ThreadID tid)
             // previous physical register that it was renamed to.
             renameMap[tid]->setEntry(hb_it->archReg, hb_it->prevPhysReg);
 
-            DPRINTF(PreRename, "Squash: Freeing up rename of physical reg %i (%s), "
+            DPRINTF(PreRename, "Squash: Freeing up rename of physical reg %i (%s) (%i), "
                     "[sn:%llu] renamed in PRE: %d, wasFreed %d.\n",
                     newPhysReg->index(), newPhysReg->className(),
+                    newPhysReg->flatIndex(),
                     hb_it->instSeqNum, newPhysReg->renamedInPreMode, 
                     newPhysReg->wasFreed);
 
             // Put the renamed physical register back on the free list.
             // Only do that if the register wasn't recently freed in PRE.
             if (!newPhysReg->wasFreed){
-                freeList->addReg(newPhysReg);
-                DPRINTF(PreRename,"Squash sn: %llu Freeing register %i (%s)"
+                DPRINTF(PreRename,"Squash sn:%llu Freeing physical reg %i (%s) (%i)"
                     "\n", hb_it->instSeqNum, newPhysReg->index(), 
-                    newPhysReg->className());
+                    newPhysReg->className(),
+                    newPhysReg->flatIndex());
                 newPhysReg->freeSetRegFlags();
+                freeList->addReg(newPhysReg);
             } else {
                 DPRINTF(PreRename, "Avoided freeing reg twice\n");
             }
@@ -1048,9 +1083,9 @@ Rename::removeFromHistory(InstSeqNum inst_seq_num, ThreadID tid)
            hb_it->instSeqNum <= inst_seq_num) {
 
         DPRINTF(PreRename, "[tid:%i] removeFromHistory: Freeing up older "
-                "rename of physical reg %i (%s), [sn:%llu].\n", 
+                "rename of physical reg %i (%s) (%i), [sn:%llu].\n", 
                 tid, hb_it->prevPhysReg->index(),
-                hb_it->prevPhysReg->className(), hb_it->instSeqNum);
+                hb_it->prevPhysReg->className(), hb_it->prevPhysReg->flatIndex(), hb_it->instSeqNum);
 
         panic_if(hb_it->prevPhysReg->wasFreed, "removeFromHistory phys reg %i was freed sn: %llu\n", hb_it->prevPhysReg->index(), hb_it->instSeqNum);
 
@@ -1058,10 +1093,10 @@ Rename::removeFromHistory(InstSeqNum inst_seq_num, ThreadID tid)
         // can be recognized because the new mapping is the same as
         // the old one.
         if (hb_it->newPhysReg != hb_it->prevPhysReg) {
-            freeList->addReg(hb_it->prevPhysReg);
             DPRINTF(PreRename,"sn: %llu Freeing register %i (%s)"
                 "\n", hb_it->instSeqNum, hb_it->prevPhysReg->index(), hb_it->prevPhysReg->className());
             hb_it->prevPhysReg->freeSetRegFlags();
+            freeList->addReg(hb_it->prevPhysReg);
         }
 
         ++stats.committedMaps;
@@ -1173,11 +1208,12 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
 
 
         DPRINTF(PreRename, "[tid:%i] PRE:%d inst sn:%llu - "
-                "Renaming arch reg %i (%s) to physical reg %i (%i).\n",
+                "Renaming arch reg %i (%s) to physical reg %i (%i) (%s).\n",
                 tid, cpu->isInPreMode(), inst->seqNum,
                 dest_reg.index(), dest_reg.className(),
                 rename_result.first->index(),
-                rename_result.first->flatIndex());
+                rename_result.first->flatIndex(),
+                rename_result.first->className());
 
         // Record the rename information so that a history can be kept.
         RenameHistory hb_entry(inst->seqNum, flat_dest_regid,
@@ -1208,9 +1244,13 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
         historyBuffer[tid].push_front(hb_entry);
 
         DPRINTF(PreRename, "[tid:%i] [sn:%llu] "
-                "Adding instruction to history buffer (size=%i).\n",
+                "Adding instruction to history buffer (size=%i), new physical reg %i (%i), old physical reg %i (%i).\n",
                 tid,(*historyBuffer[tid].begin()).instSeqNum,
-                historyBuffer[tid].size());
+                historyBuffer[tid].size(),
+                rename_result.first->index(),
+                rename_result.first->flatIndex(),
+                rename_result.second->index(),
+                rename_result.second->flatIndex());
 
         // Tell the instruction to rename the appropriate destination
         // register (dest_idx) to the new physical register
@@ -1542,7 +1582,7 @@ Rename::prdqMarkInstExecuted(const DynInstPtr &inst)
 }
 
 bool 
-Rename::prdqRetireEntry()
+Rename::prdqRetireEntry(ThreadID tid)
 {
     if (!cpu->useRRR) return false;
 
@@ -1552,13 +1592,18 @@ Rename::prdqRetireEntry()
     }
 
     InstSeqNum sn_to_retire = prdq.front()->instId;
+
+    if (sn_to_retire < cpu->readTailInst(tid)->seqNum)
+        panic("prdq about to free inst that is about to commit...\n");
     int retired = 0;
 
     while ( !prdq.empty() &&
             prdq.front()->executed && 
-            prdq.front()->instId == sn_to_retire) {    
-        DPRINTF(PrePRDQ, "Remove PRDQ entry reg:%llu\n", 
-                prdq.front()->physRegToFree->index());
+            prdq.front()->instId == sn_to_retire) {
+        DPRINTF(PrePRDQ, "Current rob tail seqnum:%llu\n", 
+                cpu->readTailInst(tid)->seqNum);
+        DPRINTF(PrePRDQ, "Remove PRDQ entry reg:%llu sn:%llu\n", 
+                prdq.front()->physRegToFree->index(), prdq.front()->instId);
         ++cpu->cpuStats.prdqEntriesRecycled;
         ++retired;
         prdq.pop_front();
@@ -1583,13 +1628,13 @@ Rename::prdqRetireEntry()
                 } else if (hb_it->newPhysReg != hb_it->prevPhysReg && !hb_it->prevPhysReg->wasFreed){
                     // Don't free special phys regs like misc and zero regs, which can
                     // be recognized because the new mapping is the same as the old one.
-                    DPRINTF(PrePRDQ, "PRDQ: Freeing up an older rename of physical reg %i (%s), "
+                    DPRINTF(PrePRDQ, "PRDQ: Freeing up an older rename of physical reg %i (%s) (%i), "
                             "[sn:%llu].\n", hb_it->prevPhysReg->index(),
-                            hb_it->prevPhysReg->className(), hb_it->instSeqNum);
-                    freeList->addReg(hb_it->prevPhysReg);
-            DPRINTF(PreRename,"sn: %llu Freeing register %i (%s)"
-                "\n", hb_it->instSeqNum, hb_it->prevPhysReg->index(), hb_it->prevPhysReg->className());
+                            hb_it->prevPhysReg->className(), hb_it->prevPhysReg->flatIndex(), hb_it->instSeqNum);
+                    DPRINTF(PreRename,"sn:%llu Freeing physical reg %i (%s) (%i)"
+                        "\n", hb_it->instSeqNum, hb_it->prevPhysReg->index(), hb_it->prevPhysReg->className(), hb_it->prevPhysReg->flatIndex());
                     hb_it->prevPhysReg->freeSetRegFlags();
+                    freeList->addReg(hb_it->prevPhysReg);
                     ++cpu->cpuStats.preRegsFreed;
                     // historyBuffer[tid].erase(hb_it--);
                 } else if (hb_it->newPhysReg != hb_it->prevPhysReg &&    
@@ -1613,16 +1658,24 @@ Rename::prdqRetireEntry()
 
 void
 Rename::prdqAddEntry(const DynInstPtr &inst, const PhysRegIdPtr &old_reg)
-{   
+{
     if (!cpu->useRRR) return;
 
+    if (prdq.size() == prdqMaxSize) {
+        DPRINTF(PrePRDQ, "PRDQ full sn:%llu\n", inst->seqNum);
+        // return;
+        prdq.pop_front();
+    }
+
+    DPRINTF(PrePRDQ, "Add PRDQ entry sn:%llu, PRDQ size = %i\n", inst->seqNum, prdq.size()+1);
+
     // panic_if(prdq.size() > prdqMaxSize, "PRDQ size exceeded");
-    DPRINTF(PrePRDQ, "Add PRDQ entry sn:%llu\n", inst->seqNum);
     prdqEntryPtr entry(new prdqEntry);
     entry->physRegToFree = old_reg;
     entry->instId = inst->seqNum;
     entry->executed = false;
-
+    
+    assert(prdq.size() < prdqMaxSize);
     prdq.push_back(entry);
 }
 

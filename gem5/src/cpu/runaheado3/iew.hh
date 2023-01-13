@@ -457,6 +457,9 @@ class IEW
          *  execute. */
         statistics::Formula branchMispredicts;
 
+        /** Stat for number of times the IQ becomes full. */
+        statistics::Scalar iqFullEvents_ra;
+
         struct ExecutedInstStats : public statistics::Group
         {
             ExecutedInstStats(CPU *cpu);

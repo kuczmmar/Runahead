@@ -71,6 +71,8 @@
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
 
+#include "debug/RunaheadIQrelease.hh"
+
 namespace gem5
 {
 
@@ -1044,7 +1046,7 @@ Commit::commitInsts()
          * - head_inst was squashed (the same as in normal mode)
         */
         if (cpu->isInRunaheadMode() || head_inst->isRunaheadInst()) {
-
+            // assert(!head_inst->isInIQ());
             if (head_inst->missedInL2() || head_inst->isStore()) {
                 DPRINTF(RunaheadDebug, "Mark sn:%d INV due to miss or is store \n", head_inst->seqNum);
                 head_inst->setInvalid();
@@ -1070,13 +1072,18 @@ Commit::commitInsts()
                 ++num_committed;
 
                 // set INV bits since the instruction does not actually commit
-                head_inst->invalidateDestRegs();
+                // head_inst->invalidateDestRegs();
 
             } else {
                 // don't commit anything if the head is not ready
                 break;
             }
 
+            // here this instruction is gonna be released in rob, but it should be released in iq first
+            if (head_inst->isInIQ() && head_inst->isRunaheadInst() && head_inst->hasbeenInvalid() && !head_inst->isMemRef()) {
+                DPRINTF(RunaheadIQrelease, "\ninst %d should be released in iq now\n", head_inst->seqNum);
+                (toIEW->releaseAfterInvalidInst)[tid].push(head_inst);
+            }
             rob->retireHead(commit_thread);
 
             // TODO: Is this needed?
@@ -1114,6 +1121,10 @@ Commit::commitInsts()
             bool commit_success = commitHead(head_inst, num_committed);
 
             if (commit_success) {
+                assert(!head_inst->isInIQ());
+                if (head_inst->isInIQ())
+                    DPRINTF(RunaheadIQrelease, "\nsomething went wrong during normal mode since mode since inst %d shouldn't in iq anymore\n", head_inst->seqNum);
+
                 ++num_committed;
                 stats.committedInstType[tid][head_inst->opClass()]++;
                 ppCommit->notify(head_inst);

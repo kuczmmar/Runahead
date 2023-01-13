@@ -124,6 +124,7 @@ CPU::CPU(const PreO3CPUParams &params)
       lastRunningCycle(curCycle()),
       cpuStats(this),
       useSST(params.sst_enabled),
+      sstMaxSize(params.sstEntries),
       useRRR(params.rrr_enabled),
       exitPreWhenSquash(params.exit_PRE_when_squash)
 {
@@ -488,6 +489,8 @@ CPU::CPUStats::CPUStats(CPU *cpu)
                 totalDecodedRA / enterRA),
       ADD_STAT(sstHitsPRE, statistics::units::Count::get(),
                "Number of hits in stalling slice table during PRE"),
+      ADD_STAT(addToSST, statistics::units::Count::get(),
+               "Number of instructions added to SST"),
       ADD_STAT(iqFullRa, statistics::units::Count::get(), 
                 "Number of IQ full events during RA"),
       ADD_STAT(prdqEntriesRecycled, statistics::units::Count::get(),
@@ -599,6 +602,7 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     totalExecutedPRE.prereq(totalExecutedPRE);
     executedPREAvg.precision(3);
     sstHitsPRE.prereq(sstHitsPRE);
+    addToSST.prereq(addToSST);
     iqFullRa.prereq(iqFullRa);
     prdqEntriesRecycled.prereq(prdqEntriesRecycled);
     preRegsFreed.prereq(preRegsFreed);
@@ -1885,6 +1889,7 @@ void
 CPU::enterPreMode(DynInstPtr inst, ThreadID tid)
 {
     if (_inPre) return;
+    // std::cout << "enter pre\n";
 
     DPRINTF_NO_LOG(PreEnter, "\nEnter runahead mode!\n");
     DPRINTF_NO_LOG(PreEnter, "   ROB head sn: %lu, addr: %#lx"
@@ -1922,6 +1927,7 @@ CPU::enterPreMode(DynInstPtr inst, ThreadID tid)
 void 
 CPU::exitPreMode()
 {
+    // std::cout << "exit runahead" << std::endl;
     assert(_inPre);
     _inPre = false;
     DPRINTF(PreEnter, "Exit runahead mode!\n");
@@ -1948,9 +1954,38 @@ CPU::exitPreMode()
 }
 
 bool 
-CPU::isInSST(Addr pc)
+CPU::isInSST(Addr pc, bool update)
 {
-    return (sst.find(pc) != sst.end());
+    // std::cout << "start finding" << std::endl;
+    if (sst.empty())
+        return false;
+    auto iter = std::find(sst.begin(), sst.end(), pc);
+    bool isin = iter != sst.end();
+    // if (isin)
+    //     std::cout << "found one" << std::endl;
+    if (isin && update) {
+        // std::cout << "start erase" << std::endl;
+        sst.erase(iter);
+        // std::cout << "start push" << std::endl;
+        sst.push_back(pc);
+    }
+    // std::cout << "finish" << std::endl;
+    return isin;
+}
+
+void
+CPU::addToSST(Addr pc)
+{
+    ++cpuStats.addToSST;
+    // simulate unlimited sst capacity here
+    if (sstMaxSize != -1 && sst.size() == sstMaxSize)
+        sst.erase(sst.begin());
+    else
+        assert(sst.size() < sstMaxSize);
+    // std::cout << "before push back\n";
+    sst.push_back(pc);
+    // std::cout << "after push back\n";
+
 }
 
 void 
@@ -1966,6 +2001,12 @@ CPU::printPipeline() {
 
     DPRINTF(PrePipelineDebug, "\nInsts in ROB:\n");
     rob.debugPrintROB(false);
+}
+
+DynInstPtr
+CPU::readTailInst(ThreadID tid)
+{
+    return rob.readTailInst(tid);
 }
 
 } // namespace pre

@@ -573,7 +573,7 @@ ROB::debugPrintROB() {
                 flags += (inst->isSquashed() ? "s" : "");
                 flags += (inst->isRunaheadInst() ? "r" : "");
                 flags += (inst->readyToCommit() ? "c" : "");
-                flags += (inst->isInvalid() ? "i" : "");
+                flags += (inst->hasbeenInvalid() ? "i" : "");
                 flags += (inst->missedInL2() ? "m" : "");
                 DPRINTF_NO_LOG(RunaheadROB, "%4ld[%4s] ", inst->seqNum, flags.c_str());
             }

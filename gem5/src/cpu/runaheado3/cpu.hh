@@ -718,6 +718,8 @@ class CPU : public BaseCPU
         statistics::Scalar maxAtRobHd;
         statistics::Scalar totalDecodedRA;
         statistics::Formula decodedAvgRA;
+
+        statistics::Scalar iqfull_whenenterra;
     } cpuStats;
 
     // hardware transactional memory
@@ -725,19 +727,20 @@ class CPU : public BaseCPU
                             HtmFailureFaultCause cause);
 
   /** Runahead support */ 
+  public:
+    DynInstPtr raTriggerInst;
   private:
     bool _inRunahead = false;
-    DynInstPtr raTriggerInst;
     ThreadID ra_tid;
 
-    struct RunaheadCheckpoint
-    {
-      // the commit PC state of each thread
-      TheISA::PCState pc[MaxThreads];
-      // Pointers to a copy of the architectural register file
-      // this is a copy of the commitRenameMap
-      std::unique_ptr<UnifiedRenameMap> renameMaps[MaxThreads];
-    } raCheckpt;
+    // struct RunaheadCheckpoint
+    // {
+    //   // the commit PC state of each thread
+    //   TheISA::PCState pc[MaxThreads];
+    //   // Pointers to a copy of the architectural register file
+    //   // this is a copy of the commitRenameMap
+    //   std::unique_ptr<UnifiedRenameMap> renameMaps[MaxThreads];
+    // } raCheckpt;
   
   public:
     void enterRunaheadMode(DynInstPtr inst, ThreadID tid);
